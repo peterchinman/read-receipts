@@ -69,14 +69,13 @@ function handleRouteChange() {
 	const route = router.getCurrentRoute();
 	const params = router.getParams();
 
-	// Show/hide header based on route
+	// Always show header and footer
 	if (header) {
-		header.style.display = route === 'create' ? 'none' : 'block';
+		header.style.display = 'block';
 	}
 
-	// Show/hide footer based on route
 	if (footer) {
-		footer.style.display = route === 'create' ? 'block' : 'none';
+		footer.style.display = 'block';
 	}
 
 	// Clear previous content

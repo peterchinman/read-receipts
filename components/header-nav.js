@@ -55,7 +55,6 @@ class HeaderNav extends HTMLElement {
 
 				.logo {
 					font-size: 20px;
-					font-weight: 700;
 					color: var(--color-text, #000);
 					text-decoration: none;
 				}
@@ -73,8 +72,6 @@ class HeaderNav extends HTMLElement {
 				a {
 					color: var(--color-text-secondary, #666);
 					text-decoration: none;
-					font-size: 15px;
-					font-weight: 500;
 					transition: color 0.2s;
 				}
 

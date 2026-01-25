@@ -147,17 +147,26 @@ body {
 	flex-direction: column;
 }
 
-/* ===== Layout & Responsive Behavior ===== */
+#root {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
 
 .app-container {
 	flex: 1 1 auto;
 	min-height: 0;
+	max-height: 100%;
 	display: grid;
 	grid-template-columns: 1fr;
+	grid-template-rows: 1fr;
+	overflow: hidden;
+	align-items: stretch;
 }
 
 footer {
-	display: none;
+	display: flex;
 	background: var(--color-header);
 	width: 100%;
 	flex: 0 0 auto;

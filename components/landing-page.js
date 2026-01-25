@@ -1,25 +1,47 @@
 // Landing Page Component
-// Grid of published pieces
+// List of published pieces styled as a thread list
 
 import { html } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import { config } from '../utils/config.js';
+import './thread-list-display.js';
 
 class LandingPage extends HTMLElement {
 	#shadow;
 	#pieces = [];
 	#loading = true;
 	#error = null;
+	#display = null;
 
 	constructor() {
 		super();
 		this.#shadow = this.attachShadow({ mode: 'open' });
+		this._onSelect = this._onSelect.bind(this);
 	}
 
 	connectedCallback() {
-		this.#render();
+		this.#shadow.innerHTML = html`
+			<style>
+				:host {
+					display: block;
+					height: 100%;
+					max-height: 100%;
+					min-height: 0;
+					overflow: hidden;
+				}
+			</style>
+			<thread-list-display header-title="Messages" show-header></thread-list-display>
+		`;
+
+		this.#display = this.#shadow.querySelector('thread-list-display');
+		this.#display?.addEventListener('thread-list:select', this._onSelect);
+		this.#renderList();
 		this.#loadPieces();
+	}
+
+	disconnectedCallback() {
+		this.#display?.removeEventListener('thread-list:select', this._onSelect);
 	}
 
 	async #loadPieces() {
@@ -27,147 +49,50 @@ class LandingPage extends HTMLElement {
 			const response = await apiClient.getPublishedPieces();
 			this.#pieces = response.data || [];
 			this.#loading = false;
-			this.#render();
+			this.#renderList();
 		} catch (error) {
 			this.#error = error.message || 'Failed to load pieces';
 			this.#loading = false;
-			this.#render();
+			this.#renderList();
 		}
 	}
 
-	#render() {
-		this.#shadow.innerHTML = html`
-			<style>
-				:host {
-					display: block;
-					padding: 20px;
-					max-width: 1200px;
-					margin: 0 auto;
-				}
+	#renderList() {
+		if (!this.#display) return;
 
-				.header {
-					text-align: center;
-					margin-bottom: 40px;
-				}
+		if (this.#loading) {
+			this.#display.setEmptyState('Loading pieces...', '');
+			this.#display.setThreads([]);
+			return;
+		}
 
-				h1 {
-					font-size: 32px;
-					font-weight: 700;
-					margin: 0 0 8px;
-					color: var(--color-text, #000);
-				}
+		if (this.#error) {
+			this.#display.setEmptyState(this.#error, '');
+			this.#display.setThreads([]);
+			return;
+		}
 
-				.subtitle {
-					color: var(--color-text-secondary, #666);
-					font-size: 18px;
-					margin: 0;
-				}
-
-				.grid {
-					display: grid;
-					grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-					gap: 24px;
-				}
-
-				.piece-card {
-					background: var(--color-card-bg, #fff);
-					border-radius: 16px;
-					padding: 20px;
-					border: 1px solid var(--color-border, #e5e5e5);
-					cursor: pointer;
-					transition:
-						transform 0.2s,
-						box-shadow 0.2s;
-				}
-
-				.piece-card:hover {
-					transform: translateY(-2px);
-					box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-				}
-
-				.piece-title {
-					font-size: 18px;
-					font-weight: 600;
-					margin: 0 0 8px;
-					color: var(--color-text, #000);
-				}
-
-				.piece-author {
-					font-size: 14px;
-					color: var(--color-text-secondary, #666);
-					margin: 0 0 12px;
-				}
-
-				.piece-preview {
-					font-size: 14px;
-					color: var(--color-text-tertiary, #999);
-					line-height: 1.5;
-					display: -webkit-box;
-					-webkit-line-clamp: 3;
-					-webkit-box-orient: vertical;
-					overflow: hidden;
-				}
-
-				.loading,
-				.error,
-				.empty {
-					text-align: center;
-					padding: 40px;
-					color: var(--color-text-secondary, #666);
-				}
-
-				.error {
-					color: #ff3b30;
-				}
-			</style>
-
-			<div class="header">
-				<h1>${config.appName}</h1>
-				<p class="subtitle">Stories told through messages</p>
-			</div>
-
-			${this.#loading ? this.#renderLoading() : ''}
-			${this.#error ? this.#renderError() : ''}
-			${!this.#loading && !this.#error ? this.#renderPieces() : ''}
-		`;
-
-		this.#setupListeners();
-	}
-
-	#renderLoading() {
-		return html`<div class="loading">Loading pieces...</div>`;
-	}
-
-	#renderError() {
-		return html`<div class="error">${this.#error}</div>`;
-	}
-
-	#renderPieces() {
 		if (this.#pieces.length === 0) {
-			return html`<div class="empty">No pieces published yet.</div>`;
+			this.#display.setEmptyState('No pieces published yet.', '');
+			this.#display.setThreads([]);
+			return;
 		}
 
-		return html`
-			<div class="grid">
-				${this.#pieces
-					.map(
-						(piece) => html`
-							<div class="piece-card" data-id="${piece.id}">
-								<h2 class="piece-title">
-									${piece.name || 'Untitled'}
-								</h2>
-								<p class="piece-author">
-									by ${piece.author?.name || 'Anonymous'}
-								</p>
-								<p class="piece-preview">
-									${this.#getPreviewText(piece)}
-								</p>
-							</div>
-						`,
-					)
-					.join('')}
-			</div>
-		`;
+		const items = this.#pieces.map((piece) => {
+			const preview = this.#getPreviewText(piece);
+			const author = piece.author?.name ? String(piece.author.name) : '';
+			const previewText = author ? `${author} - ${preview}` : preview;
+			return {
+				id: piece.id,
+				name: piece.name || 'Untitled',
+				recipientName: piece.recipient_name || author || '',
+				preview: previewText,
+				time: this.#formatTime(piece.published_at),
+			};
+		});
+
+		this.#display.setThreads(items);
+		this.#display.setActiveId(null);
 	}
 
 	#getPreviewText(piece) {
@@ -175,16 +100,37 @@ class LandingPage extends HTMLElement {
 			return 'No messages';
 		}
 		const firstMessages = piece.messages.slice(0, 3);
-		return firstMessages.map((m) => m.message).join(' ');
+		return firstMessages.map((m) => m.message || '').join(' ').trim();
 	}
 
-	#setupListeners() {
-		this.#shadow.querySelectorAll('.piece-card').forEach((card) => {
-			card.addEventListener('click', () => {
-				const id = card.dataset.id;
-				router.navigate(`/piece/${id}`);
-			});
-		});
+	#formatTime(timestamp) {
+		if (!timestamp) return '';
+
+		const date = new Date(timestamp);
+		if (Number.isNaN(date.getTime())) return '';
+
+		const now = new Date();
+		const diffMs = now - date;
+		const diffMins = Math.floor(diffMs / (1000 * 60));
+		const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		if (diffHours < 24) return `${diffHours}h ago`;
+		if (diffDays === 1) return 'Yesterday';
+		if (diffDays < 7) return `${diffDays}d ago`;
+
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		return `${month}/${day}`;
+	}
+
+	_onSelect(e) {
+		const { id } = e.detail || {};
+		if (id) {
+			router.navigate(`/piece/${id}`);
+		}
 	}
 }
 

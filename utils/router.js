@@ -1,4 +1,4 @@
-// Simple path-based router for the literary journal
+// Simple path-based router
 
 class Router extends EventTarget {
 	#routes = [];
