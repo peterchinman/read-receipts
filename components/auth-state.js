@@ -2,8 +2,9 @@
 // Manages authentication state and user data
 
 import { apiClient } from '../utils/api-client.js';
+import { config } from '../utils/config.js';
 
-const AUTH_STATE_KEY = 'literary-journal:user';
+const AUTH_STATE_KEY = `${config.appName.toLowerCase().replace(/\s+/g, '-')}:user`;
 
 class AuthState extends EventTarget {
 	#user = null;

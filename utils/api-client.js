@@ -1,7 +1,9 @@
 // API Client for backend communication
 
+import { config } from './config.js';
+
 const API_BASE_URL = 'http://localhost:8000/api';
-const TOKEN_STORAGE_KEY = 'literary-journal:auth-token';
+const TOKEN_STORAGE_KEY = `${config.appName.toLowerCase().replace(/\s+/g, '-')}:auth-token`;
 
 class ApiClient {
 	#token = null;

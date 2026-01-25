@@ -2,5 +2,5 @@
 // Change these values to customize the app
 
 export const config = {
-	appName: 'Literary Journal',
+	appName: 'Read Receipts',
 };
