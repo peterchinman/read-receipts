@@ -8,8 +8,8 @@
 			,
 			interactive-widget="resizes-content"
 		/>
-		<meta name="description" content="Basic HTML/CSS/JS site skeleton" />
-		<title>Message Simulator</title>
+		<meta name="description" content="A distance simulator." />
+		<title>Literary Journal</title>
 
 		<!-- Fonts -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -70,18 +70,15 @@
 		<link rel="stylesheet" href="./styles.css" />
 	</head>
 	<body>
-		<main id="app" class="app-container">
-			<section class="pane pane--threads">
-				<thread-list></thread-list>
-			</section>
-			<section class="pane pane--editor">
-				<thread-editor></thread-editor>
-			</section>
-			<section class="pane pane--preview">
-				<thread-preview></thread-preview>
-			</section>
-		</main>
-		<footer class="footer">
+		<div id="root">
+			<!-- Header nav (shown on all pages except create) -->
+			<header-nav id="header"></header-nav>
+
+			<!-- Main content area - dynamically rendered by router -->
+			<main id="app"></main>
+		</div>
+
+		<footer class="footer" id="footer">
 			<p>
 				Made by
 				<a href="https://peterchinman.com" target="_blank">Peter Chinman</a>.
@@ -93,6 +90,14 @@
 				>.
 			</p>
 		</footer>
+
+		<!-- Component imports -->
+		<script type="module" src="./components/header-nav.js"></script>
+		<script type="module" src="./components/landing-page.js"></script>
+		<script type="module" src="./components/piece-view.js"></script>
+		<script type="module" src="./components/login-page.js"></script>
+		<script type="module" src="./components/auth-verify.js"></script>
+		<script type="module" src="./components/admin-dashboard.js"></script>
 		<script type="module" src="./components/thread-list.js"></script>
 		<script type="module" src="./components/thread-editor.js"></script>
 		<script type="module" src="./components/thread-preview.js"></script>

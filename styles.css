@@ -63,6 +63,18 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--color-drop-shadow: oklch(0 0 0 / 8%);
 	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
+
+	/* New component colors */
+	--color-text: var(--color-ink);
+	--color-text-secondary: var(--color-ink-subdued);
+	--color-text-tertiary: #999;
+	--color-primary: var(--color-bubble-self);
+	--color-border: var(--color-edge);
+	--color-card-bg: var(--color-page);
+	--color-input-bg: var(--color-page);
+	--color-nav-bg: var(--color-header);
+	--color-hover: #f5f5f5;
+	--color-messages-bg: #f5f5f5;
 }
 
 :root[data-theme='dark'] {
@@ -90,6 +102,18 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--color-drop-shadow: transparent;
 	--color-drop-shadow-intense: transparent;
+
+	/* New component colors - dark mode */
+	--color-text: var(--color-ink);
+	--color-text-secondary: var(--color-ink-subdued);
+	--color-text-tertiary: #666;
+	--color-primary: var(--color-bubble-self);
+	--color-border: var(--color-edge);
+	--color-card-bg: #1a1a1a;
+	--color-input-bg: #1a1a1a;
+	--color-nav-bg: var(--color-header);
+	--color-hover: #2a2a2a;
+	--color-messages-bg: #1a1a1a;
 }
 
 @media (min-width: 900px) {

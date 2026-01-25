@@ -1,5 +1,8 @@
-// Main application integration: mode switching, URL handling, navigation
+// Main application integration: routing, mode switching, URL handling, navigation
 import { store } from './components/store.js';
+import { router } from './utils/router.js';
+import { authState } from './components/auth-state.js';
+import { config } from './utils/config.js';
 import {
 	getCurrentThreadId,
 	setCurrentThreadId,
@@ -36,22 +39,132 @@ function setLastActiveThreadId(threadId) {
 }
 
 // Initialize the app
-function init() {
+async function init() {
+	// Set document title from config
+	document.title = config.appName;
+
+	// Initialize auth state
+	await authState.init();
+
+	// Initialize router
+	router.init();
+
+	// Listen for route changes
+	router.addEventListener('route:change', handleRouteChange);
+
+	// Trigger initial route
+	handleRouteChange();
+}
+
+/**
+ * Handle route changes and render the appropriate view
+ */
+function handleRouteChange() {
 	const appContainer = document.getElementById('app');
+	const header = document.getElementById('header');
+	const footer = document.getElementById('footer');
+
 	if (!appContainer) return;
+
+	const route = router.getCurrentRoute();
+	const params = router.getParams();
+
+	// Show/hide header based on route
+	if (header) {
+		header.style.display = route === 'create' ? 'none' : 'block';
+	}
+
+	// Show/hide footer based on route
+	if (footer) {
+		footer.style.display = route === 'create' ? 'block' : 'none';
+	}
+
+	// Clear previous content
+	appContainer.innerHTML = '';
+	appContainer.className = 'app-container';
+	appContainer.removeAttribute('data-mode');
+
+	switch (route) {
+		case 'home':
+			renderLandingPage(appContainer);
+			break;
+
+		case 'piece':
+			renderPieceView(appContainer, params.id);
+			break;
+
+		case 'create':
+			renderCreateView(appContainer);
+			break;
+
+		case 'login':
+			renderLoginPage(appContainer);
+			break;
+
+		case 'verify':
+			renderVerifyPage(appContainer, params.token);
+			break;
+
+		case 'admin':
+			renderAdminDashboard(appContainer);
+			break;
+
+		default:
+			// Unknown route - show landing page
+			renderLandingPage(appContainer);
+	}
+}
+
+function renderLandingPage(container) {
+	container.innerHTML = '<landing-page></landing-page>';
+}
+
+function renderPieceView(container, pieceId) {
+	container.innerHTML = `<piece-view piece-id="${pieceId}"></piece-view>`;
+}
+
+function renderLoginPage(container) {
+	container.innerHTML = '<login-page></login-page>';
+}
+
+function renderVerifyPage(container, token) {
+	container.innerHTML = `<auth-verify token="${token}"></auth-verify>`;
+}
+
+function renderAdminDashboard(container) {
+	if (!authState.isAdmin) {
+		router.navigate('/');
+		return;
+	}
+	container.innerHTML = '<admin-dashboard></admin-dashboard>';
+}
+
+function renderCreateView(container) {
+	// Render the editor view (original app)
+	container.innerHTML = `
+		<section class="pane pane--threads">
+			<thread-list></thread-list>
+		</section>
+		<section class="pane pane--editor">
+			<thread-editor></thread-editor>
+		</section>
+		<section class="pane pane--preview">
+			<thread-preview></thread-preview>
+		</section>
+	`;
 
 	// Load store
 	store.load();
 
-	// Set up URL-based thread loading
+	// Set up URL-based thread loading for create view
 	setupUrlThreadManagement();
 
 	// Set up mode switching for mobile/tablet/desktop
-	setupModeSwitching(appContainer);
+	setupModeSwitching(container);
 }
 
 /**
- * Handle URL-based thread navigation
+ * Handle URL-based thread navigation (for create view)
  */
 function setupUrlThreadManagement() {
 	// On initial load, check URL for thread ID
@@ -160,7 +273,7 @@ function setupModeSwitching(appContainer) {
 	};
 
 	// Handle navigation events from icon-arrow components
-	document.addEventListener('navigate', (e) => {
+	const handleNavigate = (e) => {
 		const { action } = e.detail;
 		const mode = ACTION_MAP[action];
 
@@ -173,7 +286,9 @@ function setupModeSwitching(appContainer) {
 			appContainer.setAttribute('data-mode', mode);
 		}
 		// Desktop (>=1200px): no mode needed, all panes visible
-	});
+	};
+
+	document.addEventListener('navigate', handleNavigate);
 
 	// Set initial mode based on viewport
 	const updateInitialMode = () => {

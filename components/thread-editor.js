@@ -4,6 +4,8 @@ import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
+import { authState } from './auth-state.js';
+import { apiClient } from '../utils/api-client.js';
 
 class ChatEditor extends HTMLElement {
 	constructor() {
@@ -128,6 +130,18 @@ class ChatEditor extends HTMLElement {
 					border-radius: 6px;
 					cursor: pointer;
 				}
+				button.submit-btn {
+					background: var(--color-bubble-self);
+					color: white;
+					border: none;
+				}
+				button.submit-btn:hover {
+					opacity: 0.9;
+				}
+				button.submit-btn:disabled {
+					opacity: 0.5;
+					cursor: not-allowed;
+				}
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
@@ -142,6 +156,9 @@ class ChatEditor extends HTMLElement {
 						Clear
 					</button>
 					<button id="toggle-theme" data-tooltip="Toggle theme">Theme</button>
+					<button id="submit-btn" class="submit-btn" data-tooltip="Submit for review" style="display: none;">
+						Submit
+					</button>
 					<icon-arrow
 						text="Preview"
 						action="show-preview"
@@ -296,6 +313,14 @@ class ChatEditor extends HTMLElement {
 			attributeFilter: ['data-theme'],
 		});
 
+		// Show/hide submit button based on auth state
+		this.#updateSubmitButtonVisibility();
+		authState.addEventListener('change', () => this.#updateSubmitButtonVisibility());
+
+		this.shadowRoot
+			.getElementById('submit-btn')
+			.addEventListener('click', this._onSubmit.bind(this));
+
 		this.shadowRoot
 			.getElementById('import-file')
 			.addEventListener('change', (e) => {
@@ -388,6 +413,56 @@ class ChatEditor extends HTMLElement {
 		const next = current === 'dark' ? 'light' : 'dark';
 		btn.textContent = next === 'dark' ? 'Dark' : 'Light';
 		btn.title = `Switch to ${next} theme`;
+	}
+
+	#updateSubmitButtonVisibility() {
+		const btn = this.shadowRoot && this.shadowRoot.getElementById('submit-btn');
+		if (!btn) return;
+		btn.style.display = authState.isAuthenticated ? 'block' : 'none';
+	}
+
+	async _onSubmit() {
+		const btn = this.shadowRoot.getElementById('submit-btn');
+		if (!btn || btn.disabled) return;
+
+		const currentThread = store.getCurrentThread();
+		if (!currentThread) {
+			alert('No thread selected');
+			return;
+		}
+
+		if (!confirm('Submit this piece for review? You will be notified by email when it is reviewed.')) {
+			return;
+		}
+
+		btn.disabled = true;
+		btn.textContent = 'Submitting...';
+
+		try {
+			// First, sync the thread to the server
+			const threadData = {
+				name: currentThread.name,
+				recipient_name: currentThread.recipient?.name,
+				recipient_location: currentThread.recipient?.location,
+				messages: currentThread.messages.map((m, i) => ({
+					sender: m.sender,
+					message: m.message,
+					timestamp: m.timestamp,
+				})),
+			};
+
+			const serverThread = await apiClient.createThread(threadData);
+
+			// Then submit it
+			await apiClient.submitThread(serverThread.id);
+
+			alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
+			btn.textContent = 'Submitted';
+		} catch (error) {
+			alert('Failed to submit: ' + (error.message || 'Unknown error'));
+			btn.disabled = false;
+			btn.textContent = 'Submit';
+		}
 	}
 
 	_onStoreChange(e) {
