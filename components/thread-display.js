@@ -61,7 +61,7 @@ class ThreadDisplay extends HTMLElement {
 
 		if (!this._inputObserver && this.$?.bottom) {
 			this._inputObserver = new ResizeObserver((entries) => {
-				for (let entry of entries) {
+				for (const entry of entries) {
 					const height = entry.target.getBoundingClientRect().height;
 					const isNearBottom = this.#isNearBottom();
 					this.$.messageList.style.setProperty(
@@ -78,7 +78,7 @@ class ThreadDisplay extends HTMLElement {
 
 		if (!this._headerObserver && this.$?.header) {
 			this._headerObserver = new ResizeObserver((entries) => {
-				for (let entry of entries) {
+				for (const entry of entries) {
 					const height = entry.target.getBoundingClientRect().height;
 					this.$.messageList.style.setProperty(
 						'--preview-header-height',

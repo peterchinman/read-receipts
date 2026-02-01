@@ -37,7 +37,7 @@ Then restart `php artisan serve`.
 **Terminal 2 - Frontend:**
 
 ```bash
-npx live-server --port=3000
+npx live-server --port=3000 --entry-file=index.html
 ```
 
 Then visit `http://localhost:3000` in your browser.
