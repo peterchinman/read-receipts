@@ -156,7 +156,7 @@ class ChatEditor extends HTMLElement {
 						Clear
 					</button>
 					<button id="toggle-theme" data-tooltip="Toggle theme">Theme</button>
-					<button id="submit-btn" class="submit-btn" data-tooltip="Submit for review" style="display: none;">
+					<button id="submit-btn" class="submit-btn" data-tooltip="Submit for review">
 						Submit
 					</button>
 					<icon-arrow
@@ -313,10 +313,6 @@ class ChatEditor extends HTMLElement {
 			attributeFilter: ['data-theme'],
 		});
 
-		// Show/hide submit button based on auth state
-		this.#updateSubmitButtonVisibility();
-		authState.addEventListener('change', () => this.#updateSubmitButtonVisibility());
-
 		this.shadowRoot
 			.getElementById('submit-btn')
 			.addEventListener('click', this._onSubmit.bind(this));
@@ -347,6 +343,10 @@ class ChatEditor extends HTMLElement {
 		this.#syncRecipientInputs(store.getRecipient());
 		this.#render(store.getMessages());
 		initTooltips(this.shadowRoot, this);
+
+		// Auto-submit if returning from magic link verification
+		this.#checkPendingSubmission();
+		authState.addEventListener('change', () => this.#checkPendingSubmission());
 	}
 
 	disconnectedCallback() {
@@ -416,12 +416,6 @@ class ChatEditor extends HTMLElement {
 		btn.title = `Switch to ${next} theme`;
 	}
 
-	#updateSubmitButtonVisibility() {
-		const btn = this.shadowRoot && this.shadowRoot.getElementById('submit-btn');
-		if (!btn) return;
-		btn.style.display = authState.isAuthenticated ? 'block' : 'none';
-	}
-
 	async _onSubmit() {
 		const btn = this.shadowRoot.getElementById('submit-btn');
 		if (!btn || btn.disabled) return;
@@ -432,31 +426,48 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
-		if (!confirm('Submit this piece for review? You will be notified by email when it is reviewed.')) {
-			return;
+		if (authState.isAuthenticated) {
+			btn.disabled = true;
+			btn.textContent = 'Submitting...';
+
+			try {
+				await apiClient.submitThread({
+					name: currentThread.name,
+					recipient_name: currentThread.recipient?.name,
+					recipient_location: currentThread.recipient?.location,
+					messages: currentThread.messages.map((m) => ({
+						sender: m.sender,
+						message: m.message,
+						timestamp: m.timestamp,
+					})),
+				});
+
+				alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
+				btn.textContent = 'Submitted';
+				localStorage.removeItem('pending-submission');
+			} catch (error) {
+				alert('Failed to submit: ' + (error.message || 'Unknown error'));
+				btn.disabled = false;
+				btn.textContent = 'Submit';
+			}
+		} else {
+			const email = prompt('Enter your email to submit:');
+			if (!email) return;
+
+			try {
+				await authState.requestMagicLink(email);
+				localStorage.setItem('pending-submission', 'true');
+				btn.disabled = true;
+				btn.textContent = 'Check your email...';
+			} catch (error) {
+				alert('Failed to send verification email: ' + (error.message || 'Unknown error'));
+			}
 		}
+	}
 
-		btn.disabled = true;
-		btn.textContent = 'Submitting...';
-
-		try {
-			await apiClient.submitThread({
-				name: currentThread.name,
-				recipient_name: currentThread.recipient?.name,
-				recipient_location: currentThread.recipient?.location,
-				messages: currentThread.messages.map((m) => ({
-					sender: m.sender,
-					message: m.message,
-					timestamp: m.timestamp,
-				})),
-			});
-
-			alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
-			btn.textContent = 'Submitted';
-		} catch (error) {
-			alert('Failed to submit: ' + (error.message || 'Unknown error'));
-			btn.disabled = false;
-			btn.textContent = 'Submit';
+	#checkPendingSubmission() {
+		if (localStorage.getItem('pending-submission') === 'true' && authState.isAuthenticated) {
+			this._onSubmit();
 		}
 	}
 

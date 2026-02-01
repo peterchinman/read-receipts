@@ -130,7 +130,7 @@ class HeaderNav extends HTMLElement {
 									<button id="logout-btn">Sign Out</button>
 								</div>
 							`
-						: html` <a href="/login" class="btn-primary">Sign In</a> `}
+						: ''}
 				</div>
 			</nav>
 		`;

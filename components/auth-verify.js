@@ -137,8 +137,8 @@ class AuthVerify extends HTMLElement {
 			case 'success':
 				return html`
 					<div class="icon success">&#10003;</div>
-					<h1>Success!</h1>
-					<p class="message">You're now signed in. Redirecting...</p>
+					<h1>Verified!</h1>
+					<p class="message">Redirecting to complete your submission...</p>
 				`;
 
 			case 'error':
