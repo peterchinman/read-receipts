@@ -6,14 +6,16 @@ use App\Mail\SubmissionAcceptedMail;
 use App\Mail\SubmissionRejectedMail;
 use App\Models\Thread;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 
 class AdminController extends Controller
 {
     public function submissions(Request $request)
     {
-        $threads = Thread::submitted()
-            ->with(['messages.images', 'user:id,name,display_name,email'])
+        // TODO: should /submissions include "accepted" threads?
+        $threads = Thread::whereIn('status', ['submitted', 'accepted'])
+            ->with(['user:id,name,display_name,email'])
             ->orderBy('submitted_at', 'asc')
             ->paginate(20);
 
@@ -30,11 +32,11 @@ class AdminController extends Controller
 
     public function showSubmission(Thread $thread)
     {
-        if ($thread->status !== 'submitted') {
+        if (!in_array($thread->status, ['submitted', 'accepted'])) {
             return response()->json(['error' => 'Submission not found'], 404);
         }
 
-        $thread->load(['messages.images', 'user:id,name,display_name,email', 'submissionEvents.admin']);
+        $thread->load(['user:id,name,display_name,email', 'submissionEvents.admin']);
 
         return response()->json($this->formatSubmission($thread));
     }
@@ -49,7 +51,7 @@ class AdminController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $thread->accept($request->user(), $validated['notes'] ?? null);
+        $thread->accept(Auth::user(), $validated['notes'] ?? null);
 
         Mail::to($thread->user->email)->send(new SubmissionAcceptedMail($thread));
 
@@ -66,7 +68,7 @@ class AdminController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $thread->reject($request->user(), $validated['notes'] ?? null);
+        $thread->reject(Auth::user(), $validated['notes'] ?? null);
 
         Mail::to($thread->user->email)->send(new SubmissionRejectedMail($thread, $validated['notes'] ?? null));
 
@@ -75,11 +77,11 @@ class AdminController extends Controller
 
     public function publish(Request $request, Thread $thread)
     {
-        if (!in_array($thread->status, ['submitted', 'published'])) {
+        if ($thread->status !== 'accepted') {
             return response()->json(['error' => 'Can only publish accepted submissions'], 422);
         }
 
-        $thread->publish($request->user());
+        $thread->publish(Auth::user());
 
         return response()->json(['message' => 'Piece published']);
     }
@@ -98,16 +100,10 @@ class AdminController extends Controller
                 'name' => $thread->user->display_name ?? $thread->user->name,
                 'email' => $thread->user->email,
             ],
-            'messages' => $thread->messages->map(fn($msg) => [
-                'id' => $msg->id,
-                'sender' => $msg->sender,
-                'message' => $msg->message,
-                'timestamp' => $msg->timestamp?->toISOString(),
-                'images' => $msg->images->map(fn($img) => [
-                    'id' => $img->id,
-                    'alt_text' => $img->alt_text,
-                    'url' => asset('storage/images/' . $img->filename),
-                ]),
+            'messages' => collect($thread->messages)->map(fn($msg) => [
+                'sender' => $msg['sender'],
+                'message' => $msg['message'],
+                'timestamp' => $msg['timestamp'] ?? null,
             ]),
             'events' => $thread->submissionEvents?->map(fn($event) => [
                 'type' => $event->event_type,

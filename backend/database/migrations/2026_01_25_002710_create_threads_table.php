@@ -17,9 +17,10 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('recipient_name')->nullable();
             $table->string('recipient_location')->nullable();
-            $table->enum('status', ['draft', 'submitted', 'published', 'rejected'])->default('draft');
+            $table->enum('status', ['submitted', 'accepted', 'published', 'rejected'])->default('submitted');
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('published_at')->nullable();
+            $table->json('messages');
             $table->timestamps();
 
             $table->index(['user_id', 'status']);

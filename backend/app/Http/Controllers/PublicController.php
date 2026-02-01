@@ -10,7 +10,7 @@ class PublicController extends Controller
     public function index(Request $request)
     {
         $threads = Thread::published()
-            ->with(['messages.images', 'user:id,name,display_name'])
+            ->with(['user:id,name,display_name'])
             ->orderBy('published_at', 'desc')
             ->paginate(20);
 
@@ -31,7 +31,7 @@ class PublicController extends Controller
             return response()->json(['error' => 'Thread not found'], 404);
         }
 
-        $thread->load(['messages.images', 'user:id,name,display_name']);
+        $thread->load(['user:id,name,display_name']);
 
         return response()->json($this->formatPublicThread($thread));
     }
@@ -47,16 +47,10 @@ class PublicController extends Controller
             'author' => [
                 'name' => $thread->user->display_name ?? $thread->user->name,
             ],
-            'messages' => $thread->messages->map(fn($msg) => [
-                'id' => $msg->id,
-                'sender' => $msg->sender,
-                'message' => $msg->message,
-                'timestamp' => $msg->timestamp?->toISOString(),
-                'images' => $msg->images->map(fn($img) => [
-                    'id' => $img->id,
-                    'alt_text' => $img->alt_text,
-                    'url' => asset('storage/images/' . $img->filename),
-                ]),
+            'messages' => collect($thread->messages)->map(fn($msg) => [
+                'sender' => $msg['sender'],
+                'message' => $msg['message'],
+                'timestamp' => $msg['timestamp'] ?? null,
             ]),
         ];
     }

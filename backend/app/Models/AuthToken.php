@@ -5,6 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $token
+ * @property \Illuminate\Support\Carbon $expires_at
+ * @property \Illuminate\Support\Carbon|null $used_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\User $user
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereExpiresAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereUsedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthToken whereUserId($value)
+ * @mixin \Eloquent
+ */
 class AuthToken extends Model
 {
     protected $fillable = [
