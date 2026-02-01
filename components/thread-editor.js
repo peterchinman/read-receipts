@@ -440,22 +440,16 @@ class ChatEditor extends HTMLElement {
 		btn.textContent = 'Submitting...';
 
 		try {
-			// First, sync the thread to the server
-			const threadData = {
+			await apiClient.submitThread({
 				name: currentThread.name,
 				recipient_name: currentThread.recipient?.name,
 				recipient_location: currentThread.recipient?.location,
-				messages: currentThread.messages.map((m, i) => ({
+				messages: currentThread.messages.map((m) => ({
 					sender: m.sender,
 					message: m.message,
 					timestamp: m.timestamp,
 				})),
-			};
-
-			const serverThread = await apiClient.createThread(threadData);
-
-			// Then submit it
-			await apiClient.submitThread(serverThread.id);
+			});
 
 			alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
 			btn.textContent = 'Submitted';

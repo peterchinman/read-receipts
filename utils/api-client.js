@@ -117,79 +117,12 @@ class ApiClient {
 		return this.#request(`/published/${id}`);
 	}
 
-	// Thread endpoints (authenticated)
-	async getThreads() {
-		return this.#request('/threads');
-	}
-
-	async createThread(data = {}) {
-		return this.#request('/threads', {
+	// Submit thread (authenticated)
+	async submitThread(data) {
+		return this.#request('/submit', {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});
-	}
-
-	async getThread(id) {
-		return this.#request(`/threads/${id}`);
-	}
-
-	async updateThread(id, data) {
-		return this.#request(`/threads/${id}`, {
-			method: 'PUT',
-			body: JSON.stringify(data),
-		});
-	}
-
-	async deleteThread(id) {
-		return this.#request(`/threads/${id}`, { method: 'DELETE' });
-	}
-
-	async submitThread(id) {
-		return this.#request(`/threads/${id}/submit`, { method: 'POST' });
-	}
-
-	// Message endpoints (authenticated)
-	async addMessage(threadId, data) {
-		return this.#request(`/threads/${threadId}/messages`, {
-			method: 'POST',
-			body: JSON.stringify(data),
-		});
-	}
-
-	async updateMessage(id, data) {
-		return this.#request(`/messages/${id}`, {
-			method: 'PUT',
-			body: JSON.stringify(data),
-		});
-	}
-
-	async deleteMessage(id) {
-		return this.#request(`/messages/${id}`, { method: 'DELETE' });
-	}
-
-	async uploadImage(messageId, file, altText = '') {
-		const formData = new FormData();
-		formData.append('image', file);
-		if (altText) formData.append('alt_text', altText);
-
-		const url = `${API_BASE_URL}/messages/${messageId}/images`;
-		const headers = {};
-		if (this.#token) {
-			headers['Authorization'] = `Bearer ${this.#token}`;
-		}
-
-		const response = await fetch(url, {
-			method: 'POST',
-			headers,
-			body: formData,
-			credentials: 'include',
-		});
-
-		const data = await response.json();
-		if (!response.ok) {
-			throw new Error(data.error || 'Upload failed');
-		}
-		return data;
 	}
 
 	// Admin endpoints
