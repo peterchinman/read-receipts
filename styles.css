@@ -142,6 +142,7 @@ body {
 	overscroll-behavior: none;
 	font-family: var(--font-base);
 	color: var(--color-ink);
+	background-color: var(--color-page);
 
 	display: flex;
 	flex-direction: column;

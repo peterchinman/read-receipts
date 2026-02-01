@@ -394,6 +394,7 @@ class ChatEditor extends HTMLElement {
 			root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 		const next = current === 'dark' ? 'light' : 'dark';
 		root.setAttribute('data-theme', next);
+		root.style.colorScheme = next;
 		try {
 			localStorage.setItem(STORAGE_KEY, next);
 		} catch (_e) {

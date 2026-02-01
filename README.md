@@ -15,9 +15,7 @@ For example, I do not intend to implement a Liquid-Glass-ified version of the UI
 
 ### Running Locally
 
-You'll need two terminal windows - one for the backend and one for the frontend.
-
-**Terminal 1 - Backend (Laravel):**
+**Backend (Laravel):**
 
 ```bash
 cd backend
@@ -34,7 +32,7 @@ cd backend && php artisan config:clear
 
 Then restart `php artisan serve`.
 
-**Terminal 2 - Frontend:**
+**Frontend:**
 
 ```bash
 npx live-server --port=3000 --entry-file=index.html

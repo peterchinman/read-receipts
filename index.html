@@ -36,8 +36,10 @@
 				const applyTheme = (theme) => {
 					if (theme === 'dark' || theme === 'light') {
 						root.setAttribute('data-theme', theme);
+						root.style.colorScheme = theme;
 					} else {
 						root.removeAttribute('data-theme');
+						root.style.colorScheme = '';
 					}
 				};
 
