@@ -14,9 +14,7 @@ class ChatEditor extends HTMLElement {
 		this._onStoreChange = this._onStoreChange.bind(this);
 		this._onDelegated = this._onDelegated.bind(this);
 		this._onFocusIn = this._onFocusIn.bind(this);
-		this._onToggleTheme = this._onToggleTheme.bind(this);
 		this._lastFocusedCard = null;
-		this._themeObserver = null;
 		this._headerObserver = null;
 	}
 
@@ -155,7 +153,7 @@ class ChatEditor extends HTMLElement {
 					<button id="clear-chat" data-tooltip="Clear all messages">
 						Clear
 					</button>
-					<button id="toggle-theme" data-tooltip="Toggle theme">Theme</button>
+	
 					<button id="submit-btn" class="submit-btn" data-tooltip="Submit for review">
 						Submit
 					</button>
@@ -301,19 +299,6 @@ class ChatEditor extends HTMLElement {
 			});
 
 		this.shadowRoot
-			.getElementById('toggle-theme')
-			.addEventListener('click', this._onToggleTheme);
-
-		this.#syncThemeToggleLabel();
-		this._themeObserver = new MutationObserver(() => {
-			this.#syncThemeToggleLabel();
-		});
-		this._themeObserver.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ['data-theme'],
-		});
-
-		this.shadowRoot
 			.getElementById('submit-btn')
 			.addEventListener('click', this._onSubmit.bind(this));
 
@@ -381,39 +366,6 @@ class ChatEditor extends HTMLElement {
 			this._headerObserver.disconnect();
 			this._headerObserver = null;
 		}
-		if (this._themeObserver) {
-			this._themeObserver.disconnect();
-			this._themeObserver = null;
-		}
-	}
-
-	_onToggleTheme() {
-		const STORAGE_KEY = 'message-simulator:theme';
-		const root = document.documentElement;
-		const current =
-			root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-		const next = current === 'dark' ? 'light' : 'dark';
-		root.setAttribute('data-theme', next);
-		root.style.colorScheme = next;
-		try {
-			localStorage.setItem(STORAGE_KEY, next);
-		} catch (_e) {
-			// swallow
-		}
-		this.#syncThemeToggleLabel();
-	}
-
-	#syncThemeToggleLabel() {
-		const btn =
-			this.shadowRoot && this.shadowRoot.getElementById('toggle-theme');
-		if (!btn) return;
-		const current =
-			document.documentElement.getAttribute('data-theme') === 'dark'
-				? 'dark'
-				: 'light';
-		const next = current === 'dark' ? 'light' : 'dark';
-		btn.textContent = next === 'dark' ? 'Dark' : 'Light';
-		btn.title = `Switch to ${next} theme`;
 	}
 
 	async _onSubmit() {

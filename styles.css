@@ -168,14 +168,21 @@ body {
 
 footer {
 	display: flex;
+	flex-direction: row;
 	background: var(--color-header);
 	width: 100%;
 	flex: 0 0 auto;
 	color: var(--color-ink-subdued);
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: space-between;
+	flex-wrap: nowrap;
+	gap: 1rem;
 	padding-inline: var(--pane-gap);
 	padding-block: 0.5rem;
+
+	p {
+	  width: fit-content;
+	}
 
 	a {
 		color: var(--color-bubble-self);
@@ -255,10 +262,6 @@ footer {
 		padding: var(--pane-gap);
 		gap: var(--pane-gap);
 		grid-template-columns: 1fr 1fr;
-	}
-
-	footer {
-		display: flex;
 	}
 
 	/* Left pane shows either threads or editor based on data-left-view */

@@ -69,15 +69,6 @@ function handleRouteChange() {
 	const route = router.getCurrentRoute();
 	const params = router.getParams();
 
-	// Always show header and footer
-	if (header) {
-		header.style.display = 'block';
-	}
-
-	if (footer) {
-		footer.style.display = 'block';
-	}
-
 	// Clear previous content
 	appContainer.innerHTML = '';
 	appContainer.className = 'app-container';
