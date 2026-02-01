@@ -87,10 +87,6 @@ function handleRouteChange() {
 			renderCreateView(appContainer);
 			break;
 
-		case 'login':
-			renderLoginPage(appContainer);
-			break;
-
 		case 'verify':
 			renderVerifyPage(appContainer, params.token);
 			break;
@@ -111,10 +107,6 @@ function renderLandingPage(container) {
 
 function renderPieceView(container, pieceId) {
 	container.innerHTML = `<piece-view piece-id="${pieceId}"></piece-view>`;
-}
-
-function renderLoginPage(container) {
-	container.innerHTML = '<login-page></login-page>';
 }
 
 function renderVerifyPage(container, token) {
