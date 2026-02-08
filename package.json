@@ -8,7 +8,7 @@
 		"test": "node --test",
 		"format": "prettier --write \"**/*.{js,html,css}\" --plugin=prettier-plugin-embed",
 		"format:check": "prettier --check \"**/*.{js,html,css}\"",
-		"dev": "npx live-server --port=3000 --entry-file=index.html --ignore=backend/storage/logs"
+		"dev": "npx live-server --port=3000 --entry-file=index.html --ignorePattern=backend/"
 	},
 	"keywords": [],
 	"author": "",
