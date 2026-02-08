@@ -139,6 +139,7 @@ router.addRoute('/piece/:id', 'piece');
 router.addRoute('/create', 'create');
 router.addRoute('/login', 'login');
 router.addRoute('/auth/verify/:token', 'verify');
+router.addRoute('/admin/login', 'admin-login');
 router.addRoute('/admin', 'admin');
 
 export { router, Router };

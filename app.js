@@ -2,6 +2,7 @@
 import { store } from './components/store.js';
 import { router } from './utils/router.js';
 import { authState } from './components/auth-state.js';
+import { apiClient } from './utils/api-client.js';
 import { config } from './utils/config.js';
 import {
 	getCurrentThreadId,
@@ -91,6 +92,10 @@ function handleRouteChange() {
 			renderVerifyPage(appContainer, params.token);
 			break;
 
+		case 'admin-login':
+			renderAdminLogin(appContainer);
+			break;
+
 		case 'admin':
 			renderAdminDashboard(appContainer);
 			break;
@@ -113,12 +118,21 @@ function renderVerifyPage(container, token) {
 	container.innerHTML = `<auth-verify token="${token}"></auth-verify>`;
 }
 
+function renderAdminLogin(container) {
+	if (authState.isAdmin) {
+		router.navigate('/admin');
+		return;
+	}
+	container.innerHTML = '<admin-login></admin-login>';
+}
+
 function renderAdminDashboard(container) {
 	if (!authState.isAdmin) {
 		router.navigate('/');
 		return;
 	}
 	container.innerHTML = '<admin-dashboard></admin-dashboard>';
+	setupModeSwitching(container);
 }
 
 function renderCreateView(container) {
@@ -138,11 +152,40 @@ function renderCreateView(container) {
 	// Load store
 	store.load();
 
+	// Handle ?edit=ID for resubmit flow
+	const editId = new URLSearchParams(window.location.search).get('edit');
+	if (editId) {
+		handleEditParam(editId);
+	}
+
 	// Set up URL-based thread loading for create view
 	setupUrlThreadManagement();
 
 	// Set up mode switching for mobile/tablet/desktop
 	setupModeSwitching(container);
+}
+
+/**
+ * Handle ?edit=ID param for resubmit flow
+ */
+async function handleEditParam(editId) {
+	try {
+		const data = await apiClient.getMySubmission(editId);
+		if (data.status !== 'changes_requested') {
+			return;
+		}
+		const thread = store.importFromBackend(data);
+		if (thread) {
+			replaceCurrentThreadId(thread.id);
+			setLastActiveThreadId(thread.id);
+		}
+		// Clean ?edit= from URL
+		const url = new URL(window.location.href);
+		url.searchParams.delete('edit');
+		window.history.replaceState({}, '', url.pathname + url.search);
+	} catch (_e) {
+		// Silently fail — user may not be authenticated or thread not found
+	}
 }
 
 /**

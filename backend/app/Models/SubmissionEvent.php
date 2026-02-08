@@ -33,7 +33,15 @@ class SubmissionEvent extends Model
         'event_type',
         'admin_id',
         'notes',
+        'snapshot',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'snapshot' => 'array',
+        ];
+    }
 
     public function thread()
     {

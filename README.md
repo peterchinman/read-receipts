@@ -13,32 +13,27 @@ For example, I do not intend to implement a Liquid-Glass-ified version of the UI
 
 ## Development
 
+### First-Time Setup
+
+```bash
+npm run setup
+```
+
+This installs dependencies, creates the `.env` file, generates an app key, creates the SQLite database, and runs migrations with seed data.
+
 ### Running Locally
-
-**Backend (Laravel):**
-
-```bash
-cd backend
-php artisan serve
-```
-
-This starts the Laravel API server at `http://localhost:8000`.
-
-**Troubleshooting:** If you change any config files (in `backend/config/`) and the changes don't take effect, clear Laravel's config cache:
-
-```bash
-cd backend && php artisan config:clear
-```
-
-Then restart `php artisan serve`.
-
-**Frontend:**
 
 ```bash
 npm run dev
 ```
 
-Then visit `http://localhost:3000` in your browser.
+This starts both the frontend (`http://localhost:3000`) and the backend API (`http://localhost:8000`) together.
+
+**Troubleshooting:** If you change any config files (in `backend/config/`) and the changes don't take effect:
+
+```bash
+cd backend && php artisan config:clear
+```
 
 ### Email in Development
 
@@ -55,14 +50,19 @@ When you request a magic link, the verification URL will appear in this log.
 SQLite database is at `backend/database/database.sqlite`.
 
 ```bash
-# Reset database
+# Reset database and seed with test data
+npm run db:seed
+```
+
+This creates test users, and sample threads in every status (submitted, accepted, changes_requested, rejected, published). The seeded admin account is `admin@example.com`.
+
+```bash
+# Reset database without test data
 cd backend && php artisan migrate:fresh
 
-# Create an admin user (after logging in once)
+# Grant admin access to an existing user
 cd backend && php artisan tinker
->>> $user = App\Models\User::first();
->>> $user->is_admin = true;
->>> $user->save();
+>>> User::where('email', 'your@email.com')->update(['is_admin' => true]);
 ```
 
 ### Formatting and Tests

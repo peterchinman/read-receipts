@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/magic-link', [AuthController::class, 'requestMagicLink']);
     Route::get('/verify/{token}', [AuthController::class, 'verifyToken']);
+    Route::post('/dev-login', [AuthController::class, 'devLogin']);
 });
 
 Route::prefix('published')->group(function () {
@@ -26,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Submit
     Route::post('/submit', [ThreadController::class, 'submit']);
+    Route::get('/my-submissions/{thread}', [ThreadController::class, 'mySubmission']);
+    Route::post('/submit/{thread}/resubmit', [ThreadController::class, 'resubmit']);
 
     // Admin routes
     Route::prefix('admin')->middleware(AdminMiddleware::class)->group(function () {
@@ -34,5 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/submissions/{thread}/accept', [AdminController::class, 'accept']);
         Route::post('/submissions/{thread}/reject', [AdminController::class, 'reject']);
         Route::post('/submissions/{thread}/publish', [AdminController::class, 'publish']);
+        Route::post('/submissions/{thread}/request-changes', [AdminController::class, 'requestChanges']);
+        Route::post('/submissions/{thread}/mark-paid', [AdminController::class, 'markPaid']);
+        Route::delete('/submissions/{thread}', [AdminController::class, 'destroy']);
     });
 });

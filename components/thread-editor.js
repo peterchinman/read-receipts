@@ -140,6 +140,26 @@ class ChatEditor extends HTMLElement {
 					opacity: 0.5;
 					cursor: not-allowed;
 				}
+				.admin-notes-banner {
+					background: #fff3cd;
+					border: 1px solid #ffc107;
+					border-radius: 8px;
+					padding: 12px;
+					font: 13px/1.4 system-ui;
+					color: #856404;
+				}
+				.admin-notes-banner .banner-title {
+					font-weight: 600;
+					margin-bottom: 6px;
+				}
+				.admin-notes-banner .banner-note {
+					margin: 4px 0;
+				}
+				:host-context([data-theme="dark"]) .admin-notes-banner {
+					background: #332b00;
+					border-color: #665500;
+					color: #ffd54f;
+				}
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
@@ -197,6 +217,7 @@ class ChatEditor extends HTMLElement {
 							/>
 						</label>
 					</div>
+					<div id="admin-notes-container"></div>
 					<!-- cards go here -->
 				</div>
 				<input
@@ -324,8 +345,11 @@ class ChatEditor extends HTMLElement {
 			});
 		store.addEventListener('messages:changed', this._onStoreChange);
 		store.load();
-		this.#syncThreadInput(store.getCurrentThread());
+		const currentThread = store.getCurrentThread();
+		this.#syncThreadInput(currentThread);
 		this.#syncRecipientInputs(store.getRecipient());
+		this.#syncSubmitButton(currentThread);
+		this.#syncAdminNotes(currentThread);
 		this.#render(store.getMessages());
 		initTooltips(this.shadowRoot, this);
 
@@ -378,29 +402,42 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
+		const isResubmit = !!currentThread.backendId;
+		const payload = {
+			name: currentThread.name,
+			recipient_name: currentThread.recipient?.name,
+			recipient_location: currentThread.recipient?.location,
+			messages: currentThread.messages.map((m) => ({
+				sender: m.sender,
+				message: m.message,
+				timestamp: m.timestamp,
+			})),
+		};
+
 		if (authState.isAuthenticated) {
 			btn.disabled = true;
-			btn.textContent = 'Submitting...';
+			btn.textContent = isResubmit ? 'Resubmitting...' : 'Submitting...';
 
 			try {
-				await apiClient.submitThread({
-					name: currentThread.name,
-					recipient_name: currentThread.recipient?.name,
-					recipient_location: currentThread.recipient?.location,
-					messages: currentThread.messages.map((m) => ({
-						sender: m.sender,
-						message: m.message,
-						timestamp: m.timestamp,
-					})),
-				});
+				if (isResubmit) {
+					await apiClient.resubmitThread(currentThread.backendId, payload);
+					delete currentThread.backendId;
+					delete currentThread.adminNotes;
+					store.save();
+					this.#syncAdminNotes(currentThread);
+				} else {
+					await apiClient.submitThread(payload);
+				}
 
-				alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
-				btn.textContent = 'Submitted';
+				alert(isResubmit
+					? 'Your piece has been resubmitted for review!'
+					: 'Your piece has been submitted for review! You will receive an email when it is reviewed.');
+				btn.textContent = isResubmit ? 'Resubmitted' : 'Submitted';
 				localStorage.removeItem('pending-submission');
 			} catch (error) {
 				alert('Failed to submit: ' + (error.message || 'Unknown error'));
 				btn.disabled = false;
-				btn.textContent = 'Submit';
+				btn.textContent = isResubmit ? 'Resubmit' : 'Submit';
 			}
 		} else {
 			const email = prompt('Enter your email to submit:');
@@ -436,6 +473,8 @@ class ChatEditor extends HTMLElement {
 			const currentThread = store.getCurrentThread();
 			this.#syncThreadInput(currentThread);
 			this.#syncRecipientInputs(store.getRecipient());
+			this.#syncSubmitButton(currentThread);
+			this.#syncAdminNotes(currentThread);
 			this.#render(store.getMessages());
 			return;
 		}
@@ -496,6 +535,37 @@ class ChatEditor extends HTMLElement {
 			nameInput.value = name;
 		if (active !== locationInput && locationInput.value !== location)
 			locationInput.value = location;
+	}
+
+	#syncSubmitButton(thread) {
+		const btn = this.shadowRoot?.getElementById('submit-btn');
+		if (!btn) return;
+		const isResubmit = thread && !!thread.backendId;
+		if (!btn.disabled) {
+			btn.textContent = isResubmit ? 'Resubmit' : 'Submit';
+		}
+	}
+
+	#syncAdminNotes(thread) {
+		const container = this.shadowRoot?.getElementById('admin-notes-container');
+		if (!container) return;
+		const notes = thread?.adminNotes;
+		if (notes && notes.length > 0) {
+			container.innerHTML = `
+				<div class="admin-notes-banner">
+					<div class="banner-title">Editor's Notes</div>
+					${notes.map((n) => `<div class="banner-note">${this.#escapeHtml(n)}</div>`).join('')}
+				</div>
+			`;
+		} else {
+			container.innerHTML = '';
+		}
+	}
+
+	#escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
 	}
 
 	_onFocusIn(e) {

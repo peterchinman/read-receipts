@@ -418,6 +418,49 @@ class ThreadStore extends EventTarget {
 		return newThread;
 	}
 
+	// ===== Import from Backend (for resubmit flow) =====
+
+	importFromBackend(backendThread) {
+		const thread = this.createThread();
+		thread.backendId = backendThread.id;
+
+		// Populate messages with local IDs/timestamps
+		const messages = (backendThread.messages || []).map((m, i) => ({
+			id: this.#generateId(),
+			sender: m.sender,
+			message: m.message,
+			timestamp: m.timestamp || new Date(Date.now() + i * 1000).toISOString(),
+		}));
+		thread.messages = messages;
+
+		// Populate recipient
+		thread.recipient = {
+			name: backendThread.recipient_name || '',
+			location: backendThread.recipient_location || '',
+		};
+
+		// Populate name
+		if (backendThread.name) {
+			thread.name = backendThread.name;
+		}
+
+		// Extract admin notes from changes_requested events
+		const changesEvents = (backendThread.events || [])
+			.filter((e) => e.type === 'changes_requested' && e.notes);
+		if (changesEvents.length > 0) {
+			thread.adminNotes = changesEvents.map((e) => e.notes);
+		}
+
+		thread.updatedAt = new Date().toISOString();
+
+		// Make active and save
+		this.loadThread(thread.id);
+		this.#scheduleSave();
+		this.#emitChange('import');
+
+		return thread;
+	}
+
 	// ===== Private Methods =====
 
 	#createDefaultThread() {

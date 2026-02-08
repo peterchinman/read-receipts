@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\SubmissionAcceptedMail;
+use App\Mail\SubmissionChangesRequestedMail;
 use App\Mail\SubmissionRejectedMail;
 use App\Models\Thread;
 use Illuminate\Http\Request;
@@ -13,14 +14,26 @@ class AdminController extends Controller
 {
     public function submissions(Request $request)
     {
-        // TODO: should /submissions include "accepted" threads?
-        $threads = Thread::whereIn('status', ['submitted', 'accepted'])
-            ->with(['user:id,name,display_name,email'])
+        $status = $request->query('status');
+
+        if ($status) {
+            $statuses = [$status];
+        } else {
+            $statuses = ['submitted', 'accepted'];
+        }
+
+        $threads = Thread::whereIn('status', $statuses)
+            ->with(['user:id,name,display_name,email', 'submissionEvents'])
             ->orderBy('submitted_at', 'asc')
             ->paginate(20);
 
+        $data = $threads->map(fn($thread) => $this->formatSubmission($thread));
+
+        // Sort resubmissions to the top
+        $data = $data->sortByDesc(fn($item) => $item['is_resubmission'] ? 1 : 0)->values();
+
         return response()->json([
-            'data' => $threads->map(fn($thread) => $this->formatSubmission($thread)),
+            'data' => $data,
             'meta' => [
                 'current_page' => $threads->currentPage(),
                 'last_page' => $threads->lastPage(),
@@ -32,7 +45,7 @@ class AdminController extends Controller
 
     public function showSubmission(Thread $thread)
     {
-        if (!in_array($thread->status, ['submitted', 'accepted'])) {
+        if (!in_array($thread->status, ['submitted', 'accepted', 'changes_requested', 'published'])) {
             return response()->json(['error' => 'Submission not found'], 404);
         }
 
@@ -75,6 +88,23 @@ class AdminController extends Controller
         return response()->json(['message' => 'Submission rejected']);
     }
 
+    public function requestChanges(Request $request, Thread $thread)
+    {
+        if ($thread->status !== 'submitted') {
+            return response()->json(['error' => 'Can only request changes on submitted pieces'], 422);
+        }
+
+        $validated = $request->validate([
+            'notes' => 'required|string',
+        ]);
+
+        $thread->requestChanges(Auth::user(), $validated['notes']);
+
+        Mail::to($thread->user->email)->send(new SubmissionChangesRequestedMail($thread, $validated['notes']));
+
+        return response()->json(['message' => 'Changes requested']);
+    }
+
     public function publish(Request $request, Thread $thread)
     {
         if ($thread->status !== 'accepted') {
@@ -86,6 +116,28 @@ class AdminController extends Controller
         return response()->json(['message' => 'Piece published']);
     }
 
+    public function markPaid(Thread $thread)
+    {
+        if ($thread->status !== 'accepted') {
+            return response()->json(['error' => 'Can only mark accepted submissions as paid'], 422);
+        }
+
+        $thread->submissionEvents()->create([
+            'event_type' => 'paid',
+            'admin_id' => Auth::id(),
+        ]);
+
+        return response()->json(['message' => 'Marked as paid']);
+    }
+
+    public function destroy(Thread $thread)
+    {
+        $thread->submissionEvents()->delete();
+        $thread->delete();
+
+        return response()->json(['message' => 'Piece deleted']);
+    }
+
     protected function formatSubmission(Thread $thread): array
     {
         return [
@@ -95,6 +147,7 @@ class AdminController extends Controller
             'recipient_location' => $thread->recipient_location,
             'status' => $thread->status,
             'submitted_at' => $thread->submitted_at?->toISOString(),
+            'is_resubmission' => $thread->submissionEvents->contains('event_type', 'resubmitted'),
             'author' => [
                 'id' => $thread->user->id,
                 'name' => $thread->user->display_name ?? $thread->user->name,
@@ -109,6 +162,7 @@ class AdminController extends Controller
                 'type' => $event->event_type,
                 'admin' => $event->admin?->name,
                 'notes' => $event->notes,
+                'snapshot' => $event->snapshot,
                 'created_at' => $event->created_at->toISOString(),
             ]) ?? [],
         ];

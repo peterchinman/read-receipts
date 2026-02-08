@@ -64,9 +64,14 @@ class AuthVerify extends HTMLElement {
 			this.#status = 'success';
 			this.#render();
 
-			// Redirect to create page after short delay
+			// Redirect after short delay
 			this.#redirectTimer = setTimeout(() => {
-				router.navigate('/create');
+				if (localStorage.getItem('admin-login-pending')) {
+					localStorage.removeItem('admin-login-pending');
+					router.navigate('/admin');
+				} else {
+					router.navigate('/create');
+				}
 			}, 1500);
 		} catch (error) {
 			this.#status = 'error';

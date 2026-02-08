@@ -60,6 +60,36 @@ class AuthController extends Controller
         ]);
     }
 
+    public function devLogin(Request $request)
+    {
+        if (!app()->environment('local')) {
+            abort(404);
+        }
+
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $apiToken = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'display_name' => $user->display_name,
+                'is_admin' => $user->is_admin,
+            ],
+            'token' => $apiToken,
+        ]);
+    }
+
     public function me(Request $request)
     {
         $user = $request->user();

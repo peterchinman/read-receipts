@@ -8,12 +8,17 @@
 		"test": "node --test",
 		"format": "prettier --write \"**/*.{js,html,css}\" --plugin=prettier-plugin-embed",
 		"format:check": "prettier --check \"**/*.{js,html,css}\"",
-		"dev": "npx live-server --port=3000 --entry-file=index.html --ignorePattern=backend/"
+		"setup": "npm install && cd backend && composer install && test -f .env || cp .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate:fresh --seed",
+		"dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+		"dev:frontend": "npx live-server --port=3000 --entry-file=index.html --ignorePattern=backend/",
+		"dev:backend": "cd backend && php artisan serve",
+		"db:seed": "cd backend && php artisan migrate:fresh --seed"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
+		"concurrently": "^9.2.1",
 		"prettier": "^3.6.2",
 		"prettier-plugin-embed": "^0.5.0"
 	}

@@ -117,4 +117,47 @@ class Thread extends Model
             'admin_id' => $admin->id,
         ]);
     }
+
+    public function requestChanges(User $admin, string $notes): void
+    {
+        $this->update(['status' => 'changes_requested']);
+
+        $this->submissionEvents()->create([
+            'event_type' => 'changes_requested',
+            'admin_id' => $admin->id,
+            'notes' => $notes,
+        ]);
+    }
+
+    public function resubmit(array $data): void
+    {
+        $snapshot = [
+            'messages' => $this->messages,
+            'name' => $this->name,
+            'recipient_name' => $this->recipient_name,
+            'recipient_location' => $this->recipient_location,
+        ];
+
+        // Attach snapshot to the event that introduced the version being replaced
+        $introducingEvent = $this->submissionEvents()
+            ->whereIn('event_type', ['submitted', 'resubmitted'])
+            ->first();
+
+        if ($introducingEvent) {
+            $introducingEvent->update(['snapshot' => $snapshot]);
+        }
+
+        $this->update([
+            'messages' => $data['messages'],
+            'name' => $data['name'] ?? $this->name,
+            'recipient_name' => $data['recipient_name'] ?? $this->recipient_name,
+            'recipient_location' => $data['recipient_location'] ?? $this->recipient_location,
+            'status' => 'submitted',
+            'submitted_at' => now(),
+        ]);
+
+        $this->submissionEvents()->create([
+            'event_type' => 'resubmitted',
+        ]);
+    }
 }

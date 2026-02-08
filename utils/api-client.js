@@ -96,6 +96,17 @@ class ApiClient {
 		return data;
 	}
 
+	async devLogin(email) {
+		const data = await this.#request('/auth/dev-login', {
+			method: 'POST',
+			body: JSON.stringify({ email }),
+		});
+		if (data.token) {
+			this.setToken(data.token);
+		}
+		return data;
+	}
+
 	async getMe() {
 		return this.#request('/auth/me');
 	}
@@ -126,8 +137,12 @@ class ApiClient {
 	}
 
 	// Admin endpoints
-	async getSubmissions(page = 1) {
-		return this.#request(`/admin/submissions?page=${page}`);
+	async getSubmissions(page = 1, status = null) {
+		let url = `/admin/submissions?page=${page}`;
+		if (status) {
+			url += `&status=${encodeURIComponent(status)}`;
+		}
+		return this.#request(url);
 	}
 
 	async getSubmission(id) {
@@ -151,6 +166,37 @@ class ApiClient {
 	async publishSubmission(id) {
 		return this.#request(`/admin/submissions/${id}/publish`, {
 			method: 'POST',
+		});
+	}
+
+	async deleteSubmission(id) {
+		return this.#request(`/admin/submissions/${id}`, {
+			method: 'DELETE',
+		});
+	}
+
+	async markPaid(id) {
+		return this.#request(`/admin/submissions/${id}/mark-paid`, {
+			method: 'POST',
+		});
+	}
+
+	async requestChanges(id, notes) {
+		return this.#request(`/admin/submissions/${id}/request-changes`, {
+			method: 'POST',
+			body: JSON.stringify({ notes }),
+		});
+	}
+
+	// User submission endpoints
+	async getMySubmission(id) {
+		return this.#request(`/my-submissions/${id}`);
+	}
+
+	async resubmitThread(id, data) {
+		return this.#request(`/submit/${id}/resubmit`, {
+			method: 'POST',
+			body: JSON.stringify(data),
 		});
 	}
 }

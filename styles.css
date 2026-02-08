@@ -166,6 +166,19 @@ body {
 	align-items: stretch;
 }
 
+/* Non-pane pages span full width */
+.app-container > admin-login,
+.app-container > landing-page,
+.app-container > piece-view,
+.app-container > auth-verify {
+	grid-column: 1 / -1;
+}
+
+/* Admin dashboard renders pane sections as light DOM children */
+admin-dashboard {
+	display: contents;
+}
+
 footer {
 	display: flex;
 	flex-direction: row;

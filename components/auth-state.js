@@ -124,6 +124,21 @@ class AuthState extends EventTarget {
 		}
 	}
 
+	async devLogin(email) {
+		this.#loading = true;
+		this.#emit('change');
+
+		try {
+			const data = await apiClient.devLogin(email);
+			this.#setUser(data.user);
+			return data.user;
+		} catch (error) {
+			this.#loading = false;
+			this.#emit('change');
+			throw error;
+		}
+	}
+
 	async logout() {
 		try {
 			await apiClient.logout();
