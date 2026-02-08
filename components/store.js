@@ -75,6 +75,7 @@ class ThreadStore extends EventTarget {
 					return;
 				}
 
+				this.#currentThreadId = this.#threads[0].id;
 				this.#emitChange('load');
 			} else {
 				// Invalid format, create default thread

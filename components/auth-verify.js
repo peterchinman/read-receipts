@@ -10,6 +10,8 @@ class AuthVerify extends HTMLElement {
 	#token = null;
 	#status = 'verifying';
 	#error = null;
+	#connected = false;
+	#redirectTimer = null;
 
 	constructor() {
 		super();
@@ -23,15 +25,26 @@ class AuthVerify extends HTMLElement {
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (name === 'token' && oldValue !== newValue) {
 			this.#token = newValue;
-			this.#verifyToken();
+			if (this.#connected) {
+				this.#verifyToken();
+			}
 		}
 	}
 
 	connectedCallback() {
+		this.#connected = true;
 		this.#token = this.getAttribute('token');
 		this.#render();
 		if (this.#token) {
 			this.#verifyToken();
+		}
+	}
+
+	disconnectedCallback() {
+		this.#connected = false;
+		if (this.#redirectTimer) {
+			clearTimeout(this.#redirectTimer);
+			this.#redirectTimer = null;
 		}
 	}
 
@@ -52,7 +65,7 @@ class AuthVerify extends HTMLElement {
 			this.#render();
 
 			// Redirect to create page after short delay
-			setTimeout(() => {
+			this.#redirectTimer = setTimeout(() => {
 				router.navigate('/create');
 			}, 1500);
 		} catch (error) {

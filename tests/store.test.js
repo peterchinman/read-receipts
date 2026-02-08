@@ -546,6 +546,34 @@ test('importJson() creates new thread and switches to it', async () => {
 	);
 });
 
+test('load() with pre-existing threads sets a current thread', async () => {
+	globalThis.localStorage.clear();
+
+	// First: create a store, add a thread with a custom message, and persist it
+	const s1 = new ThreadStore();
+	s1.load();
+	const thread = s1.getCurrentThread();
+	s1.addMessage();
+	s1.updateMessage(s1.getMessages().at(-1).id, { message: 'persisted msg' });
+	await flushTimers(); // let debounced save run
+
+	// Verify data is in localStorage
+	const raw = globalThis.localStorage.getItem(THREADS_STORAGE_KEY);
+	assert.ok(raw, 'data should be persisted');
+
+	// Second: create a fresh store (simulates page reload) and load from storage
+	const s2 = new ThreadStore();
+	s2.load();
+
+	const current = s2.getCurrentThread();
+	assert.ok(current, 'getCurrentThread() should not be null after loading existing threads');
+	assert.ok(current.id, 'current thread should have an id');
+	assert.ok(
+		s2.getMessages().some((m) => m.message === 'persisted msg'),
+		'should have the persisted message in the current thread',
+	);
+});
+
 test('messages are isolated between threads', async () => {
 	globalThis.localStorage.clear();
 	const s = new ThreadStore();
