@@ -35,7 +35,7 @@ Then restart `php artisan serve`.
 **Frontend:**
 
 ```bash
-npx live-server --port=3000 --entry-file=index.html
+npm run dev
 ```
 
 Then visit `http://localhost:3000` in your browser.
