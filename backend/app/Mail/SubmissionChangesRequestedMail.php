@@ -32,7 +32,7 @@ class SubmissionChangesRequestedMail extends Mailable
             with: [
                 'threadName' => $this->thread->name ?? 'Untitled',
                 'notes' => $this->notes,
-                'editUrl' => config('app.frontend_url') . '/create?edit=' . $this->thread->id,
+                'editUrl' => config('app.frontend_url') . '/create?edit=' . $this->thread->id . '&token=' . $this->thread->edit_token,
                 'appName' => config('app.name'),
             ],
         );

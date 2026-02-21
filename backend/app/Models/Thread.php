@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -50,6 +51,7 @@ class Thread extends Model
         'recipient_location',
         'messages',
         'status',
+        'edit_token',
         'submitted_at',
         'published_at',
     ];
@@ -120,7 +122,10 @@ class Thread extends Model
 
     public function requestChanges(User $admin, string $notes): void
     {
-        $this->update(['status' => 'changes_requested']);
+        $this->update([
+            'status' => 'changes_requested',
+            'edit_token' => Str::random(64),
+        ]);
 
         $this->submissionEvents()->create([
             'event_type' => 'changes_requested',
@@ -154,6 +159,7 @@ class Thread extends Model
             'recipient_location' => $data['recipient_location'] ?? $this->recipient_location,
             'status' => 'submitted',
             'submitted_at' => now(),
+            'edit_token' => null,
         ]);
 
         $this->submissionEvents()->create([

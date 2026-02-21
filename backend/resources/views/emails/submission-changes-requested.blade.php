@@ -49,7 +49,7 @@
 
     <p>Please review the notes above and edit your piece. Once you're happy with the changes, resubmit it for review.</p>
 
-    <a href="{{ $editUrl }}" class="button">Edit Your Piece</a>
+    <a href="{!! $editUrl !!}" class="button">Edit Your Piece</a>
 
     <div class="footer">
         <p>Thank you for sharing your work with us.</p>

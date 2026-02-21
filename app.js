@@ -152,10 +152,12 @@ function renderCreateView(container) {
 	// Load store
 	store.load();
 
-	// Handle ?edit=ID for resubmit flow
-	const editId = new URLSearchParams(window.location.search).get('edit');
+	// Handle ?edit=ID&token=TOKEN for resubmit flow
+	const searchParams = new URLSearchParams(window.location.search);
+	const editId = searchParams.get('edit');
+	const editToken = searchParams.get('token');
 	if (editId) {
-		handleEditParam(editId);
+		handleEditParam(editId, editToken);
 	}
 
 	// Set up URL-based thread loading for create view
@@ -166,11 +168,12 @@ function renderCreateView(container) {
 }
 
 /**
- * Handle ?edit=ID param for resubmit flow
+ * Handle ?edit=ID&token=TOKEN param for resubmit flow
  */
-async function handleEditParam(editId) {
+async function handleEditParam(editId, editToken) {
 	try {
-		const data = await apiClient.getMySubmission(editId);
+		if (!editToken) return;
+		const data = await apiClient.getSubmissionByEditToken(editId, editToken);
 		if (data.status !== 'changes_requested') {
 			return;
 		}
@@ -179,9 +182,10 @@ async function handleEditParam(editId) {
 			replaceCurrentThreadId(thread.id);
 			setLastActiveThreadId(thread.id);
 		}
-		// Clean ?edit= from URL
+		// Clean ?edit= and ?token= from URL
 		const url = new URL(window.location.href);
 		url.searchParams.delete('edit');
+		url.searchParams.delete('token');
 		window.history.replaceState({}, '', url.pathname + url.search);
 	} catch (_e) {
 		// Silently fail — user may not be authenticated or thread not found

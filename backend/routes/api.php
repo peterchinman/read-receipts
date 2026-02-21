@@ -19,6 +19,9 @@ Route::prefix('published')->group(function () {
     Route::get('/{thread}', [PublicController::class, 'show']);
 });
 
+// Token-gated submission access (no auth required)
+Route::get('/submissions/{thread}/edit', [ThreadController::class, 'showByEditToken']);
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -27,7 +30,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Submit
     Route::post('/submit', [ThreadController::class, 'submit']);
-    Route::get('/my-submissions/{thread}', [ThreadController::class, 'mySubmission']);
     Route::post('/submit/{thread}/resubmit', [ThreadController::class, 'resubmit']);
 
     // Admin routes

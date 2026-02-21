@@ -207,7 +207,8 @@ class ChatThreadList extends HTMLElement {
 			reason === 'add' ||
 			reason === 'update' ||
 			reason === 'delete' ||
-			reason === 'recipient'
+			reason === 'recipient' ||
+			reason === 'import'
 		) {
 			this._render();
 		}

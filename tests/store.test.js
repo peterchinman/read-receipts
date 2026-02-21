@@ -574,6 +574,46 @@ test('load() with pre-existing threads sets a current thread', async () => {
 	);
 });
 
+test('importFromBackend() does not duplicate thread with same backendId', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const backendThread = {
+		id: 99,
+		name: 'Backend Thread',
+		recipient_name: 'Alice',
+		recipient_location: 'Paris',
+		status: 'changes_requested',
+		messages: [
+			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
+		],
+		events: [
+			{ type: 'changes_requested', notes: 'Fix this', created_at: new Date().toISOString() },
+		],
+	};
+
+	const countBefore = s.listThreads().length;
+
+	// First import
+	const thread1 = s.importFromBackend(backendThread);
+	await flushTimers();
+	assert.equal(s.listThreads().length, countBefore + 1,
+		'first import should create a new thread');
+	assert.equal(thread1.backendId, 99);
+
+	// Second import of the same backend thread (user clicks link again)
+	const thread2 = s.importFromBackend(backendThread);
+	await flushTimers();
+	assert.equal(s.listThreads().length, countBefore + 1,
+		'second import should NOT create another thread');
+	assert.equal(thread2.id, thread1.id,
+		'should return the same local thread');
+	assert.equal(thread2.backendId, 99);
+	assert.equal(thread2.recipient.name, 'Alice');
+});
+
 test('messages are isolated between threads', async () => {
 	globalThis.localStorage.clear();
 	const s = new ThreadStore();
@@ -614,4 +654,75 @@ test('messages are isolated between threads', async () => {
 		!thread2Messages.some((m) => m.message === 'Thread 1 message'),
 		'thread 2 should not have thread 1 message',
 	);
+});
+
+test('importFromBackend() only shows most recent admin notes', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const backendThread = {
+		id: 200,
+		name: 'Multi-round Thread',
+		recipient_name: 'Bob',
+		recipient_location: 'London',
+		status: 'changes_requested',
+		messages: [
+			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
+		],
+		events: [
+			// Most recent first (desc order)
+			{ type: 'changes_requested', notes: 'Round 2 notes', created_at: '2026-02-08T12:00:00Z' },
+			{ type: 'changes_requested', notes: 'Round 1 notes', created_at: '2026-02-07T12:00:00Z' },
+		],
+	};
+
+	const thread = s.importFromBackend(backendThread);
+	await flushTimers();
+
+	assert.deepEqual(thread.adminNotes, ['Round 2 notes'],
+		'should only contain the most recent admin notes');
+});
+
+test('importFromBackend() creates new thread after backendId is cleared (resubmit cycle)', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const backendThread = {
+		id: 300,
+		name: 'Resubmit Thread',
+		recipient_name: 'Carol',
+		recipient_location: 'Berlin',
+		status: 'changes_requested',
+		messages: [
+			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
+		],
+		events: [
+			{ type: 'changes_requested', notes: 'Please fix', created_at: new Date().toISOString() },
+		],
+	};
+
+	// First import
+	const thread1 = s.importFromBackend(backendThread);
+	await flushTimers();
+	assert.equal(thread1.backendId, 300);
+
+	// Simulate resubmit: clear backendId (as the real flow does when author resubmits)
+	thread1.backendId = undefined;
+	await flushTimers();
+
+	const countBeforeSecondImport = s.listThreads().length;
+
+	// Second import (new review round, same backend ID)
+	const thread2 = s.importFromBackend(backendThread);
+	await flushTimers();
+
+	assert.equal(s.listThreads().length, countBeforeSecondImport + 1,
+		'should create a new thread since no existing thread has this backendId');
+	assert.ok(thread2.id !== thread1.id,
+		'new thread should have a different local ID');
+	assert.equal(thread2.backendId, 300);
 });

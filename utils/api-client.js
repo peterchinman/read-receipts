@@ -189,8 +189,8 @@ class ApiClient {
 	}
 
 	// User submission endpoints
-	async getMySubmission(id) {
-		return this.#request(`/my-submissions/${id}`);
+	async getSubmissionByEditToken(id, token) {
+		return this.#request(`/submissions/${id}/edit?token=${encodeURIComponent(token)}`);
 	}
 
 	async resubmitThread(id, data) {

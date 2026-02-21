@@ -445,7 +445,7 @@ class ChatEditor extends HTMLElement {
 
 			try {
 				await authState.requestMagicLink(email);
-				localStorage.setItem('pending-submission', 'true');
+				localStorage.setItem('pending-submission', currentThread.id);
 				btn.disabled = true;
 				btn.textContent = 'Check your email...';
 			} catch (error) {
@@ -455,9 +455,12 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#checkPendingSubmission() {
-		if (localStorage.getItem('pending-submission') === 'true' && authState.isAuthenticated) {
-			this._onSubmit();
-		}
+		const pendingThreadId = localStorage.getItem('pending-submission');
+		if (!pendingThreadId || !authState.isAuthenticated) return;
+
+		// Load the thread that was active at submit time
+		store.loadThread(pendingThreadId);
+		this._onSubmit();
 	}
 
 	_onStoreChange(e) {

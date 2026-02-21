@@ -421,7 +421,9 @@ class ThreadStore extends EventTarget {
 	// ===== Import from Backend (for resubmit flow) =====
 
 	importFromBackend(backendThread) {
-		const thread = this.createThread();
+		// If a local thread already exists for this backend ID, update it in place
+		const existing = this.#threads.find((t) => t.backendId === backendThread.id);
+		const thread = existing || this.createThread();
 		thread.backendId = backendThread.id;
 
 		// Populate messages with local IDs/timestamps
@@ -448,7 +450,7 @@ class ThreadStore extends EventTarget {
 		const changesEvents = (backendThread.events || [])
 			.filter((e) => e.type === 'changes_requested' && e.notes);
 		if (changesEvents.length > 0) {
-			thread.adminNotes = changesEvents.map((e) => e.notes);
+			thread.adminNotes = [changesEvents[0].notes];
 		}
 
 		thread.updatedAt = new Date().toISOString();

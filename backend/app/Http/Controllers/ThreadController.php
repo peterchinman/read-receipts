@@ -43,9 +43,15 @@ class ThreadController extends Controller
         ], 201);
     }
 
-    public function mySubmission(Request $request, Thread $thread)
+    public function showByEditToken(Request $request, Thread $thread)
     {
-        if ($thread->user_id !== $request->user()->id) {
+        $token = $request->query('token');
+
+        if (!$token || !$thread->edit_token || $thread->status !== 'changes_requested') {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+
+        if (!hash_equals($thread->edit_token, $token)) {
             return response()->json(['error' => 'Not found'], 404);
         }
 
