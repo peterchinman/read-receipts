@@ -202,6 +202,7 @@ class ChatThreadList extends HTMLElement {
 			reason === 'thread-deleted' ||
 			reason === 'thread-updated' ||
 			reason === 'thread-changed' ||
+			reason === 'thread-submitted' ||
 			reason === 'load' ||
 			reason === 'init-defaults' ||
 			reason === 'add' ||
@@ -293,6 +294,7 @@ class ChatThreadList extends HTMLElement {
 				recipientName,
 				preview: lastMessage,
 				time: timeDisplay,
+				submitted: Boolean(thread.submittedAt),
 			};
 		});
 

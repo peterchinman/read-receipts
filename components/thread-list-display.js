@@ -267,10 +267,23 @@ class ThreadListDisplay extends HTMLElement {
 					white-space: nowrap;
 					overflow: hidden;
 					text-overflow: ellipsis;
+					flex: 1;
+					min-width: 0;
 				}
 				.thread-time {
 					font: 11px system-ui;
 					color: var(--color-ink-subdued);
+					white-space: nowrap;
+					flex-shrink: 0;
+					width: 7ch;
+					text-align: right;
+				}
+				.submitted-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: #34c759;
+					border-radius: 9px;
+					padding: 2px 7px;
 					white-space: nowrap;
 					flex-shrink: 0;
 				}
@@ -444,17 +457,23 @@ class ThreadListDisplay extends HTMLElement {
 		const initials = this.#getInitials(recipientName);
 		const preview = thread.preview || '';
 		const time = thread.time || '';
+		const submitted = thread.submitted || false;
 
 		row.setAttribute(
 			'aria-label',
-			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}`,
+			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : ''}`,
 		);
+
+		const badgeHtml = submitted
+			? '<span class="submitted-badge">Submitted</span>'
+			: '';
 
 		row.innerHTML = html`
 			<div class="avatar" aria-hidden="true">${initials}</div>
 			<div class="thread-content">
 				<div class="thread-header">
 					<div class="thread-name">${this.#escapeHtml(name)}</div>
+					${badgeHtml}
 					<div class="thread-time">${this.#escapeHtml(time)}</div>
 				</div>
 				<div class="thread-preview">${this.#escapeHtml(preview)}</div>

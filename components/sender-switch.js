@@ -3,7 +3,7 @@ import { initTooltips } from '../utils/tooltip.js';
 
 class SenderSwitch extends HTMLElement {
 	static get observedAttributes() {
-		return ['checked'];
+		return ['checked', 'disabled'];
 	}
 
 	constructor() {
@@ -17,6 +17,10 @@ class SenderSwitch extends HTMLElement {
 			<style>
 				:host {
 					--thumb-padding: calc(2rem / 14);
+				}
+				:host([disabled]) .sender-switch-container {
+					opacity: 0.5;
+					pointer-events: none;
 				}
 				.sender-switch-container {
 					font-size: var(--font-size);
@@ -86,6 +90,12 @@ class SenderSwitch extends HTMLElement {
 	attributeChangedCallback(name) {
 		if (name === 'checked') {
 			this.#syncFromAttr();
+		}
+		if (name === 'disabled') {
+			const checkbox = this.shadowRoot.querySelector('input[type="checkbox"]');
+			if (checkbox) {
+				checkbox.disabled = this.hasAttribute('disabled');
+			}
 		}
 	}
 

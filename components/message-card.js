@@ -4,7 +4,7 @@ import './sender-switch.js';
 
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
-		return ['message-id', 'sender', 'timestamp', 'text'];
+		return ['message-id', 'sender', 'timestamp', 'text', 'readonly'];
 	}
 
 	constructor() {
@@ -232,6 +232,7 @@ class MessageCard extends HTMLElement {
 		}
 
 		this.#syncFromAttrs();
+		this.#syncReadOnly();
 		// Ensure textarea is resized after initial render
 		requestAnimationFrame(() => {
 			const textarea = this.shadowRoot.querySelector('textarea');
@@ -248,8 +249,11 @@ class MessageCard extends HTMLElement {
 		this.shadowRoot.removeEventListener('keydown', this._onKeyDown);
 	}
 
-	attributeChangedCallback() {
+	attributeChangedCallback(name) {
 		this.#syncFromAttrs();
+		if (name === 'readonly') {
+			this.#syncReadOnly();
+		}
 	}
 
 	get messageId() {
@@ -364,7 +368,28 @@ class MessageCard extends HTMLElement {
 		dateInput.setAttribute('title', formatted);
 	}
 
+	#syncReadOnly() {
+		const isReadOnly = this.hasAttribute('readonly');
+		const textarea = this.shadowRoot?.querySelector('textarea');
+		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
+		const dateInput = this.shadowRoot?.querySelector('input[type="datetime-local"]');
+		const deleteBtn = this.shadowRoot?.querySelector('[part="delete"]');
+		const addBelowBtn = this.shadowRoot?.querySelector('[part="add-below"]');
+		const insertImageBtn = this.shadowRoot?.querySelector('[part="insert-image"]');
+
+		if (textarea) textarea.disabled = isReadOnly;
+		if (senderSwitch) {
+			if (isReadOnly) senderSwitch.setAttribute('disabled', '');
+			else senderSwitch.removeAttribute('disabled');
+		}
+		if (dateInput) dateInput.disabled = isReadOnly;
+		if (deleteBtn) deleteBtn.style.display = isReadOnly ? 'none' : '';
+		if (addBelowBtn) addBelowBtn.style.display = isReadOnly ? 'none' : '';
+		if (insertImageBtn) insertImageBtn.style.display = isReadOnly ? 'none' : '';
+	}
+
 	_onKeyDown(e) {
+		if (this.hasAttribute('readonly')) return;
 		const target = e.target;
 		if (!target || !target.matches('textarea')) return;
 
@@ -423,6 +448,7 @@ class MessageCard extends HTMLElement {
 	}
 
 	_onInput(e) {
+		if (this.hasAttribute('readonly')) return;
 		const target = e.target;
 		if (!target) return;
 		if (target.matches('textarea')) {
@@ -443,6 +469,7 @@ class MessageCard extends HTMLElement {
 	}
 
 	_onClick(e) {
+		if (this.hasAttribute('readonly')) return;
 		const button = e.target.closest('button');
 		if (button && button.part) {
 			// Handle button clicks

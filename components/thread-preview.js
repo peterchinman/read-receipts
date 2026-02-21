@@ -85,6 +85,7 @@ class ChatPreview extends HTMLElement {
 		this._display?.setRecipient(store.getRecipient());
 		this._display?.setMessages(store.getMessages());
 		this._scrollToBottom();
+		this.#syncReadOnlyState();
 	}
 
 	disconnectedCallback() {
@@ -107,6 +108,16 @@ class ChatPreview extends HTMLElement {
 		);
 	}
 
+	#syncReadOnlyState() {
+		if (!this._display) return;
+		const submitted = store.isCurrentThreadSubmitted();
+		if (submitted) {
+			this._display.removeAttribute('interactive');
+		} else {
+			this._display.setAttribute('interactive', '');
+		}
+	}
+
 	_onStoreChange(e) {
 		if (!this._display) return;
 		const { reason, message, messages, recipient } = e.detail || {};
@@ -115,11 +126,13 @@ class ChatPreview extends HTMLElement {
 		if (
 			reason === 'thread-changed' ||
 			reason === 'load' ||
-			reason === 'init-defaults'
+			reason === 'init-defaults' ||
+			reason === 'thread-submitted'
 		) {
 			this._display.setRecipient(store.getRecipient());
 			this._display.renderReset(store.getMessages());
 			this._scrollToBottom();
+			this.#syncReadOnlyState();
 			return;
 		}
 
@@ -166,6 +179,7 @@ class ChatPreview extends HTMLElement {
 
 	_sendNow(event) {
 		event.preventDefault();
+		if (store.isCurrentThreadSubmitted()) return;
 		const text = this.$?.input?.value;
 		const isSender = this.$?.senderSwitch?.checked;
 		if (!text || !text.trim()) return;
@@ -184,6 +198,7 @@ class ChatPreview extends HTMLElement {
 	}
 
 	_clearChat() {
+		if (store.isCurrentThreadSubmitted()) return;
 		if (confirm('Are you sure you want to clear all messages?')) {
 			store.clear();
 		}
