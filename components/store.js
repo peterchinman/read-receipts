@@ -116,6 +116,21 @@ class ThreadStore extends EventTarget {
 		}
 	}
 
+	// ===== Submitted Thread Methods =====
+
+	isCurrentThreadSubmitted() {
+		const thread = this.getCurrentThread();
+		return Boolean(thread && thread.submittedAt);
+	}
+
+	markThreadSubmitted(threadId) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread) return;
+		thread.submittedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('thread-submitted', null, threadId);
+	}
+
 	// ===== Thread Management Methods =====
 
 	createThread() {
@@ -144,6 +159,8 @@ class ThreadStore extends EventTarget {
 			recipient: { ...original.recipient },
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
+			// Duplicated threads are always editable — never copy submittedAt
+			submittedAt: undefined,
 		};
 		this.#threads.push(copy);
 		this.#scheduleSave();
@@ -208,6 +225,7 @@ class ThreadStore extends EventTarget {
 	updateThreadName(threadId, name) {
 		const thread = this.#threads.find((t) => t.id === threadId);
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		const trimmedName = String(name ?? '').trim();
 		thread.name = trimmedName.length > 0 ? trimmedName : undefined;
@@ -232,6 +250,7 @@ class ThreadStore extends EventTarget {
 	addMessage(afterId) {
 		const thread = this.getCurrentThread();
 		if (!thread) return null;
+		if (thread.submittedAt) return null;
 
 		const msg = {
 			id: this.#generateId(),
@@ -257,6 +276,7 @@ class ThreadStore extends EventTarget {
 	updateMessage(id, patch) {
 		const thread = this.getCurrentThread();
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		const idx = thread.messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
@@ -270,6 +290,7 @@ class ThreadStore extends EventTarget {
 	deleteMessage(id) {
 		const thread = this.getCurrentThread();
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		const idx = thread.messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
@@ -284,6 +305,7 @@ class ThreadStore extends EventTarget {
 		if (!dataUrl) return;
 		const thread = this.getCurrentThread();
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		const idx = thread.messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
@@ -309,6 +331,7 @@ class ThreadStore extends EventTarget {
 		if (!patch || typeof patch !== 'object') return;
 		const thread = this.getCurrentThread();
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		const next = { ...thread.recipient };
 		if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
@@ -335,6 +358,7 @@ class ThreadStore extends EventTarget {
 	clear() {
 		const thread = this.getCurrentThread();
 		if (!thread) return;
+		if (thread.submittedAt) return;
 
 		thread.messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
 		thread.updatedAt = new Date().toISOString();

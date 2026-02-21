@@ -6,6 +6,15 @@ import { html } from '../utils/template.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
 import { authState } from './auth-state.js';
 import { apiClient } from '../utils/api-client.js';
+import {
+	createDialog,
+	showDialog,
+	dialogTitleStyle,
+	dialogBodyStyle,
+	dialogButtonRowStyle,
+	dialogCancelButtonStyle,
+	dialogConfirmButtonStyle,
+} from '../utils/dialog.js';
 
 class ChatEditor extends HTMLElement {
 	constructor() {
@@ -75,6 +84,10 @@ class ChatEditor extends HTMLElement {
 					}
 				}
 
+				.cards-list.readonly {
+					opacity: 0.5;
+					pointer-events: none;
+				}
 				.cards-list {
 					flex: 1;
 					display: flex;
@@ -127,6 +140,10 @@ class ChatEditor extends HTMLElement {
 					color: var(--color-ink);
 					border-radius: 6px;
 					cursor: pointer;
+				}
+				button:disabled {
+					opacity: 0.5;
+					cursor: not-allowed;
 				}
 				button.submit-btn {
 					background: var(--color-bubble-self);
@@ -244,6 +261,7 @@ class ChatEditor extends HTMLElement {
 		}
 
 		const onThreadNameInput = () => {
+			if (store.isCurrentThreadSubmitted()) return;
 			const currentThread = store.getCurrentThread();
 			if (currentThread) {
 				store.updateThreadName(
@@ -257,6 +275,7 @@ class ChatEditor extends HTMLElement {
 			threadNameInput.addEventListener('input', onThreadNameInput);
 
 		const onRecipientInput = () => {
+			if (store.isCurrentThreadSubmitted()) return;
 			store.updateRecipient({
 				name: this.$?.recipientNameInput?.value ?? '',
 				location: this.$?.recipientLocationInput?.value ?? '',
@@ -329,6 +348,8 @@ class ChatEditor extends HTMLElement {
 		this.#render(store.getMessages());
 		initTooltips(this.shadowRoot, this);
 
+		this.#syncReadOnlyState();
+
 		// Auto-submit if returning from magic link verification
 		this.#checkPendingSubmission();
 		authState.addEventListener('change', () => this.#checkPendingSubmission());
@@ -368,6 +389,127 @@ class ChatEditor extends HTMLElement {
 		}
 	}
 
+	_showSubmitDialog() {
+		return new Promise((resolve) => {
+			const { overlay, modal, close: removeDialog } = createDialog({ closeOnOverlayClick: false });
+
+			let submitting = false;
+
+			const close = (value) => {
+				if (submitting) return;
+				removeDialog();
+				resolve(value);
+			};
+
+			// --- initial email form ---
+
+			const titleEl = document.createElement('div');
+			titleEl.style.cssText = dialogTitleStyle;
+			titleEl.textContent = 'Submit';
+			modal.appendChild(titleEl);
+
+			const subtitleEl = document.createElement('div');
+			subtitleEl.style.cssText = `font: 13px system-ui; color: var(--color-ink-subdued); margin-bottom: 16px; line-height: 1.4;`;
+			subtitleEl.textContent = 'Enter an email address.';
+			modal.appendChild(subtitleEl);
+
+			const emailInput = document.createElement('input');
+			emailInput.type = 'email';
+			emailInput.placeholder = 'you@example.com';
+			emailInput.style.cssText = `
+				width: 100%; font: 14px system-ui; color: var(--color-ink);
+				padding: 10px 12px; border: 1px solid var(--color-edge);
+				border-radius: 8px; background: var(--color-header);
+				margin-bottom: 16px; box-sizing: border-box;
+			`;
+			modal.appendChild(emailInput);
+
+			const noteEl = document.createElement('div');
+			noteEl.style.cssText = dialogBodyStyle;
+			noteEl.textContent =
+				"You'll receive an email with a link to complete your submission. This email address is also where we will reach out to you regarding your submission status and payment.";
+			modal.appendChild(noteEl);
+
+			const btnRow = document.createElement('div');
+			btnRow.style.cssText = dialogButtonRowStyle;
+			modal.appendChild(btnRow);
+
+			const cancelBtn = document.createElement('button');
+			cancelBtn.type = 'button';
+			cancelBtn.style.cssText = dialogCancelButtonStyle;
+			cancelBtn.textContent = 'Cancel';
+			btnRow.appendChild(cancelBtn);
+
+			const confirmBtn = document.createElement('button');
+			confirmBtn.type = 'button';
+			confirmBtn.style.cssText = dialogConfirmButtonStyle;
+			confirmBtn.textContent = 'Submit';
+			btnRow.appendChild(confirmBtn);
+
+			// --- behaviour ---
+
+			const submit = async () => {
+				const value = emailInput.value.trim();
+				if (!value) return;
+
+				submitting = true;
+				confirmBtn.disabled = true;
+				confirmBtn.textContent = 'Sending...';
+
+				try {
+					await authState.requestMagicLink(value);
+					localStorage.setItem('pending-submission', 'true');
+					const pendingThread = store.getCurrentThread();
+					if (pendingThread) {
+						localStorage.setItem('pending-submission-thread', pendingThread.id);
+					}
+
+					const btn = this.shadowRoot.getElementById('submit-btn');
+					if (btn) {
+						btn.disabled = true;
+						btn.textContent = 'Check your email...';
+					}
+
+					modal.innerHTML = html`
+						<div style="${dialogTitleStyle} margin-bottom: 16px;">
+							<b>Note: further action required to submit.</b>
+						</div>
+						<div style="${dialogBodyStyle} margin-bottom: 16px;">
+							<b>You should receive an email shortly</b>, with a link to complete your submission.
+						</div>
+						<div style="${dialogBodyStyle} margin-bottom: 16px;">
+							Email sent to: <b>${value}</b>
+						</div>
+						<div style="${dialogBodyStyle}">
+							The link will expire in 30 minutes. If you don't receive this email please contact us. Your email provider might identify this email as spam. <b>Check your spam folder.</b>
+						</div>
+						<div style="${dialogButtonRowStyle}">
+							<button type="button" data-role="close" style="${dialogCancelButtonStyle}">Close</button>
+						</div>
+					`;
+
+					submitting = false;
+					modal.querySelector('[data-role="close"]').addEventListener('click', () => close(value));
+				} catch (error) {
+					submitting = false;
+					alert('Failed to send verification email: ' + (error.message || 'Unknown error'));
+					confirmBtn.disabled = false;
+					confirmBtn.textContent = 'Submit';
+				}
+			};
+
+			cancelBtn.addEventListener('click', () => close(null));
+			confirmBtn.addEventListener('click', submit);
+			emailInput.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter') submit();
+			});
+
+			overlay.addEventListener('click', () => close(null));
+
+			emailInput.focus();
+		});
+	}
+
 	async _onSubmit() {
 		const btn = this.shadowRoot.getElementById('submit-btn');
 		if (!btn || btn.disabled) return;
@@ -394,31 +536,30 @@ class ChatEditor extends HTMLElement {
 					})),
 				});
 
-				alert('Your piece has been submitted for review! You will receive an email when it is reviewed.');
+				store.markThreadSubmitted(currentThread.id);
 				btn.textContent = 'Submitted';
+				await showDialog({
+					title: 'Submitted',
+					body: 'Your piece has been submitted for review! You will receive an email when it is reviewed.',
+				});
 				localStorage.removeItem('pending-submission');
+				localStorage.removeItem('pending-submission-thread');
 			} catch (error) {
 				alert('Failed to submit: ' + (error.message || 'Unknown error'));
 				btn.disabled = false;
 				btn.textContent = 'Submit';
 			}
 		} else {
-			const email = prompt('Enter your email to submit:');
-			if (!email) return;
-
-			try {
-				await authState.requestMagicLink(email);
-				localStorage.setItem('pending-submission', 'true');
-				btn.disabled = true;
-				btn.textContent = 'Check your email...';
-			} catch (error) {
-				alert('Failed to send verification email: ' + (error.message || 'Unknown error'));
-			}
+			await this._showSubmitDialog();
 		}
 	}
 
 	#checkPendingSubmission() {
 		if (localStorage.getItem('pending-submission') === 'true' && authState.isAuthenticated) {
+			const threadId = localStorage.getItem('pending-submission-thread');
+			if (threadId) {
+				store.loadThread(threadId);
+			}
 			this._onSubmit();
 		}
 	}
@@ -431,12 +572,14 @@ class ChatEditor extends HTMLElement {
 		if (
 			reason === 'thread-changed' ||
 			reason === 'load' ||
-			reason === 'init-defaults'
+			reason === 'init-defaults' ||
+			reason === 'thread-submitted'
 		) {
 			const currentThread = store.getCurrentThread();
 			this.#syncThreadInput(currentThread);
 			this.#syncRecipientInputs(store.getRecipient());
 			this.#render(store.getMessages());
+			this.#syncReadOnlyState();
 			return;
 		}
 
@@ -498,6 +641,35 @@ class ChatEditor extends HTMLElement {
 			locationInput.value = location;
 	}
 
+	#syncReadOnlyState() {
+		const submitted = store.isCurrentThreadSubmitted();
+		const threadNameInput = this.$?.threadNameInput;
+		const recipientNameInput = this.$?.recipientNameInput;
+		const recipientLocationInput = this.$?.recipientLocationInput;
+		const clearBtn = this.shadowRoot?.getElementById('clear-chat');
+		const submitBtn = this.shadowRoot?.getElementById('submit-btn');
+
+		if (threadNameInput) threadNameInput.disabled = submitted;
+		if (recipientNameInput) recipientNameInput.disabled = submitted;
+		if (recipientLocationInput) recipientLocationInput.disabled = submitted;
+		if (clearBtn) clearBtn.disabled = submitted;
+		if (submitBtn) {
+			submitBtn.disabled = submitted;
+			submitBtn.textContent = submitted ? 'Submitted' : 'Submit';
+		}
+
+		const cardsList = this.shadowRoot?.querySelector('.cards-list');
+		if (cardsList) {
+			cardsList.classList.toggle('readonly', submitted);
+		}
+
+		const cards = this.shadowRoot?.querySelectorAll('.editor-card') || [];
+		for (const card of cards) {
+			if (submitted) card.setAttribute('readonly', '');
+			else card.removeAttribute('readonly');
+		}
+	}
+
 	_onFocusIn(e) {
 		// Find the message-card element that contains the focused element
 		// Use composedPath to traverse shadow boundaries
@@ -530,6 +702,7 @@ class ChatEditor extends HTMLElement {
 	}
 
 	_onDelegated(e) {
+		if (store.isCurrentThreadSubmitted()) return;
 		const { id, patch } = e.detail || {};
 		if (e.type === 'editor:update' && id && patch) {
 			store.updateMessage(id, patch);

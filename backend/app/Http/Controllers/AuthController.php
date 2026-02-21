@@ -77,6 +77,11 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         return response()->json([
             'message' => 'Logged out successfully',
         ]);

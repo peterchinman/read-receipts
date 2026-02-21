@@ -574,6 +574,123 @@ test('load() with pre-existing threads sets a current thread', async () => {
 	);
 });
 
+// ===== Submitted Thread Tests =====
+
+test('markThreadSubmitted() sets submittedAt and isCurrentThreadSubmitted() returns true', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const thread = s.getCurrentThread();
+	assert.equal(s.isCurrentThreadSubmitted(), false, 'should not be submitted initially');
+	assert.equal(thread.submittedAt, undefined, 'submittedAt should be undefined');
+
+	let lastReason = null;
+	s.addEventListener('messages:changed', (e) => {
+		lastReason = e.detail.reason;
+	});
+
+	s.markThreadSubmitted(thread.id);
+	await flushTimers();
+
+	assert.equal(s.isCurrentThreadSubmitted(), true, 'should be submitted after marking');
+	const updated = s.getCurrentThread();
+	assert.ok(typeof updated.submittedAt === 'string', 'submittedAt should be an ISO string');
+	assert.equal(lastReason, 'thread-submitted', 'should emit thread-submitted event');
+});
+
+test('mutation methods are no-ops on submitted thread', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const thread = s.getCurrentThread();
+	const originalMessages = s.getMessages();
+	const originalRecipient = s.getRecipient();
+	const originalName = thread.name;
+
+	s.markThreadSubmitted(thread.id);
+	await flushTimers();
+
+	// addMessage should return null
+	const added = s.addMessage();
+	assert.equal(added, null, 'addMessage should return null on submitted thread');
+
+	// updateMessage should be no-op
+	const firstMsg = s.getMessages()[0];
+	s.updateMessage(firstMsg.id, { message: 'changed' });
+	assert.equal(s.getMessages()[0].message, firstMsg.message, 'updateMessage should be no-op');
+
+	// deleteMessage should be no-op
+	const msgCount = s.getMessages().length;
+	s.deleteMessage(firstMsg.id);
+	assert.equal(s.getMessages().length, msgCount, 'deleteMessage should be no-op');
+
+	// insertImage should be no-op
+	s.insertImage(firstMsg.id, 'data:image/png;base64,abc');
+	const msg = s.getMessages()[0];
+	assert.ok(!msg.images || msg.images.length === 0, 'insertImage should be no-op');
+
+	// updateRecipient should be no-op
+	s.updateRecipient({ name: 'Changed Name' });
+	assert.equal(s.getRecipient().name, originalRecipient.name, 'updateRecipient should be no-op');
+
+	// updateThreadName should be no-op
+	s.updateThreadName(thread.id, 'New Name');
+	const afterNameUpdate = s.getCurrentThread();
+	assert.equal(afterNameUpdate.name, originalName, 'updateThreadName should be no-op');
+
+	// clear should be no-op
+	s.clear();
+	assert.equal(s.getMessages().length, originalMessages.length, 'clear should be no-op');
+});
+
+test('duplicateThread() does NOT copy submittedAt', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const thread = s.getCurrentThread();
+	s.markThreadSubmitted(thread.id);
+	await flushTimers();
+
+	assert.equal(s.isCurrentThreadSubmitted(), true, 'original should be submitted');
+
+	const copy = s.duplicateThread(thread.id);
+	assert.ok(copy, 'should return duplicated thread');
+	assert.equal(copy.submittedAt, undefined, 'copy should not have submittedAt');
+
+	// Switch to the copy and verify it's editable
+	s.loadThread(copy.id);
+	assert.equal(s.isCurrentThreadSubmitted(), false, 'copy should not be submitted');
+
+	// Verify mutations work on the copy
+	const added = s.addMessage();
+	assert.ok(added, 'should be able to add messages to copy');
+});
+
+test('deleteThread() still works on submitted threads', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+
+	const thread1 = s.createThread();
+	await flushTimers();
+
+	s.markThreadSubmitted(thread1.id);
+	await flushTimers();
+
+	const result = s.deleteThread(thread1.id);
+	assert.equal(result, true, 'should be able to delete submitted thread');
+	await flushTimers();
+
+	const remaining = s.listThreads();
+	assert.ok(!remaining.some((t) => t.id === thread1.id), 'submitted thread should be deleted');
+});
+
 test('messages are isolated between threads', async () => {
 	globalThis.localStorage.clear();
 	const s = new ThreadStore();
