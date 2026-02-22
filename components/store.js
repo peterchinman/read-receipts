@@ -2,12 +2,17 @@
 const THREADS_STORAGE_KEY = 'message-simulator:threads';
 const CURRENT_SCHEMA_VERSION = 1;
 
-const DEFAULT_RECIPIENT = {
+const WELCOME_RECIPIENT = {
 	name: 'Peter Chinman',
 	location: 'New York, NY',
 };
 
-const DEFAULT_MESSAGES = [
+const DEFAULT_RECIPIENT = {
+	name: 'Other',
+	location: '',
+};
+
+const WELCOME_MESSAGES = [
 	{ message: 'Hi', sender: 'other' },
 	{ message: 'Hello', sender: 'other' },
 	{ message: 'What is this?', sender: 'self' },
@@ -33,6 +38,8 @@ const DEFAULT_MESSAGES = [
 	{ message: 'No like, what is it for?', sender: 'self' },
 	{ message: 'Lol idk', sender: 'other' },
 ];
+
+const DEFAULT_MESSAGES = [];
 
 class ThreadStore extends EventTarget {
 	#threads = [];
@@ -325,6 +332,7 @@ class ThreadStore extends EventTarget {
 		const thread = this.getCurrentThread();
 		if (!thread) return;
 		if (thread.submittedAt) return;
+		if (thread.messages.length <= 1) return;
 
 		const idx = thread.messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
@@ -395,6 +403,7 @@ class ThreadStore extends EventTarget {
 		if (thread.submittedAt) return;
 
 		thread.messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+		thread.recipient = { ...DEFAULT_RECIPIENT };
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('clear');
@@ -532,8 +541,8 @@ class ThreadStore extends EventTarget {
 		return {
 			id: this.#generateId(),
 			name: undefined,
-			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
-			recipient: { ...DEFAULT_RECIPIENT },
+			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
+			recipient: { ...WELCOME_RECIPIENT },
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};

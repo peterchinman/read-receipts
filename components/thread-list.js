@@ -325,7 +325,9 @@ class ChatThreadList extends HTMLElement {
 			return 'No messages yet';
 		}
 		const lastMsg = thread.messages[thread.messages.length - 1];
-		return lastMsg.message || '(Image)';
+		if (lastMsg.message) return lastMsg.message;
+		if (lastMsg.images && lastMsg.images.length > 0) return '(Image)';
+		return 'No messages yet';
 	}
 
 	_formatTime(timestamp) {

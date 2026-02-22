@@ -4,7 +4,7 @@ import './sender-switch.js';
 
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
-		return ['message-id', 'sender', 'timestamp', 'text', 'readonly'];
+		return ['message-id', 'sender', 'timestamp', 'text', 'readonly', 'only'];
 	}
 
 	constructor() {
@@ -383,7 +383,8 @@ class MessageCard extends HTMLElement {
 			else senderSwitch.removeAttribute('disabled');
 		}
 		if (dateInput) dateInput.disabled = isReadOnly;
-		if (deleteBtn) deleteBtn.style.display = isReadOnly ? 'none' : '';
+		const isOnly = this.hasAttribute('only');
+		if (deleteBtn) deleteBtn.style.display = (isReadOnly || isOnly) ? 'none' : '';
 		if (addBelowBtn) addBelowBtn.style.display = isReadOnly ? 'none' : '';
 		if (insertImageBtn) insertImageBtn.style.display = isReadOnly ? 'none' : '';
 	}

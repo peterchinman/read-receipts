@@ -942,6 +942,7 @@ class ChatEditor extends HTMLElement {
 		const card = this.#ensureCardForMessage(message);
 		this.#updateCardAttrs(card, message);
 		this.#insertCardAtIndex(card, index);
+		this.#syncDeleteButtons();
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
 			if (card && typeof card.focus === 'function') {
@@ -961,12 +962,23 @@ class ChatEditor extends HTMLElement {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (card && card.remove) card.remove();
+		this.#syncDeleteButtons();
 	}
 
 	#render(messages) {
 		const cardsList =
 			this.shadowRoot && this.shadowRoot.querySelector('.cards-list');
 		if (!cardsList) return;
+
+		// If there are no messages and the thread is editable, seed one blank message
+		if ((!messages || messages.length === 0) && !store.isCurrentThreadSubmitted()) {
+			for (const card of this.shadowRoot.querySelectorAll('.editor-card')) {
+				card.remove();
+			}
+			store.addMessage();
+			return;
+		}
+
 		const existing = new Map(
 			Array.from(this.shadowRoot.querySelectorAll('.editor-card'))
 				.filter((node) => node instanceof HTMLElement)
@@ -1004,6 +1016,17 @@ class ChatEditor extends HTMLElement {
 
 		for (const leftover of existing.values()) {
 			leftover.remove();
+		}
+
+		this.#syncDeleteButtons();
+	}
+
+	#syncDeleteButtons() {
+		const cards = [...(this.shadowRoot?.querySelectorAll('.editor-card') || [])];
+		const isOnly = cards.length === 1;
+		for (const card of cards) {
+			if (isOnly) card.setAttribute('only', '');
+			else card.removeAttribute('only');
 		}
 	}
 }
