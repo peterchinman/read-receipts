@@ -116,17 +116,50 @@ class ThreadStore extends EventTarget {
 		}
 	}
 
-	// ===== Submitted Thread Methods =====
+	// ===== Submitted / Pending Thread Methods =====
 
 	isCurrentThreadSubmitted() {
 		const thread = this.getCurrentThread();
 		return Boolean(thread && thread.submittedAt);
 	}
 
+	isCurrentThreadPending() {
+		const thread = this.getCurrentThread();
+		return Boolean(thread && thread.pendingAt && !thread.submittedAt);
+	}
+
+	markThreadPending(threadId) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread) return;
+		thread.pendingAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('thread-pending', null, threadId);
+	}
+
+	clearThreadPending(threadId) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread || !thread.pendingAt) return;
+		delete thread.pendingAt;
+		this.#scheduleSave();
+		this.#emitChange('thread-pending', null, threadId);
+	}
+
+	listPendingThreads() {
+		return this.#threads.filter((t) => t.pendingAt && !t.submittedAt);
+	}
+
+	setThreadBackendId(threadId, backendId) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread) return;
+		thread.backendId = backendId;
+		this.#scheduleSave();
+	}
+
 	markThreadSubmitted(threadId) {
 		const thread = this.#threads.find((t) => t.id === threadId);
 		if (!thread) return;
 		thread.submittedAt = new Date().toISOString();
+		delete thread.pendingAt;
 		this.#scheduleSave();
 		this.#emitChange('thread-submitted', null, threadId);
 	}
@@ -159,8 +192,9 @@ class ThreadStore extends EventTarget {
 			recipient: { ...original.recipient },
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
-			// Duplicated threads are always editable — never copy submittedAt
+			// Duplicated threads are always editable — never copy submittedAt or pendingAt
 			submittedAt: undefined,
+			pendingAt: undefined,
 		};
 		this.#threads.push(copy);
 		this.#scheduleSave();
@@ -449,6 +483,11 @@ class ThreadStore extends EventTarget {
 		const existing = this.#threads.find((t) => t.backendId === backendThread.id);
 		const thread = existing || this.createThread();
 		thread.backendId = backendThread.id;
+
+		// The thread is being returned for editing (changes requested) —
+		// clear any locked state so the user can edit and resubmit it.
+		delete thread.submittedAt;
+		delete thread.pendingAt;
 
 		// Populate messages with local IDs/timestamps
 		const messages = (backendThread.messages || []).map((m, i) => ({

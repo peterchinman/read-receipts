@@ -63,6 +63,9 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--color-drop-shadow: oklch(0 0 0 / 8%);
 	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
+	--pane-shadow:
+		0 0 16px 0px var(--color-drop-shadow-intense),
+		0 0 4px 0 var(--color-drop-shadow);
 
 	/* New component colors */
 	--color-text: var(--color-ink);
@@ -75,6 +78,10 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-nav-bg: var(--color-header);
 	--color-hover: #f5f5f5;
 	--color-messages-bg: #f5f5f5;
+
+	/* Status / badge colors */
+	--color-status-green: #35c759;
+	--color-status-red: #ff3b2f;
 }
 
 :root[data-theme='dark'] {
@@ -102,6 +109,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--color-drop-shadow: transparent;
 	--color-drop-shadow-intense: transparent;
+	--pane-shadow: none;
 
 	/* New component colors - dark mode */
 	--color-text: var(--color-ink);
@@ -114,6 +122,10 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-nav-bg: var(--color-header);
 	--color-hover: #2a2a2a;
 	--color-messages-bg: #1a1a1a;
+
+	/* Status / badge colors */
+	--color-status-green: #31d158;
+	--color-status-red: #ff453a;
 }
 
 @media (min-width: 900px) {
@@ -194,7 +206,7 @@ footer {
 	padding-block: 0.5rem;
 
 	p {
-	  width: fit-content;
+		width: fit-content;
 	}
 
 	a {
@@ -341,8 +353,7 @@ footer {
 		border-radius: calc(18rem / 14);
 		overflow: hidden;
 		border: 1px solid var(--color-edge);
-		filter: drop-shadow(0 0 16px var(--color-drop-shadow-intense))
-			drop-shadow(0 0 4px var(--color-drop-shadow));
+		box-shadow: var(--pane-shadow);
 	}
 }
 

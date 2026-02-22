@@ -11,7 +11,6 @@ class AuthVerify extends HTMLElement {
 	#status = 'verifying';
 	#error = null;
 	#connected = false;
-	#redirectTimer = null;
 
 	constructor() {
 		super();
@@ -42,10 +41,6 @@ class AuthVerify extends HTMLElement {
 
 	disconnectedCallback() {
 		this.#connected = false;
-		if (this.#redirectTimer) {
-			clearTimeout(this.#redirectTimer);
-			this.#redirectTimer = null;
-		}
 	}
 
 	async #verifyToken() {
@@ -61,18 +56,13 @@ class AuthVerify extends HTMLElement {
 
 		try {
 			await authState.login(this.#token);
-			this.#status = 'success';
-			this.#render();
 
-			// Redirect after short delay
-			this.#redirectTimer = setTimeout(() => {
-				if (localStorage.getItem('admin-login-pending')) {
-					localStorage.removeItem('admin-login-pending');
-					router.navigate('/admin');
-				} else {
-					router.navigate('/create');
-				}
-			}, 1500);
+			if (localStorage.getItem('admin-login-pending')) {
+				localStorage.removeItem('admin-login-pending');
+				router.navigate('/admin');
+			} else {
+				router.navigate('/create');
+			}
 		} catch (error) {
 			this.#status = 'error';
 			this.#error = error.message || 'Verification failed';
@@ -121,10 +111,6 @@ class AuthVerify extends HTMLElement {
 					color: #ff3b30;
 				}
 
-				.success {
-					color: #34c759;
-				}
-
 				a {
 					display: inline-block;
 					margin-top: 24px;
@@ -150,13 +136,6 @@ class AuthVerify extends HTMLElement {
 					<div class="icon">...</div>
 					<h1>Verifying</h1>
 					<p class="message">Please wait while we sign you in...</p>
-				`;
-
-			case 'success':
-				return html`
-					<div class="icon success">&#10003;</div>
-					<h1>Verified!</h1>
-					<p class="message">Redirecting to complete your submission...</p>
 				`;
 
 			case 'error':

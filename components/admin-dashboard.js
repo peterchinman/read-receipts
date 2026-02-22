@@ -84,7 +84,7 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 			letter-spacing: 0.04em;
 			padding: 3px 6px;
 			border-radius: 4px;
-			background: #ff9500;
+			background: var(--color-status-red);
 			color: #fff;
 			flex-shrink: 0;
 		}
@@ -171,17 +171,17 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 		}
 
 		.admin-btn-approve {
-			background: #34c759;
+			background: var(--color-status-green);
 			color: #fff;
 		}
 
 		.admin-btn-request-changes {
-			background: #ff9500;
+			background: var(--color-primary);
 			color: #fff;
 		}
 
 		.admin-btn-reject {
-			background: #ff3b30;
+			background: var(--color-status-red);
 			color: #fff;
 		}
 
@@ -217,7 +217,7 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 		}
 
 		.admin-error {
-			color: #ff3b30;
+			color: var(--color-status-red);
 		}
 
 		/* Pane inner layout for admin */
@@ -496,7 +496,7 @@ class AdminDashboard extends HTMLElement {
 				data-id="${sub.id}"
 			>
 				<div class="admin-submission-item-title">
-					<span>${sub.name || 'Untitled'}</span>
+					<span>${sub.name || sub.recipient_name || 'Untitled'}</span>
 					${sub.is_resubmission
 						? html`<span class="admin-badge-resubmitted">Resubmitted</span>`
 						: ''}
@@ -517,7 +517,7 @@ class AdminDashboard extends HTMLElement {
 
 		return html`
 			<div class="admin-action-content">
-				<h2 class="admin-action-header">${sub.name || 'Untitled'}</h2>
+				<h2 class="admin-action-header">${sub.name || sub.recipient_name || 'Untitled'}</h2>
 				<div class="admin-action-meta">
 					by ${sub.author?.name || 'Anonymous'}<br />
 					${sub.author?.email || ''}

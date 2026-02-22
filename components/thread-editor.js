@@ -485,7 +485,7 @@ class ChatEditor extends HTMLElement {
 					localStorage.setItem('pending-submission', 'true');
 					const pendingThread = store.getCurrentThread();
 					if (pendingThread) {
-						localStorage.setItem('pending-submission-thread', pendingThread.id);
+						store.markThreadPending(pendingThread.id);
 					}
 
 					const btn = this.shadowRoot.getElementById('submit-btn');
@@ -563,12 +563,12 @@ class ChatEditor extends HTMLElement {
 			try {
 				if (isResubmit) {
 					await apiClient.resubmitThread(currentThread.backendId, payload);
-					delete currentThread.backendId;
 					delete currentThread.adminNotes;
 					store.save();
 					this.#syncAdminNotes(currentThread);
 				} else {
-					await apiClient.submitThread(payload);
+					const result = await apiClient.submitThread(payload);
+					store.setThreadBackendId(currentThread.id, result.id);
 				}
 
 				store.markThreadSubmitted(currentThread.id);
@@ -580,7 +580,6 @@ class ChatEditor extends HTMLElement {
 						: 'Your piece has been submitted for review! You will receive an email when it is reviewed.',
 				});
 				localStorage.removeItem('pending-submission');
-				localStorage.removeItem('pending-submission-thread');
 			} catch (error) {
 				alert('Failed to submit: ' + (error.message || 'Unknown error'));
 				btn.disabled = false;
@@ -591,13 +590,63 @@ class ChatEditor extends HTMLElement {
 		}
 	}
 
-	#checkPendingSubmission() {
-			if (localStorage.getItem('pending-submission') === 'true' && authState.isAuthenticated) {
-			const threadId = localStorage.getItem('pending-submission-thread');
-			if (threadId) {
-				store.loadThread(threadId);
+	async #checkPendingSubmission() {
+		if (localStorage.getItem('pending-submission') !== 'true' || !authState.isAuthenticated) return;
+
+		const pendingThreads = store.listPendingThreads();
+		if (pendingThreads.length === 0) {
+			localStorage.removeItem('pending-submission');
+			return;
+		}
+
+		// Auth is complete — clear the pending flag on every thread before submitting,
+		// so the submit button doesn't get disabled mid-loop.
+		for (const thread of pendingThreads) {
+			store.clearThreadPending(thread.id);
+		}
+
+		const btn = this.shadowRoot?.getElementById('submit-btn');
+		if (btn) {
+			btn.disabled = true;
+			btn.textContent = 'Submitting...';
+		}
+
+		let successCount = 0;
+		const failed = [];
+
+		for (const thread of pendingThreads) {
+			const payload = {
+				name: thread.name,
+				recipient_name: thread.recipient?.name,
+				recipient_location: thread.recipient?.location,
+				messages: thread.messages.map((m) => ({
+					sender: m.sender,
+					message: m.message,
+					timestamp: m.timestamp,
+				})),
+			};
+			try {
+				const result = await apiClient.submitThread(payload);
+				store.setThreadBackendId(thread.id, result.id);
+				store.markThreadSubmitted(thread.id);
+				successCount++;
+			} catch (error) {
+				failed.push({ thread, error });
 			}
-			this._onSubmit();
+		}
+
+		localStorage.removeItem('pending-submission');
+		this.#syncSubmitButton(store.getCurrentThread());
+
+		if (successCount > 0) {
+			const body = successCount === 1
+				? 'Your piece has been submitted for review! You will receive an email when it is reviewed.'
+				: `${successCount} pieces have been submitted for review! You will receive an email when they are reviewed.`;
+			await showDialog({ title: 'Submitted', body });
+		}
+
+		for (const { thread, error } of failed) {
+			alert(`Failed to submit "${store.getThreadDisplayName(thread)}": ${error.message || 'Unknown error'}`);
 		}
 	}
 
@@ -610,7 +659,8 @@ class ChatEditor extends HTMLElement {
 			reason === 'thread-changed' ||
 			reason === 'load' ||
 			reason === 'init-defaults' ||
-			reason === 'thread-submitted'
+			reason === 'thread-submitted' ||
+			reason === 'thread-pending'
 		) {
 			const currentThread = store.getCurrentThread();
 			this.#syncThreadInput(currentThread);
@@ -684,7 +734,15 @@ class ChatEditor extends HTMLElement {
 		const btn = this.shadowRoot?.getElementById('submit-btn');
 		if (!btn) return;
 		const isResubmit = thread && !!thread.backendId;
-		if (!btn.disabled) {
+		const isPending = store.isCurrentThreadPending();
+		const isSubmitted = store.isCurrentThreadSubmitted();
+		if (isSubmitted) {
+			btn.disabled = true;
+			btn.textContent = 'Submitted';
+		} else if (isPending) {
+			btn.disabled = true;
+			btn.textContent = 'Check your email...';
+		} else if (!btn.disabled) {
 			btn.textContent = isResubmit ? 'Resubmit' : 'Submit';
 		}
 	}
@@ -713,6 +771,7 @@ class ChatEditor extends HTMLElement {
 
 	#syncReadOnlyState() {
 		const submitted = store.isCurrentThreadSubmitted();
+		const pending = store.isCurrentThreadPending();
 		const threadNameInput = this.$?.threadNameInput;
 		const recipientNameInput = this.$?.recipientNameInput;
 		const recipientLocationInput = this.$?.recipientLocationInput;
@@ -724,8 +783,10 @@ class ChatEditor extends HTMLElement {
 		if (recipientLocationInput) recipientLocationInput.disabled = submitted;
 		if (clearBtn) clearBtn.disabled = submitted;
 		if (submitBtn) {
-			submitBtn.disabled = submitted;
-			submitBtn.textContent = submitted ? 'Submitted' : 'Submit';
+			submitBtn.disabled = submitted || pending;
+			if (submitted) submitBtn.textContent = 'Submitted';
+			else if (pending) submitBtn.textContent = 'Check your email...';
+			else submitBtn.textContent = 'Submit';
 		}
 
 		const cardsList = this.shadowRoot?.querySelector('.cards-list');

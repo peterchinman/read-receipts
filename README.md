@@ -2,14 +2,17 @@
 
 ## Project Goals
 
-The goal of this project is not necessarily accuracy. I value accuracy in so far as it allows us to harness the uncanniness of familiarity.
+The medium is the message.
 
-For example, I do not intend to implement a Liquid-Glass-ified version of the UI (though if someone does want to take that on and create multiple UI "skins" I would welcome that.)
+The goal of this project is not accuracy. I value accuracy in so far as it allows us to harness the uncanniness of familiarity.
+
+But, for example, my goal is not for you to be able to take screenshots that can trick people.
+
+Or, for example, I do not intend to implement a Liquid-Glass-ified version of the UI (though if someone does want to take that on and create multiple UI "skins" (Different iOS versions, WhatsApp, etc) submit a PR.)
 
 ## Features I'd Like To Implement
 
 - [ ] Support for photos
-- [ ] Saving/loading "drafts" in local storage
 
 ## Development
 

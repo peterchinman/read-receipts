@@ -801,11 +801,114 @@ test('importFromBackend() only shows most recent admin notes', async () => {
 		'should only contain the most recent admin notes');
 });
 
-test('importFromBackend() creates new thread after backendId is cleared (resubmit cycle)', async () => {
+test('full lifecycle: submit stores backendId so importFromBackend updates in place on changes requested', async () => {
 	globalThis.localStorage.clear();
 	const s = new ThreadStore();
 	s.load();
 	await flushTimers();
+
+	const countBefore = s.listThreads().length;
+
+	// Step 1: user has a local thread and submits it
+	const localThread = s.getCurrentThread();
+	s.updateThreadName(localThread.id, 'My Piece');
+	s.updateRecipient({ name: 'Alice', location: 'Paris' });
+	await flushTimers();
+
+	// Step 2: simulate what _onSubmit / #checkPendingSubmission does on success:
+	// the backend returns an ID which we store on the local thread
+	const backendId = 42;
+	s.setThreadBackendId(localThread.id, backendId);
+	s.markThreadSubmitted(localThread.id);
+	await flushTimers();
+
+	assert.equal(s.isCurrentThreadSubmitted(), true, 'thread should be submitted');
+	assert.equal(s.getCurrentThread().backendId, backendId, 'backend ID should be stored');
+	assert.equal(s.listThreads().length, countBefore, 'no new thread should exist yet');
+
+	// Step 3: admin requests changes → importFromBackend is called with the same backend ID
+	const backendThread = {
+		id: backendId,
+		name: 'My Piece',
+		recipient_name: 'Alice',
+		recipient_location: 'Paris',
+		status: 'changes_requested',
+		messages: [
+			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
+		],
+		events: [
+			{ type: 'changes_requested', notes: 'Please revise the opening', created_at: new Date().toISOString() },
+		],
+	};
+
+	const imported = s.importFromBackend(backendThread);
+	await flushTimers();
+
+	// Should update the existing thread, not create a new one
+	assert.equal(s.listThreads().length, countBefore,
+		'importFromBackend should update in place, not add a new thread');
+	assert.equal(imported.id, localThread.id,
+		'returned thread should be the same local thread');
+
+	// submittedAt should be cleared so the user can edit and resubmit
+	assert.equal(imported.submittedAt, undefined,
+		'submittedAt should be cleared so thread is editable');
+	assert.equal(s.isCurrentThreadSubmitted(), false,
+		'thread should no longer appear submitted');
+
+	// Admin notes should be populated
+	assert.deepEqual(imported.adminNotes, ['Please revise the opening'],
+		'admin notes should be set from the changes_requested event');
+});
+
+test('importFromBackend() preserves undefined name when backend has no custom name', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	// Thread with no custom name — only a recipient name
+	const localThread = s.getCurrentThread();
+	s.updateRecipient({ name: 'Alice', location: 'Paris' });
+	assert.equal(localThread.name, undefined, 'local thread should have no custom name');
+
+	s.setThreadBackendId(localThread.id, 55);
+	s.markThreadSubmitted(localThread.id);
+	await flushTimers();
+
+	// Backend stores null name (because the payload sent null — no custom title)
+	const backendThread = {
+		id: 55,
+		name: null,
+		recipient_name: 'Alice',
+		recipient_location: 'Paris',
+		status: 'changes_requested',
+		messages: [
+			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
+		],
+		events: [
+			{ type: 'changes_requested', notes: 'Revise please', created_at: new Date().toISOString() },
+		],
+	};
+
+	const imported = s.importFromBackend(backendThread);
+	await flushTimers();
+
+	// name is null/falsy from backend, so importFromBackend leaves thread.name alone
+	assert.equal(imported.name, undefined,
+		'thread name should remain undefined when backend has no custom name');
+	// getThreadDisplayName still resolves correctly via recipient fallback
+	assert.equal(s.getThreadDisplayName(imported), 'Alice',
+		'display name should resolve to recipient name via fallback');
+});
+
+test('importFromBackend() updates existing thread on second changes-requested cycle (backendId preserved after resubmit)', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+	await flushTimers();
+
+	const countBefore = s.listThreads().length;
 
 	const backendThread = {
 		id: 300,
@@ -817,28 +920,40 @@ test('importFromBackend() creates new thread after backendId is cleared (resubmi
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
-			{ type: 'changes_requested', notes: 'Please fix', created_at: new Date().toISOString() },
+			{ type: 'changes_requested', notes: 'Please fix', created_at: '2026-02-07T12:00:00Z' },
 		],
 	};
 
-	// First import
+	// First changes-requested import
 	const thread1 = s.importFromBackend(backendThread);
 	await flushTimers();
 	assert.equal(thread1.backendId, 300);
+	assert.equal(s.listThreads().length, countBefore + 1, 'first import creates a new thread');
 
-	// Simulate resubmit: clear backendId (as the real flow does when author resubmits)
-	thread1.backendId = undefined;
+	// User resubmits: backendId is NOW preserved (the real flow no longer deletes it)
+	s.markThreadSubmitted(thread1.id);
 	await flushTimers();
 
-	const countBeforeSecondImport = s.listThreads().length;
+	// Admin requests changes again (second round)
+	const backendThreadRound2 = {
+		...backendThread,
+		events: [
+			{ type: 'changes_requested', notes: 'Round 2: please also fix the ending', created_at: '2026-02-10T12:00:00Z' },
+			{ type: 'changes_requested', notes: 'Please fix', created_at: '2026-02-07T12:00:00Z' },
+		],
+	};
 
-	// Second import (new review round, same backend ID)
-	const thread2 = s.importFromBackend(backendThread);
+	const thread2 = s.importFromBackend(backendThreadRound2);
 	await flushTimers();
 
-	assert.equal(s.listThreads().length, countBeforeSecondImport + 1,
-		'should create a new thread since no existing thread has this backendId');
-	assert.ok(thread2.id !== thread1.id,
-		'new thread should have a different local ID');
-	assert.equal(thread2.backendId, 300);
+	assert.equal(s.listThreads().length, countBefore + 1,
+		'second import should update in place — no new thread created');
+	assert.equal(thread2.id, thread1.id,
+		'should return the same local thread');
+	assert.equal(thread2.backendId, 300,
+		'backendId should still be set');
+	assert.deepEqual(thread2.adminNotes, ['Round 2: please also fix the ending'],
+		'should reflect the most recent admin notes');
+	assert.equal(thread2.submittedAt, undefined,
+		'submittedAt should be cleared so user can edit again');
 });

@@ -281,7 +281,25 @@ class ThreadListDisplay extends HTMLElement {
 				.submitted-badge {
 					font: 600 10px system-ui;
 					color: white;
-					background: #34c759;
+					background: var(--color-status-green);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.pending-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-status-red);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.changes-requested-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-primary);
 					border-radius: 9px;
 					padding: 2px 7px;
 					white-space: nowrap;
@@ -347,7 +365,7 @@ class ThreadListDisplay extends HTMLElement {
 					background: #007aff;
 				}
 				.action-button.delete {
-					background: #ff3b30;
+					background: var(--color-status-red);
 				}
 				.action-button svg {
 					width: 24px;
@@ -458,15 +476,21 @@ class ThreadListDisplay extends HTMLElement {
 		const preview = thread.preview || '';
 		const time = thread.time || '';
 		const submitted = thread.submitted || false;
+		const pending = thread.pending || false;
+		const changesRequested = thread.changesRequested || false;
 
 		row.setAttribute(
 			'aria-label',
-			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : ''}`,
+			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : pending ? ', pending submission' : changesRequested ? ', edits requested' : ''}`,
 		);
 
 		const badgeHtml = submitted
 			? '<span class="submitted-badge">Submitted</span>'
-			: '';
+			: pending
+				? '<span class="pending-badge">Pending</span>'
+				: changesRequested
+					? '<span class="changes-requested-badge">Edits Req\'d</span>'
+					: '';
 
 		row.innerHTML = html`
 			<div class="avatar" aria-hidden="true">${initials}</div>
