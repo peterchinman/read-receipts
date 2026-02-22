@@ -246,7 +246,7 @@ class ThreadDisplay extends HTMLElement {
 					justify-content: space-between;
 					min-height: 100%;
 					max-height: 100%;
-          height: 100%;
+					height: 100%;
 
 					line-height: var(--line-height);
 				}
@@ -352,6 +352,15 @@ class ThreadDisplay extends HTMLElement {
 					.preview-header icon-arrow {
 						display: none;
 					}
+				}
+
+				/* Override: show back button at all widths when explicitly requested */
+				:host([show-back-button]) .preview-header icon-arrow {
+					display: block;
+				}
+
+				:host([show-back-button]) .preview-header {
+					grid-template-columns: 1fr auto 1fr;
 				}
 
 				.message-list {
@@ -891,7 +900,8 @@ class ThreadDisplay extends HTMLElement {
 	#applyInputVisibility() {
 		const attr = this.getAttribute('show-input');
 		const normalized = attr ? String(attr).toLowerCase().trim() : null;
-		const showInput = normalized === null || !['false', '0', 'no'].includes(normalized);
+		const showInput =
+			normalized === null || !['false', '0', 'no'].includes(normalized);
 		if (this.$?.bottom) {
 			this.$.bottom.style.display = showInput ? '' : 'none';
 		}

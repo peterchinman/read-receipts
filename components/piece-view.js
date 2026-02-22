@@ -67,7 +67,9 @@ class PieceView extends HTMLElement {
 				:host {
 					display: block;
 					height: 100%;
-          max-height: 100%;
+					max-height: 100%;
+					min-height: 0;
+					overflow: hidden;
 				}
 
 				.loading,

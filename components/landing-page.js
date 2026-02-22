@@ -7,12 +7,15 @@ import { router } from '../utils/router.js';
 import { config } from '../utils/config.js';
 import './thread-list-display.js';
 
+const READ_PIECES_KEY = 'message-simulator:read-pieces';
+
 class LandingPage extends HTMLElement {
 	#shadow;
 	#pieces = [];
 	#loading = true;
 	#error = null;
 	#display = null;
+	#readIds = new Set();
 
 	constructor() {
 		super();
@@ -21,6 +24,8 @@ class LandingPage extends HTMLElement {
 	}
 
 	connectedCallback() {
+		this.#readIds = this.#loadReadIds();
+
 		this.#shadow.innerHTML = html`
 			<style>
 				:host {
@@ -31,7 +36,11 @@ class LandingPage extends HTMLElement {
 					overflow: hidden;
 				}
 			</style>
-			<thread-list-display header-title="Messages" show-header></thread-list-display>
+			<thread-list-display
+				header-title="Messages"
+				show-header
+				show-unread
+			></thread-list-display>
 		`;
 
 		this.#display = this.#shadow.querySelector('thread-list-display');
@@ -42,6 +51,26 @@ class LandingPage extends HTMLElement {
 
 	disconnectedCallback() {
 		this.#display?.removeEventListener('thread-list:select', this._onSelect);
+	}
+
+	#loadReadIds() {
+		try {
+			const stored = localStorage.getItem(READ_PIECES_KEY);
+			return stored ? new Set(JSON.parse(stored).map(String)) : new Set();
+		} catch {
+			return new Set();
+		}
+	}
+
+	#markPieceRead(pieceId) {
+		const key = String(pieceId);
+		if (!key || this.#readIds.has(key)) return;
+		this.#readIds.add(key);
+		try {
+			localStorage.setItem(READ_PIECES_KEY, JSON.stringify([...this.#readIds]));
+		} catch {
+			// ignore
+		}
 	}
 
 	async #loadPieces() {
@@ -88,6 +117,7 @@ class LandingPage extends HTMLElement {
 				recipientName: piece.recipient_name || author || '',
 				preview: previewText,
 				time: this.#formatTime(piece.published_at),
+				unread: !this.#readIds.has(String(piece.id)),
 			};
 		});
 
@@ -100,7 +130,10 @@ class LandingPage extends HTMLElement {
 			return 'No messages';
 		}
 		const firstMessages = piece.messages.slice(0, 3);
-		return firstMessages.map((m) => m.message || '').join(' ').trim();
+		return firstMessages
+			.map((m) => m.message || '')
+			.join(' ')
+			.trim();
 	}
 
 	#formatTime(timestamp) {
@@ -129,6 +162,8 @@ class LandingPage extends HTMLElement {
 	_onSelect(e) {
 		const { id } = e.detail || {};
 		if (id) {
+			this.#markPieceRead(id);
+			this.#renderList();
 			router.navigate(`/piece/${id}`);
 		}
 	}

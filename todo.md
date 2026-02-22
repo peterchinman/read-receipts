@@ -6,12 +6,8 @@ BEFORE RELEASE
 - [ ] improve submission email styling
 - [ ] context menu on thread-list, right click on desktop, slide on mobile
   - [ ] should have delete, duplicate, 
-- [ ] Make Mobile Width good again:
-  - [ ] Hide header and footer.
-  - [ ] Navigation should work
 - [ ] Make desktop width lit mag page good
-  - [ ] Prob centered, shadowed panel, like a window on blank desktop?
-- [ ] Piece list should have unread indicators, local-storage-based
+  - [ ] Prob centered, with a max-width, shadowed panel, like a window on blank desktop?
 
 CAN DO AFTER RELEASE:
 

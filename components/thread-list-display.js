@@ -33,6 +33,7 @@ class ThreadListDisplay extends HTMLElement {
 			'show-actions',
 			'show-create',
 			'show-header',
+			'show-unread',
 		];
 	}
 
@@ -144,7 +145,7 @@ class ThreadListDisplay extends HTMLElement {
 					backdrop-filter: var(--backdrop-filter);
 					user-select: none;
 					z-index: 4;
-  				}
+				}
 				:host(:not([show-header])) .thread-list-header {
 					display: none;
 				}
@@ -230,6 +231,24 @@ class ThreadListDisplay extends HTMLElement {
 				}
 				.thread-row.active {
 					background: var(--color-bubble-other);
+				}
+				:host([show-unread]) .thread-row {
+					grid-template-columns: 10px 48px 1fr;
+				}
+				.unread-indicator {
+					display: none;
+					width: 8px;
+					height: 8px;
+					border-radius: 50%;
+					background: var(--color-bubble-self);
+					align-self: center;
+					justify-self: center;
+				}
+				:host([show-unread]) .unread-indicator {
+					display: block;
+				}
+				:host([show-unread]) .unread-indicator.read {
+					visibility: hidden;
 				}
 				.avatar {
 					width: 48px;
@@ -492,7 +511,13 @@ class ThreadListDisplay extends HTMLElement {
 					? '<span class="changes-requested-badge">Edits Req\'d</span>'
 					: '';
 
+		const unread = thread.unread ?? false;
+
 		row.innerHTML = html`
+			<div
+				class="unread-indicator ${unread ? '' : 'read'}"
+				aria-hidden="true"
+			></div>
 			<div class="avatar" aria-hidden="true">${initials}</div>
 			<div class="thread-content">
 				<div class="thread-header">
@@ -515,7 +540,11 @@ class ThreadListDisplay extends HTMLElement {
 		const revealActions = document.createElement('div');
 		revealActions.className = 'reveal-actions';
 		revealActions.innerHTML = html`
-			<div class="action-button copy" data-action="copy" data-thread-id="${threadId}">
+			<div
+				class="action-button copy"
+				data-action="copy"
+				data-thread-id="${threadId}"
+			>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
 					<path
 						d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"

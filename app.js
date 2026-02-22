@@ -107,11 +107,19 @@ function handleRouteChange() {
 }
 
 function renderLandingPage(container) {
-	container.innerHTML = '<landing-page></landing-page>';
+	container.innerHTML = `
+		<section class="pane pane--landing">
+			<landing-page></landing-page>
+		</section>
+	`;
 }
 
 function renderPieceView(container, pieceId) {
-	container.innerHTML = `<piece-view piece-id="${pieceId}"></piece-view>`;
+	container.innerHTML = `
+		<section class="pane pane--piece">
+			<piece-view piece-id="${pieceId}"></piece-view>
+		</section>
+	`;
 }
 
 function renderVerifyPage(container, token) {
@@ -136,6 +144,9 @@ function renderAdminDashboard(container) {
 }
 
 function renderCreateView(container) {
+	// Add create-specific class for multi-column layout
+	container.classList.add('app-container--create');
+
 	// Render the editor view (original app)
 	container.innerHTML = `
 		<section class="pane pane--threads">

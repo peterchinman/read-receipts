@@ -175,15 +175,6 @@ body {
 	grid-template-columns: 1fr;
 	grid-template-rows: 1fr;
 	overflow: hidden;
-	align-items: stretch;
-}
-
-/* Non-pane pages span full width */
-.app-container > admin-login,
-.app-container > landing-page,
-.app-container > piece-view,
-.app-container > auth-verify {
-	grid-column: 1 / -1;
 }
 
 /* Admin dashboard renders pane sections as light DOM children */
@@ -293,24 +284,52 @@ footer {
 	pointer-events: none;
 }
 
-/* ===== Tablet Layout (900px-1200px) ===== */
-/* Two columns: left pane (threads OR editor) + preview */
+/* ===== Tablet+ Layout (>=900px) ===== */
 
 @media (min-width: 900px) {
+	/* Default: center single pane content */
 	.app-container {
 		padding: var(--pane-gap);
 		gap: var(--pane-gap);
+		/*place-content: center;*/
+	}
+
+	.pane {
+		background: var(--color-page);
+		border-radius: calc(18rem / 14);
+		overflow: hidden;
+		border: 1px solid var(--color-edge);
+		box-shadow: var(--pane-shadow);
+	}
+
+	.pane > * {
+		display: block;
+		min-height: 0;
+	}
+
+	/* Single-pane views: constrain width and center */
+	.pane--landing,
+	.pane--piece {
+		min-width: 500px;
+		max-width: 500px;
+		justify-self: center;
+	}
+
+	/* ===== Create View: Two columns (tablet) ===== */
+	.app-container--create {
+		place-items: stretch;
+		place-content: stretch;
 		grid-template-columns: 1fr 1fr;
 	}
 
 	/* Left pane shows either threads or editor based on data-left-view */
-	.pane--threads,
-	.pane--editor {
+	.app-container--create .pane--threads,
+	.app-container--create .pane--editor {
 		grid-column: 1;
 		grid-row: 1;
 	}
 
-	.pane--preview {
+	.app-container--create .pane--preview {
 		grid-column: 2;
 		grid-row: 1;
 		display: block;
@@ -321,87 +340,75 @@ footer {
 	}
 
 	/* Default: show editor in left pane, preview in right */
-	.pane--threads {
+	.app-container--create .pane--threads {
 		display: none;
 	}
 
-	.pane--editor {
+	.app-container--create .pane--editor {
 		display: block;
 	}
 
 	/* When data-mode="list", show threads in left pane */
-	.app-container[data-mode='list'] .pane--threads {
+	.app-container--create[data-mode='list'] .pane--threads {
 		display: block;
 	}
 
-	.app-container[data-mode='list'] .pane--editor {
+	.app-container--create[data-mode='list'] .pane--editor {
 		display: none;
 	}
 
 	/* When data-mode="edit", show editor in left pane */
-	.app-container[data-mode='edit'] .pane--editor {
+	.app-container--create[data-mode='edit'] .pane--editor {
 		display: block;
 	}
 
-	.app-container[data-mode='edit'] .pane--threads {
+	.app-container--create[data-mode='edit'] .pane--threads {
 		display: none;
 	}
 
 	/* Preview pane always visible on tablet - override mobile mode hiding */
-	.pane--preview,
-	.app-container[data-mode='list'] .pane--preview,
-	.app-container[data-mode='edit'] .pane--preview {
+	.app-container--create .pane--preview,
+	.app-container--create[data-mode='list'] .pane--preview,
+	.app-container--create[data-mode='edit'] .pane--preview {
 		display: block;
 		visibility: visible;
 		position: static;
 		opacity: 1;
 		pointer-events: auto;
 	}
-
-	.pane--threads thread-list,
-	.pane--editor thread-editor,
-	.pane--preview thread-preview {
-		display: block;
-		min-height: 0;
-		background: var(--color-page);
-		border-radius: calc(18rem / 14);
-		overflow: hidden;
-		border: 1px solid var(--color-edge);
-		box-shadow: var(--pane-shadow);
-	}
 }
 
 /* ===== Desktop Layout (>1200px) ===== */
-/* Three columns: threads | editor | preview */
+/* Create view: Three columns - threads | editor | preview */
 
 @media (min-width: 1200px) {
-	.app-container {
+	.app-container--create {
 		grid-template-columns: 1fr 1fr 1fr;
 	}
 
 	/* All three panes visible */
-	.pane--threads {
+	.app-container--create .pane--threads {
 		grid-column: 1;
 		grid-row: 1;
 		display: block;
 	}
 
-	.pane--editor {
+	.app-container--create .pane--editor {
 		grid-column: 2;
 		grid-row: 1;
 		display: block;
 	}
 
-	.pane--preview {
+	.app-container--create .pane--preview {
 		grid-column: 3;
 		grid-row: 1;
 		display: block;
 	}
 
 	/* Override any data-mode settings - show all panes at desktop */
-	.app-container[data-mode='list'] .pane--threads,
-	.app-container[data-mode='list'] .pane--editor,
-	.app-container[data-mode='edit'] .pane--threads {
+	.app-container--create[data-mode='list'] .pane--threads,
+	.app-container--create[data-mode='list'] .pane--editor,
+	.app-container--create[data-mode='edit'] .pane--threads {
 		display: block;
 	}
 }
