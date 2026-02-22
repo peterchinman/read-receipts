@@ -191,8 +191,22 @@ admin-dashboard {
 	display: contents;
 }
 
+/* Hide header and footer on mobile */
+header-nav,
 footer {
-	display: flex;
+	display: none;
+}
+
+@media (min-width: 900px) {
+	header-nav {
+		display: block;
+	}
+	footer {
+		display: flex;
+	}
+}
+
+footer {
 	flex-direction: row;
 	background: var(--color-header);
 	width: 100%;

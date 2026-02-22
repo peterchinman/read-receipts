@@ -144,7 +144,7 @@ class ThreadListDisplay extends HTMLElement {
 					backdrop-filter: var(--backdrop-filter);
 					user-select: none;
 					z-index: 4;
-				}
+  				}
 				:host(:not([show-header])) .thread-list-header {
 					display: none;
 				}

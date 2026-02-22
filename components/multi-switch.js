@@ -244,7 +244,6 @@ class MultiSwitch extends HTMLElement {
 		const thumbPadding = parseFloat(containerStyles.paddingLeft) || 0;
 
 		let left = thumbPadding;
-		console.log('thumbpadding', thumbPadding)
 		for (let i = 0; i < selectedIndex; i++) {
 			const w = parseFloat(
 				container.style.getPropertyValue(`--option-${i}-width`),

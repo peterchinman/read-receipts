@@ -28,6 +28,9 @@ class IconArrow extends HTMLElement {
 	attributeChangedCallback() {
 		if (this.isConnected) {
 			this.render();
+			this.shadowRoot
+				.querySelector('button')
+				?.addEventListener('click', this._onClick);
 		}
 	}
 
