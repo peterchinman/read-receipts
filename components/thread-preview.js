@@ -84,7 +84,6 @@ class ChatPreview extends HTMLElement {
 
 		this._display?.setRecipient(store.getRecipient());
 		this._display?.setMessages(store.getMessages());
-		this._scrollToBottom();
 		this.#syncReadOnlyState();
 	}
 
@@ -131,7 +130,6 @@ class ChatPreview extends HTMLElement {
 		) {
 			this._display.setRecipient(store.getRecipient());
 			this._display.renderReset(store.getMessages());
-			this._scrollToBottom();
 			this.#syncReadOnlyState();
 			return;
 		}
@@ -149,13 +147,11 @@ class ChatPreview extends HTMLElement {
 				break;
 			case 'clear':
 				this._display.renderReset(messages);
-				this._scrollToBottom();
 				break;
 			case 'recipient':
 				break;
 			default:
 				this._display.renderReset(messages);
-				this._scrollToBottom();
 				break;
 		}
 	}

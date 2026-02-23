@@ -90,8 +90,6 @@ class LandingPage extends HTMLElement {
 		if (!this.#display) return;
 
 		if (this.#loading) {
-			this.#display.setEmptyState('Loading pieces...', '');
-			this.#display.setThreads([]);
 			return;
 		}
 

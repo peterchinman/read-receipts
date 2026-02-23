@@ -42,6 +42,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--button-size: calc(32rem / 14);
 
+	--color-body-bg: white;
 	--color-page: white;
 	--color-ink: black;
 	--color-ink-subdued: #7e7f87;
@@ -87,6 +88,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 :root[data-theme='dark'] {
 	color-scheme: dark;
 
+	--color-body-bg: #1e1e1e;
 	--color-page: #000000;
 	--color-ink: #ffffff;
 	--color-ink-subdued: #78787d;
@@ -154,7 +156,7 @@ body {
 	overscroll-behavior: none;
 	font-family: var(--font-base);
 	color: var(--color-ink);
-	background-color: var(--color-page);
+	background-color: var(--color-body-bg);
 
 	display: flex;
 	flex-direction: column;

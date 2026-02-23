@@ -60,6 +60,7 @@ class ThreadDisplay extends HTMLElement {
 		}
 
 		if (!this._inputObserver && this.$?.bottom) {
+			let inputObserverReady = false;
 			this._inputObserver = new ResizeObserver((entries) => {
 				for (const entry of entries) {
 					const height = entry.target.getBoundingClientRect().height;
@@ -68,10 +69,11 @@ class ThreadDisplay extends HTMLElement {
 						'--bottom-area-height',
 						`${height}px`,
 					);
-					if (isNearBottom) {
+					if (inputObserverReady && isNearBottom) {
 						this.scrollToBottom();
 					}
 				}
+				inputObserverReady = true;
 			});
 			this._inputObserver.observe(this.$.bottom);
 		}
@@ -91,7 +93,6 @@ class ThreadDisplay extends HTMLElement {
 
 		this.renderReset(this._messages);
 		this._shrinkWrapInit();
-		this.scrollToBottom();
 		this._scheduleIOSGradientSync();
 	}
 

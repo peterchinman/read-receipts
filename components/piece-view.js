@@ -105,7 +105,7 @@ class PieceView extends HTMLElement {
 	}
 
 	#renderLoading() {
-		return html`<div class="loading">Loading...</div>`;
+		return '';
 	}
 
 	#renderError() {
