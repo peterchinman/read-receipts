@@ -1,6 +1,7 @@
 import './sender-switch.js';
 import './icon-arrow.js';
 import { html } from '../utils/template.js';
+import { MQ } from '../utils/breakpoints.js';
 import { arrowSvg } from './icons/arrow-svg.js';
 
 const isIOS =
@@ -269,7 +270,7 @@ class ThreadDisplay extends HTMLElement {
 					user-select: none;
 					z-index: 4;
 
-					@media (min-width: 900px) {
+					@media ${MQ.tablet} {
 						grid-template-columns: 1fr;
 					}
 				}
@@ -349,7 +350,7 @@ class ThreadDisplay extends HTMLElement {
 				}
 
 				/* On wide layouts we show editor + preview simultaneously, so hide mode switch */
-				@media (min-width: 900px) {
+				@media ${MQ.tablet} {
 					.preview-header icon-arrow {
 						display: none;
 					}

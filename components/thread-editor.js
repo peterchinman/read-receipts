@@ -3,6 +3,7 @@ import './message-card.js';
 import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
+import { MQ } from '../utils/breakpoints.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
 import { authState } from './auth-state.js';
 import { apiClient } from '../utils/api-client.js';
@@ -40,7 +41,7 @@ class ChatEditor extends HTMLElement {
 					display: block;
 					height: 100%;
 
-					@media (min-width: 900px) {
+					@media ${MQ.tablet} {
 						border-right: 1px solid var(--color-edge);
 					}
 				}
@@ -71,14 +72,14 @@ class ChatEditor extends HTMLElement {
 				}
 
 				/* Hide Preview arrow at tablet+ (900px+) since preview is always visible */
-				@media (min-width: 900px) {
+				@media ${MQ.tablet} {
 					.editor-header icon-arrow[reversed] {
 						display: none;
 					}
 				}
 
 				/* Hide Threads arrow at desktop (1200px+) since all panes are visible */
-				@media (min-width: 1200px) {
+				@media ${MQ.desktop} {
 					.editor-header icon-arrow:not([reversed]) {
 						display: none;
 					}

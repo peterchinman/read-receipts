@@ -130,6 +130,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-status-red: #ff453a;
 }
 
+/* Breakpoints: see utils/breakpoints.js — keep values in sync */
 @media (min-width: 900px) {
 	:root {
 		--font-size: 14px;

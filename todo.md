@@ -2,6 +2,7 @@
 
 BEFORE RELEASE
 
+- [ ] Way to access Create Page from mobile
 - [ ] Improve Submission flow Dialogs
 - [ ] improve submission email styling
 - [ ] context menu on thread-list, right click on desktop, slide on mobile
