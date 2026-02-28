@@ -38,7 +38,7 @@ class ChatEditor extends HTMLElement {
 				}
 				:host {
 					box-sizing: border-box;
-					display: block;G
+					display: block;
 					height: 100%;
 
 					@media ${MQ.tablet} {
