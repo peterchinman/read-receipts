@@ -4,7 +4,8 @@
 import { html } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
-import './thread-display.js';
+import './thread-view.js';
+import { authState } from './auth-state.js';
 
 class PieceView extends HTMLElement {
 	#shadow;
@@ -92,7 +93,7 @@ class PieceView extends HTMLElement {
 		`;
 
 		if (!this.#loading && !this.#error && this.#piece) {
-			const display = this.#shadow.querySelector('thread-display');
+			const display = this.#shadow.querySelector('thread-view');
 			if (display) {
 				display.setRecipient({
 					name: this.#piece.recipient_name,
@@ -113,16 +114,24 @@ class PieceView extends HTMLElement {
 	}
 
 	#renderPiece() {
-		return html`<thread-display show-back-button></thread-display>`;
+		const showCompose = authState.isAuthenticated || authState.isAdmin;
+		let navText = 'Back';
+		try {
+			const count = parseInt(sessionStorage.getItem('message-simulator:unread-count') || '0', 10);
+			if (count > 0) navText = String(count);
+		} catch {}
+		return html`<thread-view show-back-button nav-text="${navText}" nav-action="back" ${showCompose ? 'show-compose-button' : ''}></thread-view>`;
 	}
 
 	_onNavigate(e) {
 		const { action } = e.detail || {};
 		if (action === 'back') {
 			router.navigate('/');
+		} else if (action === 'create') {
+			router.navigate('/create');
 		}
 	}
 }
 
-customElements.define('piece-view', PieceView);
+customElements.define('piece-reader', PieceView);
 export { PieceView };

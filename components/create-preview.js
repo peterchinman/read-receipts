@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import './thread-display.js';
+import './thread-view.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
 
 const isIOS =
@@ -33,10 +33,10 @@ class ChatPreview extends HTMLElement {
 				height: 100%;
 			}
 		</style>
-		<thread-display interactive nav-text="Edit" nav-action="show-editor"></thread-display>
+		<thread-view interactive nav-text="Edit" nav-action="show-editor"></thread-view>
 	`;
 
-		this._display = this.shadowRoot.querySelector('thread-display');
+		this._display = this.shadowRoot.querySelector('thread-view');
 		this.$ = this._display?.refs || {};
 
 		if (this.$.input) {
@@ -263,4 +263,4 @@ class ChatPreview extends HTMLElement {
 	}
 }
 
-customElements.define('thread-preview', ChatPreview);
+customElements.define('create-preview', ChatPreview);

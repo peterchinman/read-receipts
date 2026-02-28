@@ -998,4 +998,4 @@ class ChatEditor extends HTMLElement {
 	}
 }
 
-customElements.define('thread-editor', ChatEditor);
+customElements.define('create-editor', ChatEditor);

@@ -185,41 +185,9 @@ admin-dashboard {
 	display: contents;
 }
 
-/* Hide header and footer on mobile */
-header-nav,
-footer {
+/* Header nav unused — kept for potential future use */
+header-nav {
 	display: none;
-}
-
-@media (min-width: 900px) {
-	header-nav {
-		display: block;
-	}
-	footer {
-		display: flex;
-	}
-}
-
-footer {
-	flex-direction: row;
-	background: var(--color-header);
-	width: 100%;
-	flex: 0 0 auto;
-	color: var(--color-ink-subdued);
-	align-items: center;
-	justify-content: space-between;
-	flex-wrap: nowrap;
-	gap: 1rem;
-	padding-inline: var(--pane-gap);
-	padding-block: 0.5rem;
-
-	p {
-		width: fit-content;
-	}
-
-	a {
-		color: var(--color-bubble-self);
-	}
 }
 
 .pane {

@@ -3,6 +3,8 @@ import './icon-arrow.js';
 import { html } from '../utils/template.js';
 import { MQ } from '../utils/breakpoints.js';
 import { arrowSvg } from './icons/arrow-svg.js';
+import { infoSvg } from './icons/info-svg.js';
+import { composeSvg } from './icons/compose-svg.js';
 
 const isIOS =
 	/iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -39,6 +41,8 @@ class ThreadDisplay extends HTMLElement {
 			'nav-text',
 			'nav-action',
 			'show-back-button',
+			'show-info-button',
+			'show-compose-button',
 		];
 	}
 
@@ -275,13 +279,50 @@ class ThreadDisplay extends HTMLElement {
 					}
 				}
 
-				.preview-header icon-arrow {
+				.preview-header .header-left {
 					justify-self: start;
+				}
+
+				.header-left {
+					justify-self: start;
+					display: flex;
+					align-items: center;
+				}
+
+				.icon-btn {
+					display: none;
+					background: none;
+					border: none;
+					cursor: pointer;
+					color: var(--color-ink-subdued);
+					padding: 4px;
+					align-items: center;
+					justify-content: center;
+				}
+
+				.icon-btn svg {
+					width: var(--button-size);
+					height: var(--button-size);
+					fill: currentColor;
+				}
+
+				:host([show-info-button]) .info-btn {
+					display: flex;
+				}
+
+				:host([show-info-button]) .preview-header icon-arrow {
+					display: none;
+				}
+
+				:host([show-compose-button]) .compose-btn {
+					display: flex;
 				}
 
 				.header-right {
 					justify-self: end;
 					min-width: 1px; /* keep the third column from collapsing weirdly */
+					display: flex;
+					align-items: center;
 				}
 
 				.recipient-info {
@@ -361,7 +402,9 @@ class ThreadDisplay extends HTMLElement {
 					display: block;
 				}
 
-				:host([show-back-button]) .preview-header {
+				:host([show-back-button]) .preview-header,
+				:host([show-info-button]) .preview-header,
+				:host([show-compose-button]) .preview-header {
 					grid-template-columns: 1fr auto 1fr;
 				}
 
@@ -761,7 +804,10 @@ class ThreadDisplay extends HTMLElement {
 			</svg>
 			<section class="window">
 				<header class="preview-header">
-					<icon-arrow class="nav-arrow"></icon-arrow>
+					<div class="header-left">
+						<icon-arrow class="nav-arrow"></icon-arrow>
+						<button class="icon-btn info-btn" aria-label="About">${infoSvg()}</button>
+					</div>
 					<div class="recipient-info">
 						<div class="recipient-avatar" aria-hidden="true">
 							<span class="recipient-avatar-text">?</span>
@@ -772,7 +818,9 @@ class ThreadDisplay extends HTMLElement {
 						</div>
 						<div class="recipient-location" id="recipientLocation"></div>
 					</div>
-					<div class="header-right" aria-hidden="true"></div>
+					<div class="header-right">
+						<button class="icon-btn compose-btn" aria-label="Create">${composeSvg()}</button>
+					</div>
 				</header>
 				<div class="message-list">
 					<div class="message-list-spacer" aria-hidden="true"></div>
@@ -855,7 +903,21 @@ class ThreadDisplay extends HTMLElement {
 			recipientName: this.shadowRoot.querySelector('#recipientName'),
 			recipientLocation: this.shadowRoot.querySelector('#recipientLocation'),
 			navArrow: this.shadowRoot.querySelector('.nav-arrow'),
+			infoBtn: this.shadowRoot.querySelector('.info-btn'),
+			composeBtn: this.shadowRoot.querySelector('.compose-btn'),
 		};
+
+		this.$.infoBtn?.addEventListener('click', () => {
+			this.dispatchEvent(
+				new CustomEvent('navigate', { detail: { action: 'info' }, bubbles: true, composed: true }),
+			);
+		});
+
+		this.$.composeBtn?.addEventListener('click', () => {
+			this.dispatchEvent(
+				new CustomEvent('navigate', { detail: { action: 'create' }, bubbles: true, composed: true }),
+			);
+		});
 	}
 
 	#resolveNavConfig() {
@@ -1258,5 +1320,5 @@ class ThreadDisplay extends HTMLElement {
 	}
 }
 
-customElements.define('thread-display', ThreadDisplay);
+customElements.define('thread-view', ThreadDisplay);
 export { ThreadDisplay };

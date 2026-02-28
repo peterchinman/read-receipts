@@ -26,16 +26,18 @@ const WELCOME_MESSAGES = [
 	},
 	{ message: 'What do I do with it?', sender: 'self' },
 	{
-		message:
-			'You can type in the input below, or use the edit pane for easy editing.',
+		message: 'You can compose messages in the edit panel',
 		sender: 'other',
 	},
 	{
-		message:
-			'You can export or import the chats to share them. Clear the chat to start over. Toggle the theme between light and dark mode.',
+		message: 'This is the preview panel where you can view them them',
 		sender: 'other',
 	},
-	{ message: 'No like, what is it for?', sender: 'self' },
+	{
+		message: "You can also submit a piece, if it gets accepted, you'll get $20",
+		sender: 'other',
+	},
+	{ message: 'No like, what is this for?', sender: 'self' },
 	{ message: 'Lol idk', sender: 'other' },
 ];
 
@@ -489,7 +491,9 @@ class ThreadStore extends EventTarget {
 
 	importFromBackend(backendThread) {
 		// If a local thread already exists for this backend ID, update it in place
-		const existing = this.#threads.find((t) => t.backendId === backendThread.id);
+		const existing = this.#threads.find(
+			(t) => t.backendId === backendThread.id,
+		);
 		const thread = existing || this.createThread();
 		thread.backendId = backendThread.id;
 
@@ -519,8 +523,9 @@ class ThreadStore extends EventTarget {
 		}
 
 		// Extract admin notes from changes_requested events
-		const changesEvents = (backendThread.events || [])
-			.filter((e) => e.type === 'changes_requested' && e.notes);
+		const changesEvents = (backendThread.events || []).filter(
+			(e) => e.type === 'changes_requested' && e.notes,
+		);
 		if (changesEvents.length > 0) {
 			thread.adminNotes = [changesEvents[0].notes];
 		}

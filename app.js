@@ -62,9 +62,6 @@ async function init() {
  */
 function handleRouteChange() {
 	const appContainer = document.getElementById('app');
-	const header = document.getElementById('header');
-	const footer = document.getElementById('footer');
-
 	if (!appContainer) return;
 
 	const route = router.getCurrentRoute();
@@ -117,7 +114,7 @@ function renderLandingPage(container) {
 function renderPieceView(container, pieceId) {
 	container.innerHTML = `
 		<section class="pane pane--piece">
-			<piece-view piece-id="${pieceId}"></piece-view>
+			<piece-reader piece-id="${pieceId}"></piece-reader>
 		</section>
 	`;
 }
@@ -150,13 +147,13 @@ function renderCreateView(container) {
 	// Render the editor view (original app)
 	container.innerHTML = `
 		<section class="pane pane--threads">
-			<thread-list></thread-list>
+			<create-list></create-list>
 		</section>
 		<section class="pane pane--editor">
-			<thread-editor></thread-editor>
+			<create-editor></create-editor>
 		</section>
 		<section class="pane pane--preview">
-			<thread-preview></thread-preview>
+			<create-preview></create-preview>
 		</section>
 	`;
 

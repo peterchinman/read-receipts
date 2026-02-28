@@ -6,7 +6,7 @@ import { html } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { authState } from './auth-state.js';
 import { router } from '../utils/router.js';
-import './thread-display.js';
+import './thread-view.js';
 
 // Inject admin-specific styles into the document once
 const ADMIN_STYLE_ID = 'admin-dashboard-styles';
@@ -202,7 +202,7 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 		}
 
 		/* Admin preview panel */
-		.pane--preview thread-display {
+		.pane--preview thread-view {
 			flex: 1;
 			min-height: 0;
 		}
@@ -451,7 +451,7 @@ class AdminDashboard extends HTMLElement {
 
 			<section class="pane pane--preview admin-pane">
 				${this.#selectedSubmission
-					? html`<thread-display show-input="false"></thread-display>`
+					? html`<thread-view show-input="false"></thread-view>`
 					: html`<div class="admin-empty-panel">
 								Select a submission to preview
 							</div>`}
@@ -460,10 +460,10 @@ class AdminDashboard extends HTMLElement {
 
 		this.#setupListeners();
 
-		// Wire thread-display if a submission is selected
+		// Wire thread-view if a submission is selected
 		if (this.#selectedSubmission) {
 			requestAnimationFrame(() => {
-				const display = this.querySelector('thread-display');
+				const display = this.querySelector('thread-view');
 				if (display) {
 					const snapshot =
 						this.#previewEventIndex !== null

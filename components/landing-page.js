@@ -5,7 +5,7 @@ import { html } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import { config } from '../utils/config.js';
-import './thread-list-display.js';
+import './thread-list.js';
 
 const READ_PIECES_KEY = 'message-simulator:read-pieces';
 
@@ -16,16 +16,33 @@ class LandingPage extends HTMLElement {
 	#error = null;
 	#display = null;
 	#readIds = new Set();
+	#infoOpen = false;
 
 	constructor() {
 		super();
 		this.#shadow = this.attachShadow({ mode: 'open' });
 		this._onSelect = this._onSelect.bind(this);
+		this._onNavigate = this._onNavigate.bind(this);
+		this._onCompose = this._onCompose.bind(this);
 	}
 
 	connectedCallback() {
 		this.#readIds = this.#loadReadIds();
+		this.#renderShell();
+		this.#display = this.#shadow.querySelector('thread-list');
+		this.#display?.addEventListener('thread-list:select', this._onSelect);
+		this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+		this.#shadow.addEventListener('navigate', this._onNavigate);
+		this.#renderList();
+		this.#loadPieces();
+	}
 
+	disconnectedCallback() {
+		this.#display?.removeEventListener('thread-list:select', this._onSelect);
+		this.#shadow.removeEventListener('navigate', this._onNavigate);
+	}
+
+	#renderShell() {
 		this.#shadow.innerHTML = html`
 			<style>
 				:host {
@@ -34,23 +51,99 @@ class LandingPage extends HTMLElement {
 					max-height: 100%;
 					min-height: 0;
 					overflow: hidden;
+					position: relative;
+				}
+
+				.info-pane {
+					position: absolute;
+					inset: 0;
+					z-index: 10;
+					background: var(--color-page);
+					display: flex;
+					flex-direction: column;
+					padding: 2rem 1.5rem;
+					gap: 1rem;
+					overflow-y: auto;
+				}
+
+				.info-pane-close {
+					align-self: flex-end;
+					background: none;
+					border: none;
+					cursor: pointer;
+					font-size: 1.2rem;
+					color: var(--color-ink-subdued);
+					padding: 4px 8px;
+				}
+
+				.info-pane h2 {
+					font-size: 1.4rem;
+					margin: 0;
+				}
+
+				.info-pane p {
+					margin: 0;
+					line-height: 1.6;
+					color: var(--color-ink-subdued);
+				}
+
+				.info-pane a {
+					color: var(--color-bubble-self);
 				}
 			</style>
-			<thread-list-display
-				header-title="Messages"
+			<thread-list
+				header-title="Read Receipts"
 				show-header
 				show-unread
-			></thread-list-display>
+				show-info-button
+			show-create
+			></thread-list>
+			${this.#infoOpen ? this.#renderInfoPane() : ''}
 		`;
-
-		this.#display = this.#shadow.querySelector('thread-list-display');
-		this.#display?.addEventListener('thread-list:select', this._onSelect);
-		this.#renderList();
-		this.#loadPieces();
 	}
 
-	disconnectedCallback() {
-		this.#display?.removeEventListener('thread-list:select', this._onSelect);
+	#renderInfoPane() {
+		return html`
+			<div class="info-pane">
+				<button class="info-pane-close" id="info-pane-close">✕</button>
+				<h2>Read Receipts</h2>
+				<p>A distance simulator.</p>
+				<p>
+					Made by
+					<a href="https://peterchinman.com" target="_blank">Peter Chinman</a>.
+				</p>
+				<p>
+					View this project
+					<a
+						href="https://github.com/peterchinman/message-simulator"
+						target="_blank"
+						>on Github</a
+					>. If you find any bugs, or have any feature requests, please report them there.
+				</p>
+			</div>
+		`;
+	}
+
+	_onNavigate(e) {
+		const { action } = e.detail || {};
+		if (action === 'info') {
+			this.#infoOpen = true;
+			this.#renderShell();
+			this.#display = this.#shadow.querySelector('thread-list');
+			this.#display?.addEventListener('thread-list:select', this._onSelect);
+			this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+			this.#renderList();
+			this.#shadow
+				.getElementById('info-pane-close')
+				?.addEventListener('click', () => {
+					this.#infoOpen = false;
+					this.#renderShell();
+					this.#display = this.#shadow.querySelector('thread-list');
+					this.#display?.addEventListener('thread-list:select', this._onSelect);
+					this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+					this.#renderList();
+				});
+		}
 	}
 
 	#loadReadIds() {
@@ -162,8 +255,21 @@ class LandingPage extends HTMLElement {
 		if (id) {
 			this.#markPieceRead(id);
 			this.#renderList();
+			const unreadCount = this.#pieces.filter(
+				(p) => !this.#readIds.has(String(p.id)),
+			).length;
+			try {
+				sessionStorage.setItem(
+					'message-simulator:unread-count',
+					String(unreadCount),
+				);
+			} catch {}
 			router.navigate(`/piece/${id}`);
 		}
+	}
+
+	_onCompose() {
+		router.navigate('/create');
 	}
 }
 
