@@ -9,6 +9,7 @@ BEFORE RELEASE
   - [ ] should have delete, duplicate, 
 - [ ] Make desktop width lit mag page good
   - [ ] Prob centered, with a max-width, shadowed panel, like a window on blank desktop?
+- [ ] Idea: Submit button for Create mode lives in the bottom bar on desktop??
 
 CAN DO AFTER RELEASE:
 

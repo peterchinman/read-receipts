@@ -185,9 +185,6 @@ class ChatEditor extends HTMLElement {
 					<button id="export-json" data-tooltip="Export chat as JSON">
 						Export
 					</button>
-					<button id="import-json" data-tooltip="Import chat from JSON">
-						Import
-					</button>
 					<button id="clear-chat" data-tooltip="Clear all messages">
 						Clear
 					</button>
@@ -242,12 +239,6 @@ class ChatEditor extends HTMLElement {
 					id="file-input"
 					type="file"
 					accept="image/*"
-					style="display:none"
-				/>
-				<input
-					id="import-file"
-					type="file"
-					accept=".json,application/json"
 					style="display:none"
 				/>
 			</div>
@@ -327,11 +318,6 @@ class ChatEditor extends HTMLElement {
 				URL.revokeObjectURL(url);
 			});
 		this.shadowRoot
-			.getElementById('import-json')
-			.addEventListener('click', () => {
-				this.shadowRoot.getElementById('import-file').click();
-			});
-		this.shadowRoot
 			.getElementById('clear-chat')
 			.addEventListener('click', () => {
 				if (confirm('Are you sure you want to clear all messages?')) {
@@ -343,26 +329,6 @@ class ChatEditor extends HTMLElement {
 			.getElementById('submit-btn')
 			.addEventListener('click', this._onSubmit.bind(this));
 
-		this.shadowRoot
-			.getElementById('import-file')
-			.addEventListener('change', (e) => {
-				const file = e.target.files && e.target.files[0];
-				if (!file) return;
-				const reader = new FileReader();
-				reader.onload = (ev) => {
-					try {
-						const newThread = store.importJson(String(ev.target.result));
-						if (newThread) {
-							setCurrentThreadId(newThread.id);
-						}
-					} catch (_err) {
-						alert('Error importing chat: Invalid JSON file');
-					} finally {
-						this.shadowRoot.getElementById('import-file').value = '';
-					}
-				};
-				reader.readAsText(file);
-			});
 		store.addEventListener('messages:changed', this._onStoreChange);
 		store.load();
 		const currentThread = store.getCurrentThread();

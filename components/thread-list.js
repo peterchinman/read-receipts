@@ -3,6 +3,9 @@ import { getCurrentThreadId, setCurrentThreadId } from '../utils/url-state.js';
 import { html } from '../utils/template.js';
 import { BP } from '../utils/breakpoints.js';
 import { SwipeGestureHandler } from '../utils/swipe-gesture.js';
+import { FLOATING_MENU_CSS, FloatingMenu } from '../utils/floating-menu.js';
+import { copySvg } from './icons/copy-svg.js';
+import { trashSvg } from './icons/trash-svg.js';
 import './thread-list-display.js';
 
 class ChatThreadList extends HTMLElement {
@@ -18,6 +21,12 @@ class ChatThreadList extends HTMLElement {
 
 		this._swipe = new SwipeGestureHandler();
 		this.isDuplicating = false; // Track if we're currently duplicating a thread
+
+		this._onContextMenu = this._onContextMenu.bind(this);
+		this._contextMenu = null;
+
+		this._onMenuBtnClick = this._onMenuBtnClick.bind(this);
+		this._menuDropdown = null;
 	}
 
 	connectedCallback() {
@@ -110,8 +119,11 @@ class ChatThreadList extends HTMLElement {
 					background: #ff3b30;
 					color: white;
 				}
+
+				${FLOATING_MENU_CSS}
 			</style>
 			<thread-list-display show-actions show-create show-header></thread-list-display>
+			<input id="import-file" type="file" accept=".json,application/json" style="display:none" />
 		`;
 
 		this._display = this.shadowRoot.querySelector('thread-list-display');
@@ -124,7 +136,27 @@ class ChatThreadList extends HTMLElement {
 		if (this.$.threadsContainer) {
 			this._swipe.attach(this.$.threadsContainer);
 			this.$.threadsContainer.addEventListener('click', this._onActionClick);
+			this.$.threadsContainer.addEventListener('contextmenu', this._onContextMenu);
 		}
+
+		this.$.menuBtn?.addEventListener('click', this._onMenuBtnClick);
+
+		this.shadowRoot.getElementById('import-file').addEventListener('change', (e) => {
+			const file = e.target.files && e.target.files[0];
+			if (!file) return;
+			const reader = new FileReader();
+			reader.onload = (ev) => {
+				try {
+					const newThread = store.importJson(String(ev.target.result));
+					if (newThread) setCurrentThreadId(newThread.id);
+				} catch (_err) {
+					alert('Error importing: Invalid JSON file');
+				} finally {
+					e.target.value = '';
+				}
+			};
+			reader.readAsText(file);
+		});
 
 		this._render();
 	}
@@ -136,6 +168,10 @@ class ChatThreadList extends HTMLElement {
 
 		this._swipe.detach();
 		this.$?.threadsContainer?.removeEventListener('click', this._onActionClick);
+		this.$?.threadsContainer?.removeEventListener('contextmenu', this._onContextMenu);
+		this._contextMenu?.dismiss();
+		this.$?.menuBtn?.removeEventListener('click', this._onMenuBtnClick);
+		this._menuDropdown?.dismiss();
 	}
 
 	_onStoreChange(e) {
@@ -377,6 +413,71 @@ class ChatThreadList extends HTMLElement {
 		});
 
 		this.shadowRoot.appendChild(modal);
+	}
+
+	_onMenuBtnClick() {
+		if (this._menuDropdown?.isOpen) {
+			this._menuDropdown.dismiss();
+			return;
+		}
+		const rect = this.$.menuBtn.getBoundingClientRect();
+		this._showMenuDropdown(rect.left, rect.right, rect.bottom + 4);
+	}
+
+	_showMenuDropdown(x, xRight, y) {
+		this._menuDropdown = new FloatingMenu({
+			root: this.shadowRoot,
+			x,
+			xRight,
+			y,
+			minWidth: 140,
+			innerHTML: `<button class="menu-item" data-action="import">Import</button>`,
+			onItemClick: (e) => {
+				const item = e.target.closest('.menu-item');
+				if (!item) return;
+				if (item.dataset.action === 'import') {
+					this.shadowRoot.getElementById('import-file').click();
+				}
+			},
+		});
+	}
+
+	_onContextMenu(e) {
+		const row = e.target.closest('.thread-row');
+		if (!row) return;
+		e.preventDefault();
+		const threadId = row.dataset.threadId;
+		if (threadId) this._showContextMenu(threadId, e.clientX, e.clientY);
+	}
+
+	_showContextMenu(threadId, x, y) {
+		this._contextMenu?.dismiss();
+		this._contextMenu = new FloatingMenu({
+			root: this.shadowRoot,
+			x,
+			y,
+			minWidth: 160,
+			innerHTML: html`
+				<button class="menu-action-item" data-action="copy" data-thread-id="${threadId}">
+					${copySvg()}
+					Copy
+				</button>
+				<div class="menu-separator"></div>
+				<button class="menu-action-item destructive" data-action="delete" data-thread-id="${threadId}">
+					${trashSvg()}
+					Delete
+				</button>
+			`,
+			onItemClick: (e) => {
+				const item = e.target.closest('.menu-action-item');
+				if (!item) return;
+				const action = item.dataset.action;
+				const tid = item.dataset.threadId;
+				this._contextMenu?.dismiss();
+				if (action === 'copy') this._onCopyThread(tid);
+				if (action === 'delete') this._onDeleteThread(tid);
+			},
+		});
 	}
 
 	_deleteThread(threadId) {

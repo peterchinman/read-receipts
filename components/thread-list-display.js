@@ -1,6 +1,10 @@
 import { html } from '../utils/template.js';
 import { MQ } from '../utils/breakpoints.js';
 import { SWIPE_CSS } from '../utils/swipe-gesture.js';
+import { composeSvg } from './icons/compose-svg.js';
+import { dotsThreeCircleSvg } from './icons/dots-three-circle-svg.js';
+import { copySvg } from './icons/copy-svg.js';
+import { trashSvg } from './icons/trash-svg.js';
 
 /**
  * @typedef {Object} ThreadListItem
@@ -152,7 +156,6 @@ class ThreadListDisplay extends HTMLElement {
 					display: none;
 				}
 				.header-title {
-					font: 600 18px system-ui;
 					color: var(--color-ink);
 					text-align: center;
 					grid-column: 2;
@@ -165,10 +168,9 @@ class ThreadListDisplay extends HTMLElement {
 					justify-self: end;
 					display: flex;
 					align-items: center;
-					gap: 0.25rem;
+					gap: 1rem;
 				}
 				.new-thread-btn {
-					font: 28px system-ui;
 					padding: 0;
 					width: 32px;
 					height: 32px;
@@ -182,6 +184,10 @@ class ThreadListDisplay extends HTMLElement {
 					border-radius: 50%;
 					transition: background 0.15s;
 				}
+				.new-thread-btn svg {
+					width: 20px;
+					height: 20px;
+				}
 				:host(:not([show-create])) .new-thread-btn {
 					display: none;
 				}
@@ -189,6 +195,30 @@ class ThreadListDisplay extends HTMLElement {
 					background: var(--color-menu);
 				}
 				.new-thread-btn:active {
+					opacity: 0.6;
+				}
+				.menu-btn {
+					padding: 0;
+					width: 32px;
+					height: 32px;
+					border: none;
+					background: transparent;
+					color: var(--color-bubble-self);
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					border-radius: 50%;
+					transition: background 0.15s;
+				}
+				.menu-btn svg {
+					width: 22px;
+					height: 22px;
+				}
+				.menu-btn:hover {
+					background: var(--color-menu);
+				}
+				.menu-btn:active {
 					opacity: 0.6;
 				}
 				.threads-list {
@@ -361,8 +391,11 @@ class ThreadListDisplay extends HTMLElement {
 					<div class="header-left"></div>
 					<div class="header-title" id="header-title">Messages</div>
 					<div class="header-right">
+						<button class="menu-btn" id="menu-btn" title="More options">
+							${dotsThreeCircleSvg()}
+						</button>
 						<button class="new-thread-btn" id="new-thread" title="New thread">
-							+
+							${composeSvg()}
 						</button>
 					</div>
 				</div>
@@ -376,6 +409,7 @@ class ThreadListDisplay extends HTMLElement {
 			headerTitle: this.shadowRoot.getElementById('header-title'),
 			threadsContainer: this.shadowRoot.getElementById('threads-container'),
 			newThreadBtn: this.shadowRoot.getElementById('new-thread'),
+			menuBtn: this.shadowRoot.getElementById('menu-btn'),
 		};
 	}
 
@@ -491,11 +525,7 @@ class ThreadListDisplay extends HTMLElement {
 				data-action="copy"
 				data-thread-id="${threadId}"
 			>
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-					<path
-						d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"
-					></path>
-				</svg>
+				${copySvg()}
 				<span>Copy</span>
 			</button>
 			<button
@@ -503,11 +533,7 @@ class ThreadListDisplay extends HTMLElement {
 				data-action="delete"
 				data-thread-id="${threadId}"
 			>
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-					<path
-						d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"
-					></path>
-				</svg>
+				${trashSvg()}
 				<span>Delete</span>
 			</button>
 		`;
