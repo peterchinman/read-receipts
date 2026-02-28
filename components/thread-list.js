@@ -1,6 +1,8 @@
 import { store } from './store.js';
 import { getCurrentThreadId, setCurrentThreadId } from '../utils/url-state.js';
 import { html } from '../utils/template.js';
+import { BP } from '../utils/breakpoints.js';
+import { SwipeGestureHandler } from '../utils/swipe-gesture.js';
 import './thread-list-display.js';
 
 class ChatThreadList extends HTMLElement {
@@ -10,40 +12,11 @@ class ChatThreadList extends HTMLElement {
 		this._display = null;
 		this.$ = null;
 		this._onStoreChange = this._onStoreChange.bind(this);
-		this._onThreadClick = this._onThreadClick.bind(this);
 		this._onThreadSelect = this._onThreadSelect.bind(this);
 		this._onActionClick = this._onActionClick.bind(this);
 		this._onCreateThread = this._onCreateThread.bind(this);
-		this._onTouchStart = this._onTouchStart.bind(this);
-		this._onTouchMove = this._onTouchMove.bind(this);
-		this._onTouchEnd = this._onTouchEnd.bind(this);
-		this._onTouchCancel = this._onTouchCancel.bind(this);
-		this._onCopyThread = this._onCopyThread.bind(this);
-		this._onDeleteThread = this._onDeleteThread.bind(this);
 
-		// Touch gesture constants
-		this.SWIPE_ACTIVATION_DISTANCE = 75;
-		this.DIRECTIONALITY_THRESHOLD = 5;
-		this.AUTO_ACTIVATION_PERCENTAGE = 0.75;
-		this.COLLAPSE_SPEED = 250;
-		this.ANIMATE_SPEED = 100;
-		this.SPRING_BACK_SPEED = 250;
-
-		// Touch state
-		this.touchState = {
-			startX: 0,
-			startY: 0,
-			currentX: 0,
-			currentY: 0,
-			isDragging: false,
-			isHorizontal: null,
-			element: null,
-			wrapper: null,
-			threadId: null,
-		};
-
-		this.rafId = null;
-		this.currentlyRevealedWrapper = null; // Track the currently revealed row
+		this._swipe = new SwipeGestureHandler();
 		this.isDuplicating = false; // Track if we're currently duplicating a thread
 	}
 
@@ -60,7 +33,7 @@ class ChatThreadList extends HTMLElement {
           display: block;
           height: 100%;
         }
-				
+
 				/* Confirmation Modal */
 				.modal-overlay {
 					position: fixed;
@@ -149,23 +122,7 @@ class ChatThreadList extends HTMLElement {
 		store.addEventListener('messages:changed', this._onStoreChange);
 
 		if (this.$.threadsContainer) {
-			// Add touch event listeners for swipe gestures
-			this.$.threadsContainer.addEventListener(
-				'touchstart',
-				this._onTouchStart,
-				{ passive: true },
-			);
-			this.$.threadsContainer.addEventListener('touchmove', this._onTouchMove, {
-				passive: false,
-			});
-			this.$.threadsContainer.addEventListener('touchend', this._onTouchEnd, {
-				passive: true,
-			});
-			this.$.threadsContainer.addEventListener(
-				'touchcancel',
-				this._onTouchCancel,
-				{ passive: true },
-			);
+			this._swipe.attach(this.$.threadsContainer);
 			this.$.threadsContainer.addEventListener('click', this._onActionClick);
 		}
 
@@ -177,20 +134,7 @@ class ChatThreadList extends HTMLElement {
 		this._display?.removeEventListener('thread-list:select', this._onThreadSelect);
 		store.removeEventListener('messages:changed', this._onStoreChange);
 
-		// Remove touch event listeners
-		this.$?.threadsContainer?.removeEventListener(
-			'touchstart',
-			this._onTouchStart,
-		);
-		this.$?.threadsContainer?.removeEventListener(
-			'touchmove',
-			this._onTouchMove,
-		);
-		this.$?.threadsContainer?.removeEventListener('touchend', this._onTouchEnd);
-		this.$?.threadsContainer?.removeEventListener(
-			'touchcancel',
-			this._onTouchCancel,
-		);
+		this._swipe.detach();
 		this.$?.threadsContainer?.removeEventListener('click', this._onActionClick);
 	}
 
@@ -225,7 +169,6 @@ class ChatThreadList extends HTMLElement {
 			}
 		} catch (err) {
 			console.error('Failed to create thread:', err);
-			// Could show a toast notification here
 		}
 	}
 
@@ -248,9 +191,9 @@ class ChatThreadList extends HTMLElement {
 	_onThreadClick(threadId) {
 		if (threadId) {
 			try {
-				// Close any revealed swipe before switching threads
-				if (this.currentlyRevealedWrapper) {
-					this._closeSwipe(this.currentlyRevealedWrapper);
+				// Close any activated swipe before switching threads
+				if (this._swipe.activatedWrapper) {
+					this._swipe.deactivateRow(this._swipe.activatedWrapper);
 				}
 
 				setCurrentThreadId(threadId);
@@ -260,10 +203,10 @@ class ChatThreadList extends HTMLElement {
 				const appContainer = document.getElementById('app');
 
 				if (appContainer) {
-					if (width < 900) {
+					if (width < BP.tablet) {
 						// Mobile: show only preview
 						appContainer.setAttribute('data-mode', 'preview');
-					} else if (width < 1200) {
+					} else if (width < BP.desktop) {
 						// Tablet: show editor in left, preview in right
 						appContainer.setAttribute('data-mode', 'edit');
 					}
@@ -281,8 +224,8 @@ class ChatThreadList extends HTMLElement {
 			getCurrentThreadId() || store.getCurrentThread()?.id;
 		if (!this._display) return;
 
-		// Clear the currently revealed wrapper since we're re-rendering
-		this.currentlyRevealedWrapper = null;
+		// Clear the activated wrapper reference since we're re-rendering
+		this._swipe.resetActivated();
 
 		const threadItems = threads.map((thread) => {
 			const displayName = store.getThreadDisplayName(thread);
@@ -304,20 +247,6 @@ class ChatThreadList extends HTMLElement {
 		this._display.setThreads(threadItems);
 		const activeId = this.isDuplicating ? null : currentThreadId;
 		this._display.setActiveId(activeId);
-	}
-
-	_getInitials(name) {
-		const str = String(name ?? '').trim();
-		if (!str) return '?';
-
-		const parts = str.split(/\s+/).filter(Boolean);
-		if (parts.length === 0) return '?';
-
-		// Use first letter of first + last word (or just first if single word).
-		const first = Array.from(parts[0])[0] || '';
-		const last =
-			parts.length > 1 ? Array.from(parts[parts.length - 1])[0] || '' : '';
-		return first + last || '?';
 	}
 
 	_getLastMessage(thread) {
@@ -359,247 +288,11 @@ class ChatThreadList extends HTMLElement {
 		return div.innerHTML;
 	}
 
-	// Touch event handlers for swipe gestures
-	_onTouchStart(e) {
-		const swipeContent = e.target.closest('.swipe-content');
-		if (!swipeContent) return;
-
-		const wrapper = swipeContent.closest('.thread-row-wrapper');
-		if (
-			!wrapper ||
-			wrapper.classList.contains('removing') ||
-			wrapper.classList.contains('collapsing')
-		)
-			return;
-
-		// If there's a different row currently revealed, close it
-		if (
-			this.currentlyRevealedWrapper &&
-			this.currentlyRevealedWrapper !== wrapper
-		) {
-			this._closeSwipe(this.currentlyRevealedWrapper);
-		}
-
-		const touch = e.touches[0];
-
-		// Clear any existing transition immediately on touch start
-		swipeContent.style.transition = '';
-
-		this.touchState = {
-			startX: touch.clientX,
-			startY: touch.clientY,
-			currentX: touch.clientX,
-			currentY: touch.clientY,
-			isDragging: false,
-			isHorizontal: null,
-			element: swipeContent,
-			wrapper: wrapper,
-			threadId: wrapper.dataset.threadId,
-		};
-	}
-
-	_onTouchMove(e) {
-		if (!this.touchState.element) return;
-
-		const touch = e.touches[0];
-		const dx = touch.clientX - this.touchState.startX;
-		const dy = touch.clientY - this.touchState.startY;
-
-		// Determine direction on first significant movement
-		if (
-			this.touchState.isHorizontal === null &&
-			(Math.abs(dx) > this.DIRECTIONALITY_THRESHOLD ||
-				Math.abs(dy) > this.DIRECTIONALITY_THRESHOLD)
-		) {
-			this.touchState.isHorizontal = Math.abs(dx) > Math.abs(dy);
-		}
-
-		// If horizontal swipe, handle it
-		if (this.touchState.isHorizontal) {
-			e.preventDefault();
-			this.touchState.isDragging = true;
-			this.touchState.currentX = touch.clientX;
-
-			const revealWidth = 160;
-			const wasRevealed = this.touchState.wrapper.dataset.revealed === 'true';
-
-			let constrainedDx;
-			if (wasRevealed) {
-				// Row is revealed, allow swiping right to close (but constrain to 0)
-				// and left swiping is constrained since already at max reveal
-				if (dx > 0) {
-					// Swiping right to close
-					constrainedDx = Math.min(dx, revealWidth) - revealWidth;
-				} else {
-					// Swiping left (already revealed, so constrain)
-					constrainedDx = -revealWidth + dx * 0.1;
-				}
-			} else {
-				// Row is not revealed, only allow left swipe (negative dx)
-				constrainedDx = dx < 0 ? dx : dx * 0.1;
-			}
-
-			// Apply transform
-			if (this.rafId) cancelAnimationFrame(this.rafId);
-			this.rafId = requestAnimationFrame(() => {
-				this.touchState.element.style.transform = `translateX(${constrainedDx}px)`;
-				this.rafId = null;
-			});
-
-			// Auto-complete swipe if swiped far enough
-			const containerWidth = this.touchState.element.clientWidth;
-			if (
-				!wasRevealed &&
-				Math.abs(dx) > containerWidth * this.AUTO_ACTIVATION_PERCENTAGE
-			) {
-				this._handleSwipeLeft(this.touchState.wrapper);
-			}
-		}
-	}
-
-	_onTouchEnd(e) {
-		if (!this.touchState.element || !this.touchState.isDragging) {
-			this._resetTouchState();
-			return;
-		}
-
-		const deltaX = this.touchState.currentX - this.touchState.startX;
-		const revealWidth = 160; // Width of both action buttons
-		const wasRevealed = this.touchState.wrapper.dataset.revealed === 'true';
-
-		if (wasRevealed) {
-			// Row was already revealed
-			if (deltaX > this.SWIPE_ACTIVATION_DISTANCE) {
-				// Swiped right enough to close
-				this.touchState.element.style.transition = `transform ${this.SPRING_BACK_SPEED}ms ease-out`;
-				this.touchState.element.style.transform = 'translateX(0)';
-				delete this.touchState.wrapper.dataset.revealed;
-				this.currentlyRevealedWrapper = null;
-
-				setTimeout(() => {
-					this.touchState.element.style.transition = '';
-				}, this.SPRING_BACK_SPEED);
-			} else {
-				// Didn't swipe right enough, snap back to revealed position
-				this.touchState.element.style.transition = `transform ${this.SPRING_BACK_SPEED}ms ease-out`;
-				this.touchState.element.style.transform = `translateX(-${revealWidth}px)`;
-
-				setTimeout(() => {
-					this.touchState.element.style.transition = '';
-				}, this.SPRING_BACK_SPEED);
-			}
-		} else {
-			// Row was not revealed
-			if (deltaX < -this.SWIPE_ACTIVATION_DISTANCE) {
-				// Swiped left enough to reveal
-				this.touchState.element.style.transition = `transform ${this.SPRING_BACK_SPEED}ms ease-out`;
-				this.touchState.element.style.transform = `translateX(-${revealWidth}px)`;
-				this.touchState.wrapper.dataset.revealed = 'true';
-				this.currentlyRevealedWrapper = this.touchState.wrapper;
-
-				// Add click listener to close when clicking elsewhere
-				setTimeout(() => {
-					const closeSwipe = (e) => {
-						if (
-							!e.target.closest('.thread-row-wrapper') ||
-							e.target.closest('.thread-row-wrapper') !==
-								this.touchState.wrapper
-						) {
-							this._closeSwipe(this.touchState.wrapper);
-							this._display?.shadowRoot?.removeEventListener(
-								'click',
-								closeSwipe,
-							);
-						}
-					};
-					this._display?.shadowRoot?.addEventListener('click', closeSwipe);
-				}, this.SPRING_BACK_SPEED);
-
-				setTimeout(() => {
-					this.touchState.element.style.transition = '';
-				}, this.SPRING_BACK_SPEED);
-			} else {
-				// Didn't swipe left enough, snap back to closed position
-				this._springBack();
-			}
-		}
-
-		this._resetTouchState();
-	}
-
-	_onTouchCancel(e) {
-		if (!this.touchState.element) return;
-		this._springBack();
-		this._resetTouchState();
-	}
-
-	_springBack() {
-		if (!this.touchState.element) return;
-
-		const element = this.touchState.element;
-		element.style.transition = `transform ${this.SPRING_BACK_SPEED}ms ease-out`;
-		element.style.transform = 'translateX(0)';
-
-		// Clear transition after animation completes
-		setTimeout(() => {
-			element.style.transition = '';
-		}, this.SPRING_BACK_SPEED);
-	}
-
-	_closeSwipe(wrapper) {
-		const swipeContent = wrapper.querySelector('.swipe-content');
-		if (swipeContent) {
-			swipeContent.style.transition = `transform ${this.SPRING_BACK_SPEED}ms ease-out`;
-			swipeContent.style.transform = 'translateX(0)';
-			delete wrapper.dataset.revealed;
-
-			// Clear the currently revealed wrapper if it's this one
-			if (this.currentlyRevealedWrapper === wrapper) {
-				this.currentlyRevealedWrapper = null;
-			}
-
-			setTimeout(() => {
-				swipeContent.style.transition = '';
-			}, this.SPRING_BACK_SPEED);
-		}
-	}
-
-	_handleSwipeLeft(wrapper) {
-		// This is called for auto-activation during drag
-		// For now, we'll just snap to reveal position
-		const swipeContent = wrapper.querySelector('.swipe-content');
-		const revealWidth = 160;
-
-		if (swipeContent) {
-			swipeContent.style.transition = `transform ${this.ANIMATE_SPEED}ms ease-out`;
-			swipeContent.style.transform = `translateX(-${revealWidth}px)`;
-			wrapper.dataset.revealed = 'true';
-			this.currentlyRevealedWrapper = wrapper;
-		}
-
-		this._resetTouchState();
-	}
-
-	_resetTouchState() {
-		this.touchState = {
-			startX: 0,
-			startY: 0,
-			currentX: 0,
-			currentY: 0,
-			isDragging: false,
-			isHorizontal: null,
-			element: null,
-			wrapper: null,
-			threadId: null,
-		};
-	}
-
 	_onCopyThread(threadId) {
 		try {
 			// Set flag to prevent marking old thread as active during duplication
 			this.isDuplicating = true;
 
-			// Use the store's built-in duplicate method
 			const newThread = store.duplicateThread(threadId);
 			if (!newThread) {
 				console.error('Failed to duplicate thread');
@@ -607,11 +300,9 @@ class ChatThreadList extends HTMLElement {
 				return;
 			}
 
-			// Switch to the new thread
 			setCurrentThreadId(newThread.id);
 			store.loadThread(newThread.id);
 
-			// Clear the duplicating flag before the next render
 			this.isDuplicating = false;
 
 			// Close the swipe after switching threads
@@ -619,7 +310,7 @@ class ChatThreadList extends HTMLElement {
 				`.thread-row-wrapper[data-thread-id="${threadId}"]`,
 			);
 			if (wrapper) {
-				this._closeSwipe(wrapper);
+				this._swipe.deactivateRow(wrapper);
 			}
 
 			console.log('Thread copied successfully');
@@ -630,16 +321,13 @@ class ChatThreadList extends HTMLElement {
 	}
 
 	_onDeleteThread(threadId) {
-		// Show confirmation modal
 		this._showDeleteConfirmation(threadId);
 	}
 
 	_showDeleteConfirmation(threadId) {
-		// Get thread info for display
 		const thread = store.listThreads().find((t) => t.id === threadId);
 		const displayName = thread ? store.getThreadDisplayName(thread) : 'this';
 
-		// Create modal
 		const modal = document.createElement('div');
 		modal.className = 'modal-overlay';
 		modal.innerHTML = html`
@@ -656,22 +344,18 @@ class ChatThreadList extends HTMLElement {
 			</div>
 		`;
 
-		// Add event listeners
 		const cancelBtn = modal.querySelector('.modal-button.cancel');
 		const confirmBtn = modal.querySelector('.modal-button.confirm');
 
-		const closeModal = () => {
-			modal.remove();
-		};
+		const closeModal = () => modal.remove();
 
 		cancelBtn.addEventListener('click', () => {
 			closeModal();
-			// Close the swipe
 			const wrapper = this._display?.shadowRoot?.querySelector(
 				`.thread-row-wrapper[data-thread-id="${threadId}"]`,
 			);
 			if (wrapper) {
-				this._closeSwipe(wrapper);
+				this._swipe.deactivateRow(wrapper);
 			}
 		});
 
@@ -680,7 +364,6 @@ class ChatThreadList extends HTMLElement {
 			this._deleteThread(threadId);
 		});
 
-		// Close on overlay click
 		modal.addEventListener('click', (e) => {
 			if (e.target === modal) {
 				closeModal();
@@ -688,7 +371,7 @@ class ChatThreadList extends HTMLElement {
 					`.thread-row-wrapper[data-thread-id="${threadId}"]`,
 				);
 				if (wrapper) {
-					this._closeSwipe(wrapper);
+					this._swipe.deactivateRow(wrapper);
 				}
 			}
 		});
@@ -702,18 +385,18 @@ class ChatThreadList extends HTMLElement {
 				`.thread-row-wrapper[data-thread-id="${threadId}"]`,
 			);
 
-			// Clear the currently revealed wrapper if this is it
-			if (this.currentlyRevealedWrapper === wrapper) {
-				this.currentlyRevealedWrapper = null;
+			// Clear the activated wrapper reference if this is it
+			if (this._swipe.activatedWrapper === wrapper) {
+				this._swipe.resetActivated();
 			}
 
 			if (wrapper) {
 				const swipeContent = wrapper.querySelector('.swipe-content');
 
-				// Animate removal
+				// Animate removal — CSS handles the transition via .removing-left
 				if (swipeContent) {
-					swipeContent.style.transition = `transform ${this.ANIMATE_SPEED}ms ease-out`;
-					swipeContent.style.transform = 'translateX(-100vw)';
+					swipeContent.style.transition = '';
+					swipeContent.style.transform = '';
 				}
 
 				wrapper.classList.add('removing', 'removing-left');
@@ -736,8 +419,8 @@ class ChatThreadList extends HTMLElement {
 								setCurrentThreadId(null);
 							}
 						}
-					}, this.COLLAPSE_SPEED);
-				}, this.ANIMATE_SPEED);
+					}, this._swipe.COLLAPSE_SPEED);
+				}, this._swipe.ANIMATE_SPEED);
 			} else {
 				// If wrapper not found, just delete immediately
 				store.deleteThread(threadId);

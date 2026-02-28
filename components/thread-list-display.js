@@ -1,4 +1,6 @@
 import { html } from '../utils/template.js';
+import { MQ } from '../utils/breakpoints.js';
+import { SWIPE_CSS } from '../utils/swipe-gesture.js';
 
 /**
  * @typedef {Object} ThreadListItem
@@ -230,7 +232,9 @@ class ThreadListDisplay extends HTMLElement {
 					background: var(--color-edge);
 				}
 				.thread-row.active {
-					background: var(--color-bubble-other);
+					@media ${MQ.tablet} {
+						background: var(--color-bubble-other);
+					}
 				}
 				:host([show-unread]) .thread-row {
 					grid-template-columns: 10px 48px 1fr;
@@ -350,65 +354,7 @@ class ThreadListDisplay extends HTMLElement {
 					font: 14px system-ui;
 				}
 
-				/* Swipe gesture styles */
-				.thread-row-wrapper {
-					position: relative;
-					display: grid;
-					grid-template-rows: 1fr;
-					transition: grid-template-rows 250ms ease;
-					overflow: hidden;
-				}
-				.thread-row-wrapper.collapsing {
-					grid-template-rows: 0fr;
-				}
-				.reveal-actions {
-					position: absolute;
-					top: 0;
-					right: 0;
-					height: 100%;
-					display: flex;
-					z-index: 1;
-				}
-				.action-button {
-					width: 80px;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					cursor: pointer;
-					transition: opacity 0.15s;
-				}
-				.action-button:active {
-					opacity: 0.7;
-				}
-				.action-button.copy {
-					background: #007aff;
-				}
-				.action-button.delete {
-					background: var(--color-status-red);
-				}
-				.action-button svg {
-					width: 24px;
-					height: 24px;
-					fill: white;
-				}
-				.swipe-content {
-					position: relative;
-					z-index: 2;
-					background: var(--color-page);
-					touch-action: pan-y;
-					user-select: none;
-					min-height: 0;
-					overflow: hidden;
-				}
-				.thread-row-wrapper.removing .swipe-content {
-					transition: transform 100ms ease-out;
-				}
-				.thread-row-wrapper.removing-left .swipe-content {
-					transform: translateX(-100vw);
-				}
-				:host(:not([show-actions])) .reveal-actions {
-					display: none;
-				}
+				${SWIPE_CSS}
 			</style>
 			<div class="wrapper">
 				<div class="thread-list-header">
@@ -540,7 +486,7 @@ class ThreadListDisplay extends HTMLElement {
 		const revealActions = document.createElement('div');
 		revealActions.className = 'reveal-actions';
 		revealActions.innerHTML = html`
-			<div
+			<button
 				class="action-button copy"
 				data-action="copy"
 				data-thread-id="${threadId}"
@@ -550,8 +496,9 @@ class ThreadListDisplay extends HTMLElement {
 						d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"
 					></path>
 				</svg>
-			</div>
-			<div
+				<span>Copy</span>
+			</button>
+			<button
 				class="action-button delete"
 				data-action="delete"
 				data-thread-id="${threadId}"
@@ -561,7 +508,8 @@ class ThreadListDisplay extends HTMLElement {
 						d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"
 					></path>
 				</svg>
-			</div>
+				<span>Delete</span>
+			</button>
 		`;
 
 		const swipeContent = document.createElement('div');
