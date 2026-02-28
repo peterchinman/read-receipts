@@ -92,9 +92,9 @@ class IconArrow extends HTMLElement {
 			<button>
 				<div class="icon ${isReversed ? 'reversed' : ''}">${arrowSvg()}</div>
 				${text
-					? html`<span class="text ${isReversed ? 'reversed' : ''}"
-								>${text}</span
-							>`
+					? html`<div class="text ${isReversed ? 'reversed' : ''}">
+								${text}
+							</div>`
 					: ''}
 			</button>
     `;

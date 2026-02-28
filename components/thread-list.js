@@ -7,6 +7,7 @@ import { copySvg } from './icons/copy-svg.js';
 import { trashSvg } from './icons/trash-svg.js';
 import { infoSvg } from './icons/info-svg.js';
 import './icon-arrow.js';
+import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 
 /**
  * @typedef {Object} ThreadListItem
@@ -442,13 +443,16 @@ class ThreadListDisplay extends HTMLElement {
 				}
 
 				${SWIPE_CSS}
+				${HIDE_SCROLLBAR_CSS}
 			</style>
 			<div class="wrapper">
 				<div class="thread-list-header">
 					<div class="header-left">
-					<icon-arrow class="nav-arrow"></icon-arrow>
-					<button class="info-btn" id="info-btn" aria-label="About">${infoSvg()}</button>
-				</div>
+						<icon-arrow class="nav-arrow"></icon-arrow>
+						<button class="info-btn" id="info-btn" aria-label="About">
+							${infoSvg()}
+						</button>
+					</div>
 					<div class="header-title" id="header-title">Messages</div>
 					<div class="header-right">
 						<button class="menu-btn" id="menu-btn" title="More options">
@@ -459,7 +463,7 @@ class ThreadListDisplay extends HTMLElement {
 						</button>
 					</div>
 				</div>
-				<div class="threads-list" id="threads-container">
+				<div class="threads-list hide-scrollbar" id="threads-container">
 					<!-- Thread rows will be rendered here -->
 				</div>
 			</div>
@@ -476,7 +480,11 @@ class ThreadListDisplay extends HTMLElement {
 
 		this.$.infoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', { detail: { action: 'info' }, bubbles: true, composed: true }),
+				new CustomEvent('navigate', {
+					detail: { action: 'info' },
+					bubbles: true,
+					composed: true,
+				}),
 			);
 		});
 	}

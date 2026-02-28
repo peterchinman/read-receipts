@@ -5,6 +5,7 @@ import { MQ } from '../utils/breakpoints.js';
 import { arrowSvg } from './icons/arrow-svg.js';
 import { infoSvg } from './icons/info-svg.js';
 import { composeSvg } from './icons/compose-svg.js';
+import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 
 const isIOS =
 	/iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -731,6 +732,10 @@ class ThreadDisplay extends HTMLElement {
 					}
 				}
 
+				.bottom-area:has(.input:placeholder-shown) sender-switch {
+					display: none;
+				}
+
 				.options-container {
 					position: relative;
 					min-width: var(--single-line-message-height);
@@ -792,6 +797,8 @@ class ThreadDisplay extends HTMLElement {
 				:host(:not([interactive])) .bottom-area {
 					pointer-events: none;
 				}
+
+				${HIDE_SCROLLBAR_CSS}
 			</style>
 			<svg style="display:none">
 				<defs>
@@ -806,7 +813,9 @@ class ThreadDisplay extends HTMLElement {
 				<header class="preview-header">
 					<div class="header-left">
 						<icon-arrow class="nav-arrow"></icon-arrow>
-						<button class="icon-btn info-btn" aria-label="About">${infoSvg()}</button>
+						<button class="icon-btn info-btn" aria-label="About">
+							${infoSvg()}
+						</button>
 					</div>
 					<div class="recipient-info">
 						<div class="recipient-avatar" aria-hidden="true">
@@ -819,10 +828,12 @@ class ThreadDisplay extends HTMLElement {
 						<div class="recipient-location" id="recipientLocation"></div>
 					</div>
 					<div class="header-right">
-						<button class="icon-btn compose-btn" aria-label="Create">${composeSvg()}</button>
+						<button class="icon-btn compose-btn" aria-label="Create">
+							${composeSvg()}
+						</button>
 					</div>
 				</header>
-				<div class="message-list">
+				<div class="message-list hide-scrollbar">
 					<div class="message-list-spacer" aria-hidden="true"></div>
 				</div>
 				<div class="bottom-area">
@@ -909,13 +920,21 @@ class ThreadDisplay extends HTMLElement {
 
 		this.$.infoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', { detail: { action: 'info' }, bubbles: true, composed: true }),
+				new CustomEvent('navigate', {
+					detail: { action: 'info' },
+					bubbles: true,
+					composed: true,
+				}),
 			);
 		});
 
 		this.$.composeBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', { detail: { action: 'create' }, bubbles: true, composed: true }),
+				new CustomEvent('navigate', {
+					detail: { action: 'create' },
+					bubbles: true,
+					composed: true,
+				}),
 			);
 		});
 	}

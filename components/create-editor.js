@@ -4,7 +4,7 @@ import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
 import { MQ } from '../utils/breakpoints.js';
-import { setCurrentThreadId } from '../utils/url-state.js';
+import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 import { authState } from './auth-state.js';
 import { apiClient } from '../utils/api-client.js';
 import {
@@ -38,7 +38,7 @@ class ChatEditor extends HTMLElement {
 				}
 				:host {
 					box-sizing: border-box;
-					display: block;
+					display: block;G
 					height: 100%;
 
 					@media ${MQ.tablet} {
@@ -178,18 +178,23 @@ class ChatEditor extends HTMLElement {
 					border-color: #665500;
 					color: #ffd54f;
 				}
+				${HIDE_SCROLLBAR_CSS}
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
-					<icon-arrow text="Threads" action="show-threads"></icon-arrow>
+					<icon-arrow text="Drafts" action="show-threads"></icon-arrow>
 					<button id="export-json" data-tooltip="Export chat as JSON">
 						Export
 					</button>
 					<button id="clear-chat" data-tooltip="Clear all messages">
 						Clear
 					</button>
-	
-					<button id="submit-btn" class="submit-btn" data-tooltip="Submit for review">
+
+					<button
+						id="submit-btn"
+						class="submit-btn"
+						data-tooltip="Submit for review"
+					>
 						Submit
 					</button>
 					<icon-arrow
@@ -198,7 +203,7 @@ class ChatEditor extends HTMLElement {
 						reversed
 					></icon-arrow>
 				</div>
-				<div class="cards-list">
+				<div class="cards-list hide-scrollbar">
 					<div class="info-editor">
 						<div class="title">Thread</div>
 						<label>
@@ -382,7 +387,11 @@ class ChatEditor extends HTMLElement {
 
 	_showSubmitDialog() {
 		return new Promise((resolve) => {
-			const { overlay, modal, close: removeDialog } = createDialog({ closeOnOverlayClick: false });
+			const {
+				overlay,
+				modal,
+				close: removeDialog,
+			} = createDialog({ closeOnOverlayClick: false });
 
 			let submitting = false;
 
@@ -462,28 +471,44 @@ class ChatEditor extends HTMLElement {
 					}
 
 					modal.innerHTML = html`
-						<div style="${dialogTitleStyle} margin-bottom: 16px;">
+						<div
+							style="${dialogTitleStyle} margin-bottom: 16px;"
+						>
 							<b>Note: further action required to submit.</b>
 						</div>
 						<div style="${dialogBodyStyle} margin-bottom: 16px;">
-							<b>You should receive an email shortly</b>, with a link to complete your submission.
+							<b>You should receive an email shortly</b>, with a link to
+							complete your submission.
 						</div>
 						<div style="${dialogBodyStyle} margin-bottom: 16px;">
 							Email sent to: <b>${value}</b>
 						</div>
 						<div style="${dialogBodyStyle}">
-							The link will expire in 30 minutes. If you don't receive this email please contact us. Your email provider might identify this email as spam. <b>Check your spam folder.</b>
+							The link will expire in 30 minutes. If you don't receive this
+							email please contact us. Your email provider might identify this
+							email as spam. <b>Check your spam folder.</b>
 						</div>
 						<div style="${dialogButtonRowStyle}">
-							<button type="button" data-role="close" style="${dialogCancelButtonStyle}">Close</button>
+							<button
+								type="button"
+								data-role="close"
+								style="${dialogCancelButtonStyle}"
+							>
+								Close
+							</button>
 						</div>
 					`;
 
 					submitting = false;
-					modal.querySelector('[data-role="close"]').addEventListener('click', () => close(value));
+					modal
+						.querySelector('[data-role="close"]')
+						.addEventListener('click', () => close(value));
 				} catch (error) {
 					submitting = false;
-					alert('Failed to send verification email: ' + (error.message || 'Unknown error'));
+					alert(
+						'Failed to send verification email: ' +
+							(error.message || 'Unknown error'),
+					);
 					confirmBtn.disabled = false;
 					confirmBtn.textContent = 'Submit';
 				}
@@ -558,7 +583,11 @@ class ChatEditor extends HTMLElement {
 	}
 
 	async #checkPendingSubmission() {
-		if (localStorage.getItem('pending-submission') !== 'true' || !authState.isAuthenticated) return;
+		if (
+			localStorage.getItem('pending-submission') !== 'true' ||
+			!authState.isAuthenticated
+		)
+			return;
 
 		const pendingThreads = store.listPendingThreads();
 		if (pendingThreads.length === 0) {
@@ -606,14 +635,17 @@ class ChatEditor extends HTMLElement {
 		this.#syncSubmitButton(store.getCurrentThread());
 
 		if (successCount > 0) {
-			const body = successCount === 1
-				? 'Your piece has been submitted for review! You will receive an email when it is reviewed.'
-				: `${successCount} pieces have been submitted for review! You will receive an email when they are reviewed.`;
+			const body =
+				successCount === 1
+					? 'Your piece has been submitted for review! You will receive an email when it is reviewed.'
+					: `${successCount} pieces have been submitted for review! You will receive an email when they are reviewed.`;
 			await showDialog({ title: 'Submitted', body });
 		}
 
 		for (const { thread, error } of failed) {
-			alert(`Failed to submit "${store.getThreadDisplayName(thread)}": ${error.message || 'Unknown error'}`);
+			alert(
+				`Failed to submit "${store.getThreadDisplayName(thread)}": ${error.message || 'Unknown error'}`,
+			);
 		}
 	}
 
@@ -938,7 +970,10 @@ class ChatEditor extends HTMLElement {
 		if (!cardsList) return;
 
 		// If there are no messages and the thread is editable, seed one blank message
-		if ((!messages || messages.length === 0) && !store.isCurrentThreadSubmitted()) {
+		if (
+			(!messages || messages.length === 0) &&
+			!store.isCurrentThreadSubmitted()
+		) {
 			for (const card of this.shadowRoot.querySelectorAll('.editor-card')) {
 				card.remove();
 			}
@@ -989,7 +1024,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncDeleteButtons() {
-		const cards = [...(this.shadowRoot?.querySelectorAll('.editor-card') || [])];
+		const cards = [
+			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
+		];
 		const isOnly = cards.length === 1;
 		for (const card of cards) {
 			if (isOnly) card.setAttribute('only', '');

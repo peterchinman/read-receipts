@@ -2,19 +2,17 @@
 
 BEFORE RELEASE
 
-- [ ] Way to access Create Page from mobile
 - [ ] Improve Submission flow Dialogs
 - [ ] improve submission email styling
-- [ ] context menu on thread-list, right click on desktop, slide on mobile
-  - [ ] should have delete, duplicate, 
-- [ ] Make desktop width lit mag page good
-  - [ ] Prob centered, with a max-width, shadowed panel, like a window on blank desktop?
 - [ ] Idea: Submit button for Create mode lives in the bottom bar on desktop??
 
 CAN DO AFTER RELEASE:
 
 - [ ] how to store who is admin, how to add new admins?
-- [ ] - [ ] I want to be able to upload new threads from Admin. Not just approve submitted Threads.
+- [ ] Additional text type, for "system message"
+- [ ] Info page for each piece author
+- [ ] I want to be able to upload new threads from Admin. Not just approve submitted Threads.
+- [ ] User avatars are wrong in thread-list?
 
 
 ---
