@@ -464,7 +464,6 @@ class ChatEditor extends HTMLElement {
 
 				try {
 					await authState.requestMagicLink(value);
-					localStorage.setItem('pending-submission', 'true');
 					const pendingThread = store.getCurrentThread();
 					if (pendingThread) {
 						store.markThreadPending(pendingThread.id);
@@ -579,7 +578,6 @@ class ChatEditor extends HTMLElement {
 						? 'Your piece has been resubmitted for review!'
 						: 'Your piece has been submitted for review! You will receive an email when it is reviewed.',
 				});
-				localStorage.removeItem('pending-submission');
 			} catch (error) {
 				alert('Failed to submit: ' + (error.message || 'Unknown error'));
 				btn.disabled = false;
@@ -592,17 +590,10 @@ class ChatEditor extends HTMLElement {
 	}
 
 	async #checkPendingSubmission() {
-		if (
-			localStorage.getItem('pending-submission') !== 'true' ||
-			!authState.isAuthenticated
-		)
-			return;
+		if (!authState.isAuthenticated) return;
 
 		const pendingThreads = store.listPendingThreads();
-		if (pendingThreads.length === 0) {
-			localStorage.removeItem('pending-submission');
-			return;
-		}
+		if (pendingThreads.length === 0) return;
 
 		// Auth is complete — clear the pending flag on every thread before submitting,
 		// so the submit button doesn't get disabled mid-loop.
@@ -640,7 +631,6 @@ class ChatEditor extends HTMLElement {
 			}
 		}
 
-		localStorage.removeItem('pending-submission');
 		this.#syncSubmitButton(store.getCurrentThread());
 
 		if (successCount > 0) {
@@ -741,7 +731,6 @@ class ChatEditor extends HTMLElement {
 	#syncSubmitButton(thread) {
 		const btn = this.shadowRoot?.getElementById('submit-btn');
 		if (!btn) return;
-		const isResubmit = thread && !!thread.backendId;
 		const isPending = store.isCurrentThreadPending();
 		const isSubmitted = store.isCurrentThreadSubmitted();
 		if (isSubmitted) {
@@ -752,7 +741,7 @@ class ChatEditor extends HTMLElement {
 			btn.disabled = true;
 			btn.textContent = PENDING_LABEL;
 			btn.setAttribute('data-tooltip', PENDING_TOOLTIP);
-		} else if (!btn.disabled) {
+		} else {
 			btn.textContent = SUBMIT_LABEL;
 			btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
 		}
