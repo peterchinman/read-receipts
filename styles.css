@@ -65,6 +65,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-header: hsl(0 0% 95% / 0.85);
 	--color-overlay: hsl(0 0% 100% / 0.7);
 
+	--color-dialog-overlay: hsl(0 0 0 / 0.5);
+
 	--mask-blend-mode: screen;
 
 	--color-drop-shadow: oklch(0 0 0 / 8%);
@@ -112,6 +114,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-header: hsl(0 0% 10% / 0.78);
 	--color-overlay: hsl(0 0% 0% / 0.7);
 
+	--color-dialog-overlay: hsl(from var(--color-body-bg) h s l / 0.7);
+
 	--mask-blend-mode: multiply;
 
 	--color-drop-shadow: transparent;
@@ -151,7 +155,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 html {
 	font-size: var(--font-size);
 
-	--pane-gap: calc(36rem / 14);
+	--pane-gap: clamp(1rem, 1.5vw, calc(36rem / 14));
 }
 
 body {
