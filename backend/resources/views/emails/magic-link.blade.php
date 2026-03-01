@@ -16,7 +16,9 @@
         <p>Or copy and paste this link into a browser:</p>
         <p style="word-break: break-all;">{{ $url }}</p>
 
-        <p><strong>IMPORTANT NOTE:</strong> your drafts are only ever stored locally, in your browser. So, you'll need to open this link in the same browser you used to compose the draft.</p>
+        <p><strong>IMPORTANT NOTE:</strong> your drafts are only stored locally, by your browser. So, you'll need to open this link in the same browser you used to compose the draft.</p>
+        
+        <p>Thank you for your submission. I look forward to reading it.</p>
 
         <div style="font-size: 14px; color: #333;">
             <p>This link will expire {{ $expiresAt }}.</p>
