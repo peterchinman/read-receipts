@@ -41,8 +41,7 @@ class PublicController extends Controller
         return [
             'id' => $thread->id,
             'name' => $thread->name,
-            'recipient_name' => $thread->recipient_name,
-            'recipient_location' => $thread->recipient_location,
+            'participants' => $thread->participants,
             'published_at' => $thread->published_at?->toISOString(),
             'author' => [
                 'name' => $thread->user->display_name ?? $thread->user->name,

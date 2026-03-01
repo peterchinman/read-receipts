@@ -300,7 +300,7 @@ class ChatThreadList extends HTMLElement {
 
 		const threadItems = threads.map((thread) => {
 			const displayName = store.getThreadDisplayName(thread);
-			const recipientName = thread.recipient?.name || '';
+			const recipientName = thread.participants?.[0]?.full_name || '';
 			const lastMessage = this._getLastMessage(thread);
 			const timeDisplay = this._formatTime(thread.updatedAt);
 			return {

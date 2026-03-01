@@ -199,14 +199,12 @@ class LandingPage extends HTMLElement {
 		}
 
 		const items = this.#pieces.map((piece) => {
-			const preview = this.#getPreviewText(piece);
 			const author = piece.author?.name ? String(piece.author.name) : '';
-			const previewText = author ? `${author} - ${preview}` : preview;
 			return {
 				id: piece.id,
-				name: piece.name || 'Untitled',
-				recipientName: piece.recipient_name || author || '',
-				preview: previewText,
+				name: piece.name || piece.participants?.[0]?.full_name || 'Untitled',
+				recipientName: piece.participants?.[0]?.full_name || author || '',
+				preview: this.#getPreviewText(piece),
 				time: this.#formatTime(piece.published_at),
 				unread: !this.#readIds.has(String(piece.id)),
 			};
@@ -220,11 +218,9 @@ class LandingPage extends HTMLElement {
 		if (!piece.messages || piece.messages.length === 0) {
 			return 'No messages';
 		}
-		const firstMessages = piece.messages.slice(0, 3);
-		return firstMessages
-			.map((m) => m.message || '')
-			.join(' ')
-			.trim();
+		const lastMsg = piece.messages[piece.messages.length - 1];
+		if (lastMsg.message) return lastMsg.message;
+		return 'No messages';
 	}
 
 	#formatTime(timestamp) {

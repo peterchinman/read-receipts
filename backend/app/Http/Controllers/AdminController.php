@@ -143,8 +143,7 @@ class AdminController extends Controller
         return [
             'id' => $thread->id,
             'name' => $thread->name,
-            'recipient_name' => $thread->recipient_name,
-            'recipient_location' => $thread->recipient_location,
+            'participants' => $thread->participants,
             'status' => $thread->status,
             'submitted_at' => $thread->submitted_at?->toISOString(),
             'is_resubmission' => $thread->submissionEvents->contains('event_type', 'resubmitted'),

@@ -96,8 +96,8 @@ class PieceView extends HTMLElement {
 			const display = this.#shadow.querySelector('thread-view');
 			if (display) {
 				display.setRecipient({
-					name: this.#piece.recipient_name,
-					location: this.#piece.recipient_location,
+					name: this.#piece.participants?.[0]?.full_name || '',
+					location: this.#piece.participants?.[0]?.location || '',
 				});
 				display.setMessages(this.#piece.messages);
 				display.scrollToBottom();

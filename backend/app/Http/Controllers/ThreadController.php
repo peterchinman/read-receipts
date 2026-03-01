@@ -11,18 +11,20 @@ class ThreadController extends Controller
     {
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'recipient_name' => 'nullable|string|max:255',
-            'recipient_location' => 'nullable|string|max:255',
+            'participants' => 'nullable|array',
+            'participants.*.id' => 'nullable|string|max:255',
+            'participants.*.full_name' => 'nullable|string|max:255',
+            'participants.*.location' => 'nullable|string|max:255',
+            'participants.*.avatar_url' => 'nullable|string|max:2048',
             'messages' => 'required|array|min:1',
-            'messages.*.sender' => 'required|in:self,other',
+            'messages.*.sender' => 'required|string|max:255',
             'messages.*.message' => 'required|string',
             'messages.*.timestamp' => 'nullable|date',
         ]);
 
         $thread = $request->user()->threads()->create([
             'name' => $validated['name'] ?? null,
-            'recipient_name' => $validated['recipient_name'] ?? null,
-            'recipient_location' => $validated['recipient_location'] ?? null,
+            'participants' => $validated['participants'] ?? null,
             'messages' => collect($validated['messages'])->map(fn($m, $i) => [
                 'sender' => $m['sender'],
                 'message' => $m['message'],
@@ -60,8 +62,7 @@ class ThreadController extends Controller
         return response()->json([
             'id' => $thread->id,
             'name' => $thread->name,
-            'recipient_name' => $thread->recipient_name,
-            'recipient_location' => $thread->recipient_location,
+            'participants' => $thread->participants,
             'status' => $thread->status,
             'messages' => $thread->messages,
             'events' => $thread->submissionEvents->map(fn($event) => [
@@ -84,18 +85,20 @@ class ThreadController extends Controller
 
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'recipient_name' => 'nullable|string|max:255',
-            'recipient_location' => 'nullable|string|max:255',
+            'participants' => 'nullable|array',
+            'participants.*.id' => 'nullable|string|max:255',
+            'participants.*.full_name' => 'nullable|string|max:255',
+            'participants.*.location' => 'nullable|string|max:255',
+            'participants.*.avatar_url' => 'nullable|string|max:2048',
             'messages' => 'required|array|min:1',
-            'messages.*.sender' => 'required|in:self,other',
+            'messages.*.sender' => 'required|string|max:255',
             'messages.*.message' => 'required|string',
             'messages.*.timestamp' => 'nullable|date',
         ]);
 
         $thread->resubmit([
             'name' => $validated['name'] ?? null,
-            'recipient_name' => $validated['recipient_name'] ?? null,
-            'recipient_location' => $validated['recipient_location'] ?? null,
+            'participants' => $validated['participants'] ?? null,
             'messages' => collect($validated['messages'])->map(fn($m, $i) => [
                 'sender' => $m['sender'],
                 'message' => $m['message'],

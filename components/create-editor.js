@@ -405,12 +405,13 @@ class ChatEditor extends HTMLElement {
 
 			const titleEl = document.createElement('div');
 			titleEl.style.cssText = dialogTitleStyle;
-			titleEl.textContent = 'Submit';
+			titleEl.textContent = 'Email Confirmation Required';
 			modal.appendChild(titleEl);
 
 			const subtitleEl = document.createElement('div');
-			subtitleEl.style.cssText = `font: 13px system-ui; color: var(--color-ink-subdued); margin-bottom: 16px; line-height: 1.4;`;
-			subtitleEl.textContent = 'Enter an email address.';
+			subtitleEl.style.cssText = `font: 13px system-ui; color: var(--color-ink); margin-bottom: 16px; line-height: 1.4;`;
+			subtitleEl.textContent =
+				"In order to submit you'll need to enter an email address.";
 			modal.appendChild(subtitleEl);
 
 			const emailInput = document.createElement('input');
@@ -427,7 +428,7 @@ class ChatEditor extends HTMLElement {
 			const noteEl = document.createElement('div');
 			noteEl.style.cssText = dialogBodyStyle;
 			noteEl.textContent =
-				"You'll receive an email with a link to complete your submission. This email address is also where we will reach out to you regarding your submission status and payment.";
+				"You'll receive an email with a link to complete your submission. This email address is where we will reach out to you regarding your submission status, and to arrange payment if your piece is accepted, so make sure to use one an address that you check somewhat regularly.";
 			modal.appendChild(noteEl);
 
 			const btnRow = document.createElement('div');
@@ -539,8 +540,7 @@ class ChatEditor extends HTMLElement {
 		const isResubmit = !!currentThread.backendId;
 		const payload = {
 			name: currentThread.name,
-			recipient_name: currentThread.recipient?.name,
-			recipient_location: currentThread.recipient?.location,
+			participants: currentThread.participants || [],
 			messages: currentThread.messages.map((m) => ({
 				sender: m.sender,
 				message: m.message,
@@ -613,8 +613,7 @@ class ChatEditor extends HTMLElement {
 		for (const thread of pendingThreads) {
 			const payload = {
 				name: thread.name,
-				recipient_name: thread.recipient?.name,
-				recipient_location: thread.recipient?.location,
+				participants: thread.participants || [],
 				messages: thread.messages.map((m) => ({
 					sender: m.sender,
 					message: m.message,
@@ -703,8 +702,8 @@ class ChatEditor extends HTMLElement {
 		const active = this.shadowRoot && this.shadowRoot.activeElement;
 		const threadName = thread && thread.name ? thread.name : '';
 		const placeholder =
-			thread && thread.recipient
-				? `Chat with ${thread.recipient.name}`
+			thread && thread.participants?.[0]?.full_name
+				? `Chat with ${thread.participants[0].full_name}`
 				: 'Custom name for this thread';
 		threadNameInput.placeholder = placeholder;
 		if (active !== threadNameInput && threadNameInput.value !== threadName) {

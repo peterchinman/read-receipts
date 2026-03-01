@@ -10,8 +10,7 @@ use Illuminate\Support\Str;
  * @property int $id
  * @property int $user_id
  * @property string|null $name
- * @property string|null $recipient_name
- * @property string|null $recipient_location
+ * @property array|null $participants
  * @property string $status
  * @property \Illuminate\Support\Carbon|null $submitted_at
  * @property \Illuminate\Support\Carbon|null $published_at
@@ -47,8 +46,7 @@ class Thread extends Model
     protected $fillable = [
         'user_id',
         'name',
-        'recipient_name',
-        'recipient_location',
+        'participants',
         'messages',
         'status',
         'edit_token',
@@ -59,6 +57,7 @@ class Thread extends Model
     protected function casts(): array
     {
         return [
+            'participants' => 'array',
             'messages' => 'array',
             'submitted_at' => 'datetime',
             'published_at' => 'datetime',
@@ -139,8 +138,7 @@ class Thread extends Model
         $snapshot = [
             'messages' => $this->messages,
             'name' => $this->name,
-            'recipient_name' => $this->recipient_name,
-            'recipient_location' => $this->recipient_location,
+            'participants' => $this->participants,
         ];
 
         // Attach snapshot to the event that introduced the version being replaced
@@ -155,8 +153,7 @@ class Thread extends Model
         $this->update([
             'messages' => $data['messages'],
             'name' => $data['name'] ?? $this->name,
-            'recipient_name' => $data['recipient_name'] ?? $this->recipient_name,
-            'recipient_location' => $data['recipient_location'] ?? $this->recipient_location,
+            'participants' => $data['participants'] ?? $this->participants,
             'status' => 'submitted',
             'submitted_at' => now(),
             'edit_token' => null,

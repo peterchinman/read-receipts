@@ -19,8 +19,14 @@ class ThreadFactory extends Factory
         return [
             'user_id' => \App\Models\User::factory(),
             'name' => fake()->sentence(3),
-            'recipient_name' => fake()->name(),
-            'recipient_location' => fake()->city() . ', ' . fake()->stateAbbr(),
+            'participants' => [
+                [
+                    'id' => 'p1',
+                    'full_name' => fake()->name(),
+                    'location' => fake()->city() . ', ' . fake()->stateAbbr(),
+                    'avatar_url' => null,
+                ],
+            ],
             'messages' => [
                 [
                     'sender' => 'self',

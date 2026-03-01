@@ -92,7 +92,7 @@ test('pending-submission stores the thread ID that was active at submit time', a
 		'after loadThread, current thread should be Thread A');
 	assert.equal(restored.name, 'Thread A - Original Submission',
 		'restored thread should have Thread A name');
-	assert.equal(restored.recipient.name, 'Alice',
+	assert.equal(store.getRecipient().name, 'Alice',
 		'restored thread should have Thread A recipient');
 });
 
@@ -131,8 +131,8 @@ test('loading pending thread ID restores the correct thread even with many threa
 
 	assert.equal(store.getCurrentThread().id, threadC.id);
 	assert.equal(store.getCurrentThread().name, 'Third Thread');
-	assert.equal(store.getCurrentThread().recipient.name, 'Target Recipient');
-	assert.equal(store.getCurrentThread().recipient.location, 'Target City');
+	assert.equal(store.getRecipient().name, 'Target Recipient');
+	assert.equal(store.getRecipient().location, 'Target City');
 });
 
 test('listPendingThreads() returns all threads with pendingAt set and no submittedAt', async () => {
@@ -277,5 +277,5 @@ test('pending thread ID survives store reload (simulates page navigation)', asyn
 
 	assert.equal(restored.id, thread.id);
 	assert.equal(restored.name, 'Submitted Thread');
-	assert.equal(restored.recipient.name, 'Persisted Recipient');
+	assert.equal(store2.getRecipient().name, 'Persisted Recipient');
 });

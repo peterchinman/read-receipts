@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name')->nullable();
-            $table->string('recipient_name')->nullable();
-            $table->string('recipient_location')->nullable();
+            $table->json('participants')->nullable();
             $table->enum('status', ['submitted', 'accepted', 'published', 'rejected'])->default('submitted');
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('published_at')->nullable();

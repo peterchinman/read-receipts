@@ -1,43 +1,57 @@
 // ThreadStore: manages multiple message threads with persistence
 const THREADS_STORAGE_KEY = 'message-simulator:threads';
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
-const WELCOME_RECIPIENT = {
-	name: 'Peter Chinman',
-	location: 'New York, NY',
-};
+const WELCOME_PARTICIPANTS = [
+	{
+		id: 'p1',
+		full_name: 'Peter Chinman',
+		location: 'New York, NY',
+		avatar_url: null,
+	},
+];
 
-const DEFAULT_RECIPIENT = {
-	name: 'Other',
-	location: '',
-};
+const DEFAULT_PARTICIPANTS = [
+	{
+		id: 'p1',
+		full_name: 'Other',
+		location: '',
+		avatar_url: null,
+	},
+];
 
 const WELCOME_MESSAGES = [
 	{ message: 'Hi', sender: 'other' },
 	{ message: 'Hello', sender: 'other' },
-	{ message: 'What is this?', sender: 'self' },
+	{ message: 'what is this?', sender: 'self' },
 	{
-		message: 'I had a dream that I was building an iMessage simulator',
+		message: 'I had a dream that I was working on an iMessage simulator',
 		sender: 'other',
 	},
 	{
 		message: 'When I woke up I decided that I should build it',
 		sender: 'other',
 	},
-	{ message: 'What do I do with it?', sender: 'self' },
+	{ message: 'what do I do with it?', sender: 'self' },
 	{
-		message: 'You can compose messages in the edit panel',
+		message: 'You can compose messages to the left in the Edit panel. To the left of that is a list of all your Drafts.',
 		sender: 'other',
 	},
 	{
-		message: 'This is the preview panel where you can view them them',
+		message:
+			"You can also submit a piece from the Edit panel. I'm always looking for work that give me goosebumps. If it gets accepted, I'll send you $20.",
 		sender: 'other',
 	},
 	{
-		message: "You can also submit a piece, if it gets accepted, you'll get $20",
+		message:
+			'Important note: your drafts are only stored locally! They are not saved anywhere except in your browser. I can not see them unless you submit!',
 		sender: 'other',
 	},
-	{ message: 'No like, what is this for?', sender: 'self' },
+	{
+		message: '(Which also means that you can use this off-line.)',
+		sender: 'other',
+	},
+	{ message: 'no like, what is this for?', sender: 'self' },
 	{ message: 'Lol idk', sender: 'other' },
 ];
 
@@ -87,7 +101,7 @@ class ThreadStore extends EventTarget {
 				this.#currentThreadId = this.#threads[0].id;
 				this.#emitChange('load');
 			} else {
-				// Invalid format, create default thread
+				// Invalid format or old schema version, create default thread
 				const thread = this.#createDefaultThread();
 				this.#threads = [thread];
 				this.#currentThreadId = thread.id;
@@ -180,7 +194,7 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: undefined, // No custom name initially
 			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
-			recipient: { ...DEFAULT_RECIPIENT },
+			participants: JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS)),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -198,7 +212,7 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: `${this.getThreadDisplayName(original)} (Copy)`,
 			messages: JSON.parse(JSON.stringify(original.messages)), // Deep clone
-			recipient: { ...original.recipient },
+			participants: JSON.parse(JSON.stringify(original.participants || [])),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			// Duplicated threads are always editable — never copy submittedAt or pendingAt
@@ -279,7 +293,7 @@ class ThreadStore extends EventTarget {
 
 	getThreadDisplayName(thread) {
 		if (!thread) return '';
-		return thread.name || thread.recipient?.name || 'Unknown';
+		return thread.name || thread.participants?.[0]?.full_name || 'Unknown';
 	}
 
 	// ===== Message Methods (operate on current thread) =====
@@ -363,12 +377,12 @@ class ThreadStore extends EventTarget {
 		this.#emitChange('update', thread.messages[idx]);
 	}
 
-	// ===== Recipient Methods (operate on current thread) =====
+	// ===== Recipient Methods (shim over participants[0] for 2-party threads) =====
 
 	getRecipient() {
 		const thread = this.getCurrentThread();
-		if (!thread) return { ...DEFAULT_RECIPIENT };
-		return { ...thread.recipient };
+		const p = thread?.participants?.[0];
+		return { name: p?.full_name || '', location: p?.location || '' };
 	}
 
 	updateRecipient(patch) {
@@ -377,21 +391,25 @@ class ThreadStore extends EventTarget {
 		if (!thread) return;
 		if (thread.submittedAt) return;
 
-		const next = { ...thread.recipient };
+		const participants = thread.participants || [];
+		const p = participants[0] || {
+			id: 'p1',
+			full_name: '',
+			location: '',
+			avatar_url: null,
+		};
+		const next = { ...p };
+
 		if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
-			next.name = String(patch.name ?? '').trim();
+			next.full_name = String(patch.name ?? '').trim();
 		}
 		if (Object.prototype.hasOwnProperty.call(patch, 'location')) {
 			next.location = String(patch.location ?? '').trim();
 		}
 
-		if (
-			next.name === thread.recipient.name &&
-			next.location === thread.recipient.location
-		)
-			return;
+		if (next.full_name === p.full_name && next.location === p.location) return;
 
-		thread.recipient = next;
+		thread.participants = [next, ...participants.slice(1)];
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('recipient');
@@ -405,7 +423,7 @@ class ThreadStore extends EventTarget {
 		if (thread.submittedAt) return;
 
 		thread.messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
-		thread.recipient = { ...DEFAULT_RECIPIENT };
+		thread.participants = JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS));
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('clear');
@@ -420,7 +438,7 @@ class ThreadStore extends EventTarget {
 		const payload = {
 			version: CURRENT_SCHEMA_VERSION,
 			messages: thread.messages,
-			recipient: thread.recipient,
+			participants: thread.participants || [],
 		};
 		return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
 	}
@@ -433,13 +451,22 @@ class ThreadStore extends EventTarget {
 			return console.error('Invalid JSON');
 		}
 
-		const importedRecipient =
-			parsed &&
-			typeof parsed === 'object' &&
-			parsed.recipient &&
-			typeof parsed.recipient === 'object'
-				? parsed.recipient
-				: null;
+		// Support new participants format and old recipient format (backwards compat)
+		let importedParticipants = null;
+		if (parsed && typeof parsed === 'object') {
+			if (Array.isArray(parsed.participants)) {
+				importedParticipants = parsed.participants;
+			} else if (parsed.recipient && typeof parsed.recipient === 'object') {
+				importedParticipants = [
+					{
+						id: 'p1',
+						full_name: String(parsed.recipient.name || '').trim(),
+						location: String(parsed.recipient.location || '').trim(),
+						avatar_url: null,
+					},
+				];
+			}
+		}
 
 		let imported = Array.isArray(parsed)
 			? parsed
@@ -467,13 +494,13 @@ class ThreadStore extends EventTarget {
 		const newThread = this.createThread();
 		newThread.messages = imported;
 
-		if (importedRecipient) {
-			const next = { ...newThread.recipient };
-			if (typeof importedRecipient.name === 'string')
-				next.name = importedRecipient.name.trim();
-			if (typeof importedRecipient.location === 'string')
-				next.location = importedRecipient.location.trim();
-			newThread.recipient = next;
+		if (importedParticipants && importedParticipants.length > 0) {
+			const p = importedParticipants[0];
+			const next = { ...newThread.participants[0] };
+			if (typeof p.full_name === 'string') next.full_name = p.full_name.trim();
+			if (typeof p.location === 'string') next.location = p.location.trim();
+			if (p.avatar_url !== undefined) next.avatar_url = p.avatar_url;
+			newThread.participants = [next, ...importedParticipants.slice(1)];
 		}
 
 		newThread.updatedAt = new Date().toISOString();
@@ -511,11 +538,15 @@ class ThreadStore extends EventTarget {
 		}));
 		thread.messages = messages;
 
-		// Populate recipient
-		thread.recipient = {
-			name: backendThread.recipient_name || '',
-			location: backendThread.recipient_location || '',
-		};
+		// Populate participants
+		if (
+			Array.isArray(backendThread.participants) &&
+			backendThread.participants.length > 0
+		) {
+			thread.participants = backendThread.participants;
+		} else {
+			thread.participants = JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS));
+		}
 
 		// Populate name
 		if (backendThread.name) {
@@ -547,7 +578,7 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: undefined,
 			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
-			recipient: { ...WELCOME_RECIPIENT },
+			participants: JSON.parse(JSON.stringify(WELCOME_PARTICIPANTS)),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -563,15 +594,17 @@ class ThreadStore extends EventTarget {
 
 	#emitChange(reason, message = null, threadId = null) {
 		const thread = this.getCurrentThread();
+		const p = thread?.participants?.[0];
 		this.dispatchEvent(
 			new CustomEvent('messages:changed', {
 				detail: {
 					reason,
 					message,
 					messages: thread ? thread.messages.slice() : [],
-					recipient: thread
-						? { ...thread.recipient }
-						: { ...DEFAULT_RECIPIENT },
+					recipient: {
+						name: p?.full_name || '',
+						location: p?.location || '',
+					},
 					threadId: threadId || this.#currentThreadId,
 				},
 				bubbles: false,
@@ -612,7 +645,7 @@ class ThreadStore extends EventTarget {
 		if (!thread || typeof thread !== 'object') return false;
 		if (typeof thread.id !== 'string' || thread.id.length === 0) return false;
 		if (!Array.isArray(thread.messages)) return false;
-		if (!thread.recipient || typeof thread.recipient !== 'object') return false;
+		if (!Array.isArray(thread.participants)) return false;
 		if (typeof thread.createdAt !== 'string') return false;
 		if (typeof thread.updatedAt !== 'string') return false;
 		return true;

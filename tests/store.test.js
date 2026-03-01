@@ -86,8 +86,8 @@ test('load() with empty storage creates default thread and persists', async () =
 	);
 	assert.ok(thread.messages.length > 0, 'thread should have default messages');
 	assert.ok(
-		thread.recipient && typeof thread.recipient === 'object',
-		'thread should have recipient',
+		Array.isArray(thread.participants),
+		'thread should have participants',
 	);
 	assert.equal(
 		typeof thread.createdAt,
@@ -121,7 +121,7 @@ test('createThread() generates unique ID and returns thread object', async () =>
 
 	assert.ok(thread1.id !== thread2.id, 'threads should have unique IDs');
 	assert.ok(Array.isArray(thread1.messages), 'thread should have messages');
-	assert.ok(thread1.recipient, 'thread should have recipient');
+	assert.ok(Array.isArray(thread1.participants), 'thread should have participants');
 	assert.equal(typeof thread1.createdAt, 'string', 'should have createdAt');
 	assert.equal(typeof thread1.updatedAt, 'string', 'should have updatedAt');
 	assert.equal(
@@ -159,7 +159,7 @@ test('duplicateThread() creates copy with new ID', async () => {
 		original.messages.length,
 		'should copy all messages',
 	);
-	assert.deepEqual(copy.recipient, original.recipient, 'should copy recipient');
+	assert.deepEqual(copy.participants, original.participants, 'should copy participants');
 
 	const allThreads = s.listThreads();
 	assert.equal(allThreads.length, 2, 'should have 2 threads');
@@ -348,8 +348,8 @@ test('getThreadDisplayName() returns name or falls back to recipient name', () =
 	const thread1 = s.createThread();
 	assert.equal(
 		s.getThreadDisplayName(thread1),
-		thread1.recipient.name,
-		'should fall back to recipient name',
+		thread1.participants?.[0]?.full_name,
+		'should fall back to participant name',
 	);
 
 	s.updateThreadName(thread1.id, 'Custom Name');
@@ -431,24 +431,23 @@ test('updateRecipient() updates current thread recipient', async () => {
 	await flushTimers();
 });
 
-test('clear() resets current thread messages to defaults', async () => {
+test('clear() resets current thread messages to empty', async () => {
 	globalThis.localStorage.clear();
 	const s = new ThreadStore();
 	s.load();
 
-	const beforeCount = s.getMessages().length;
 	const extra = s.addMessage();
 	s.updateMessage(extra.id, { message: 'changed', sender: 'other' });
 
-	assert.ok(s.getMessages().length > beforeCount, 'should have added message');
+	assert.ok(s.getMessages().length > 0, 'should have messages before clear');
 
 	s.clear();
 	await flushTimers();
 
 	assert.equal(
 		s.getMessages().length,
-		beforeCount,
-		'should reset to default count',
+		0,
+		'clear() should reset to empty (DEFAULT_MESSAGES is [])',
 	);
 });
 
@@ -462,7 +461,7 @@ test('exportJson() exports current thread', () => {
 
 	assert.equal(parsed.version, CURRENT_SCHEMA_VERSION);
 	assert.ok(Array.isArray(parsed.messages));
-	assert.ok(parsed.recipient && typeof parsed.recipient === 'object');
+	assert.ok(Array.isArray(parsed.participants));
 });
 
 test('importJson() creates new thread and switches to it', async () => {
@@ -474,7 +473,7 @@ test('importJson() creates new thread and switches to it', async () => {
 	const originalThreads = s.listThreads();
 	assert.equal(originalThreads.length, 1, 'should start with 1 default thread');
 	const defaultThreadId = originalThreads[0].id;
-	const defaultRecipientName = originalThreads[0].recipient.name;
+	const defaultRecipientName = originalThreads[0].participants?.[0]?.full_name;
 
 	// Create additional threads to test switching behavior
 	const thread1 = s.createThread();
@@ -540,7 +539,7 @@ test('importJson() creates new thread and switches to it', async () => {
 	s.loadThread(defaultThreadId);
 	const defaultThread = s.getCurrentThread();
 	assert.equal(
-		defaultThread.recipient.name,
+		defaultThread.participants?.[0]?.full_name,
 		defaultRecipientName,
 		'default thread should be unchanged',
 	);
@@ -583,8 +582,7 @@ test('importFromBackend() does not duplicate thread with same backendId', async 
 	const backendThread = {
 		id: 99,
 		name: 'Backend Thread',
-		recipient_name: 'Alice',
-		recipient_location: 'Paris',
+		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
@@ -611,7 +609,7 @@ test('importFromBackend() does not duplicate thread with same backendId', async 
 	assert.equal(thread2.id, thread1.id,
 		'should return the same local thread');
 	assert.equal(thread2.backendId, 99);
-	assert.equal(thread2.recipient.name, 'Alice');
+	assert.equal(thread2.participants?.[0]?.full_name, 'Alice');
 });
 // ===== Submitted Thread Tests =====
 
@@ -781,8 +779,7 @@ test('importFromBackend() only shows most recent admin notes', async () => {
 	const backendThread = {
 		id: 200,
 		name: 'Multi-round Thread',
-		recipient_name: 'Bob',
-		recipient_location: 'London',
+		participants: [{ id: 'p1', full_name: 'Bob', location: 'London', avatar_url: null }],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
@@ -830,8 +827,7 @@ test('full lifecycle: submit stores backendId so importFromBackend updates in pl
 	const backendThread = {
 		id: backendId,
 		name: 'My Piece',
-		recipient_name: 'Alice',
-		recipient_location: 'Paris',
+		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
@@ -880,8 +876,7 @@ test('importFromBackend() preserves undefined name when backend has no custom na
 	const backendThread = {
 		id: 55,
 		name: null,
-		recipient_name: 'Alice',
-		recipient_location: 'Paris',
+		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
@@ -913,8 +908,7 @@ test('importFromBackend() updates existing thread on second changes-requested cy
 	const backendThread = {
 		id: 300,
 		name: 'Resubmit Thread',
-		recipient_name: 'Carol',
-		recipient_location: 'Berlin',
+		participants: [{ id: 'p1', full_name: 'Carol', location: 'Berlin', avatar_url: null }],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },

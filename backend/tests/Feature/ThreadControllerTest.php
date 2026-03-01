@@ -24,8 +24,9 @@ class ThreadControllerTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/submit', [
                 'name' => 'My Thread',
-                'recipient_name' => 'Alice',
-                'recipient_location' => 'New York, NY',
+                'participants' => [
+                    ['id' => 'p1', 'full_name' => 'Alice', 'location' => 'New York, NY', 'avatar_url' => null],
+                ],
                 'messages' => [
                     ['sender' => 'self', 'message' => 'Hello'],
                     ['sender' => 'other', 'message' => 'Hi back'],
@@ -35,15 +36,11 @@ class ThreadControllerTest extends TestCase
         $response->assertStatus(201);
         $response->assertJsonStructure(['message', 'id']);
 
-        $this->assertDatabaseHas('threads', [
-            'user_id' => $this->user->id,
-            'name' => 'My Thread',
-            'recipient_name' => 'Alice',
-            'recipient_location' => 'New York, NY',
-            'status' => 'submitted',
-        ]);
-
         $thread = Thread::find($response->json('id'));
+        $this->assertEquals('My Thread', $thread->name);
+        $this->assertEquals('Alice', $thread->participants[0]['full_name']);
+        $this->assertEquals('New York, NY', $thread->participants[0]['location']);
+        $this->assertEquals('submitted', $thread->status);
         $this->assertCount(2, $thread->messages);
         $this->assertEquals('self', $thread->messages[0]['sender']);
         $this->assertEquals('Hello', $thread->messages[0]['message']);
@@ -80,19 +77,6 @@ class ThreadControllerTest extends TestCase
         $response->assertJsonValidationErrors('messages');
     }
 
-    public function test_submit_validates_sender_values(): void
-    {
-        $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/submit', [
-                'messages' => [
-                    ['sender' => 'invalid', 'message' => 'Hello'],
-                ],
-            ]);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors('messages.0.sender');
-    }
-
     public function test_submit_with_optional_fields_only(): void
     {
         $response = $this->actingAs($this->user, 'sanctum')
@@ -104,12 +88,9 @@ class ThreadControllerTest extends TestCase
 
         $response->assertStatus(201);
 
-        $this->assertDatabaseHas('threads', [
-            'user_id' => $this->user->id,
-            'name' => null,
-            'recipient_name' => null,
-            'recipient_location' => null,
-            'status' => 'submitted',
-        ]);
+        $thread = Thread::find($response->json('id'));
+        $this->assertNull($thread->name);
+        $this->assertNull($thread->participants);
+        $this->assertEquals('submitted', $thread->status);
     }
 }
