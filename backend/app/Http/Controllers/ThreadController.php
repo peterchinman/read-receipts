@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SubmissionReceivedMail;
 use App\Models\Thread;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class ThreadController extends Controller
 {
@@ -38,6 +40,8 @@ class ThreadController extends Controller
         $thread->submissionEvents()->create([
             'event_type' => 'submitted',
         ]);
+
+        Mail::to($request->user()->email)->send(new SubmissionReceivedMail($thread));
 
         return response()->json([
             'message' => 'Submission received',

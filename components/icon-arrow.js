@@ -3,7 +3,7 @@ import { arrowSvg } from './icons/arrow-svg.js';
 
 class IconArrow extends HTMLElement {
 	static get observedAttributes() {
-		return ['text', 'action', 'reversed'];
+		return ['text', 'action', 'arrow-right'];
 	}
 
 	constructor() {
@@ -36,7 +36,7 @@ class IconArrow extends HTMLElement {
 
 	render() {
 		const text = this.getAttribute('text') || '';
-		const isReversed = this.hasAttribute('reversed');
+		const arrowRight = this.hasAttribute('arrow-right');
 
 		this.shadowRoot.innerHTML = html`
       <style>
@@ -62,7 +62,7 @@ class IconArrow extends HTMLElement {
 					stroke-width: 1.5px;
 				}
 
-				.icon.reversed svg {
+				.icon.arrow-right svg {
 					transform: scaleX(-1);
 				}
 
@@ -85,14 +85,14 @@ class IconArrow extends HTMLElement {
 					margin-inline: calc(5rem / 14);
 				}
 
-				.text.reversed {
+				.text.arrow-right {
 					order: -1;
 				}
 			</style>
 			<button>
-				<div class="icon ${isReversed ? 'reversed' : ''}">${arrowSvg()}</div>
+				<div class="icon ${arrowRight ? 'arrow-right' : ''}">${arrowSvg()}</div>
 				${text
-					? html`<div class="text ${isReversed ? 'reversed' : ''}">
+					? html`<div class="text ${arrowRight ? 'arrow-right' : ''}">
 								${text}
 							</div>`
 					: ''}

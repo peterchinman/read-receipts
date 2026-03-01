@@ -15,7 +15,18 @@ import {
 	dialogButtonRowStyle,
 	dialogCancelButtonStyle,
 	dialogConfirmButtonStyle,
+	dialogInputStyle,
 } from '../utils/dialog.js';
+
+const SUBMIT_LABEL = 'Submit';
+const SUBMITTING_LABEL = 'Submitting';
+const SUBMITTED_LABEL = 'Submitted';
+const PENDING_LABEL = 'Pending';
+
+const SUBMIT_TOOLTIP = 'Submit for review';
+const SUBMITTING_TOOLTIP = 'Submission in progress';
+const SUBMITTED_TOOLTIP = 'Thread submitted';
+const PENDING_TOOLTIP = 'Check your email';
 
 class ChatEditor extends HTMLElement {
 	constructor() {
@@ -73,14 +84,14 @@ class ChatEditor extends HTMLElement {
 
 				/* Hide Preview arrow at tablet+ (900px+) since preview is always visible */
 				@media ${MQ.tablet} {
-					.editor-header icon-arrow[reversed] {
+					.editor-header icon-arrow[arrow-right] {
 						display: none;
 					}
 				}
 
 				/* Hide Threads arrow at desktop (1200px+) since all panes are visible */
 				@media ${MQ.desktop} {
-					.editor-header icon-arrow:not([reversed]) {
+					.editor-header icon-arrow:not([arrow-right]) {
 						display: none;
 					}
 				}
@@ -183,13 +194,12 @@ class ChatEditor extends HTMLElement {
 			<div class="wrapper">
 				<div class="editor-header">
 					<icon-arrow text="Drafts" action="show-threads"></icon-arrow>
-					<button id="export-json" data-tooltip="Export chat as JSON">
-						Export
-					</button>
 					<button id="clear-chat" data-tooltip="Clear all messages">
 						Clear
 					</button>
-
+					<button id="export-json" data-tooltip="Export chat as JSON">
+						Export
+					</button>
 					<button
 						id="submit-btn"
 						class="submit-btn"
@@ -200,7 +210,7 @@ class ChatEditor extends HTMLElement {
 					<icon-arrow
 						text="Preview"
 						action="show-preview"
-						reversed
+						arrow-right
 					></icon-arrow>
 				</div>
 				<div class="cards-list hide-scrollbar">
@@ -409,7 +419,7 @@ class ChatEditor extends HTMLElement {
 			modal.appendChild(titleEl);
 
 			const subtitleEl = document.createElement('div');
-			subtitleEl.style.cssText = `font: 13px system-ui; color: var(--color-ink); margin-bottom: 16px; line-height: 1.4;`;
+			subtitleEl.style.cssText = dialogBodyStyle;
 			subtitleEl.textContent =
 				"In order to submit you'll need to enter an email address.";
 			modal.appendChild(subtitleEl);
@@ -417,12 +427,7 @@ class ChatEditor extends HTMLElement {
 			const emailInput = document.createElement('input');
 			emailInput.type = 'email';
 			emailInput.placeholder = 'you@example.com';
-			emailInput.style.cssText = `
-				width: 100%; font: 14px system-ui; color: var(--color-ink);
-				padding: 10px 12px; border: 1px solid var(--color-edge);
-				border-radius: 8px; background: var(--color-header);
-				margin-bottom: 16px; box-sizing: border-box;
-			`;
+			emailInput.style.cssText = dialogInputStyle;
 			modal.appendChild(emailInput);
 
 			const noteEl = document.createElement('div');
@@ -468,7 +473,8 @@ class ChatEditor extends HTMLElement {
 					const btn = this.shadowRoot.getElementById('submit-btn');
 					if (btn) {
 						btn.disabled = true;
-						btn.textContent = 'Check your email...';
+						btn.textContent = PENDING_LABEL;
+						btn.setAttribute('data-tooltip', PENDING_TOOLTIP);
 					}
 
 					modal.innerHTML = html`
@@ -482,7 +488,7 @@ class ChatEditor extends HTMLElement {
 							complete your submission.
 						</div>
 						<div style="${dialogBodyStyle} margin-bottom: 16px;">
-							Email sent to: <b>${value}</b>
+							Email sent to: ${value}
 						</div>
 						<div style="${dialogBodyStyle}">
 							The link will expire in 30 minutes. If you don't receive this
@@ -550,7 +556,8 @@ class ChatEditor extends HTMLElement {
 
 		if (authState.isAuthenticated) {
 			btn.disabled = true;
-			btn.textContent = isResubmit ? 'Resubmitting...' : 'Submitting...';
+			btn.textContent = SUBMITTING_LABEL;
+			btn.setAttribute('data-tooltip', SUBMITTING_TOOLTIP);
 
 			try {
 				if (isResubmit) {
@@ -564,7 +571,8 @@ class ChatEditor extends HTMLElement {
 				}
 
 				store.markThreadSubmitted(currentThread.id);
-				btn.textContent = isResubmit ? 'Resubmitted' : 'Submitted';
+				btn.textContent = SUBMITTED_LABEL;
+				btn.setAttribute('data-tooltip', SUBMITTED_TOOLTIP);
 				await showDialog({
 					title: 'Submitted',
 					body: isResubmit
@@ -575,7 +583,8 @@ class ChatEditor extends HTMLElement {
 			} catch (error) {
 				alert('Failed to submit: ' + (error.message || 'Unknown error'));
 				btn.disabled = false;
-				btn.textContent = isResubmit ? 'Resubmit' : 'Submit';
+				btn.textContent = SUBMIT_LABEL;
+				btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
 			}
 		} else {
 			await this._showSubmitDialog();
@@ -604,7 +613,8 @@ class ChatEditor extends HTMLElement {
 		const btn = this.shadowRoot?.getElementById('submit-btn');
 		if (btn) {
 			btn.disabled = true;
-			btn.textContent = 'Submitting...';
+			btn.textContent = SUBMITTING_LABEL;
+			btn.setAttribute('data-tooltip', SUBMITTING_TOOLTIP);
 		}
 
 		let successCount = 0;
@@ -736,12 +746,15 @@ class ChatEditor extends HTMLElement {
 		const isSubmitted = store.isCurrentThreadSubmitted();
 		if (isSubmitted) {
 			btn.disabled = true;
-			btn.textContent = 'Submitted';
+			btn.textContent = SUBMITTED_LABEL;
+			btn.setAttribute('data-tooltip', SUBMITTED_TOOLTIP);
 		} else if (isPending) {
 			btn.disabled = true;
-			btn.textContent = 'Check your email...';
+			btn.textContent = PENDING_LABEL;
+			btn.setAttribute('data-tooltip', PENDING_TOOLTIP);
 		} else if (!btn.disabled) {
-			btn.textContent = isResubmit ? 'Resubmit' : 'Submit';
+			btn.textContent = SUBMIT_LABEL;
+			btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
 		}
 	}
 
@@ -782,9 +795,6 @@ class ChatEditor extends HTMLElement {
 		if (clearBtn) clearBtn.disabled = submitted;
 		if (submitBtn) {
 			submitBtn.disabled = submitted || pending;
-			if (submitted) submitBtn.textContent = 'Submitted';
-			else if (pending) submitBtn.textContent = 'Check your email...';
-			else submitBtn.textContent = 'Submit';
 		}
 
 		const cardsList = this.shadowRoot?.querySelector('.cards-list');

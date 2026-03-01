@@ -4,6 +4,7 @@ import { router } from './utils/router.js';
 import { authState } from './components/auth-state.js';
 import { apiClient } from './utils/api-client.js';
 import { config } from './utils/config.js';
+import { initIOSViewport } from './utils/ios-viewport.js';
 import {
 	getCurrentThreadId,
 	setCurrentThreadId,
@@ -41,6 +42,9 @@ function setLastActiveThreadId(threadId) {
 
 // Initialize the app
 async function init() {
+	// iOS virtual keyboard viewport workaround
+	initIOSViewport();
+
 	// Set document title from config
 	document.title = config.appName;
 

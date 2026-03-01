@@ -39,6 +39,18 @@
 const TOOLTIP_STYLE_TAG_ID = 'message-simulator-tooltip-styles';
 const TOOLTIP_LAYER_ID = 'message-simulator-tooltip-layer';
 
+// Suppress hover-triggered tooltips briefly after a touch interaction,
+// since iOS fires synthetic mouseenter after a tap.
+let _touchActive = false;
+let _touchTimer = null;
+window.addEventListener('pointerdown', (e) => {
+	if (e.pointerType === 'touch') {
+		_touchActive = true;
+		clearTimeout(_touchTimer);
+		_touchTimer = setTimeout(() => { _touchActive = false; }, 600);
+	}
+}, { passive: true, capture: true });
+
 const TOOLTIP_CSS_TEXT = /* css */ `
 	.${TOOLTIP_LAYER_ID} {
 		position: fixed;
@@ -311,11 +323,13 @@ export function initTooltips(root = document, hostElement = null) {
 	const tooltipElements = root.querySelectorAll('[data-tooltip]');
 	tooltipElements.forEach((element) => {
 		element.addEventListener('mouseenter', (e) => {
-			showTooltipForElement(e.currentTarget);
+			if (!_touchActive) showTooltipForElement(e.currentTarget);
 		});
 		element.addEventListener('mouseleave', () => hideTooltip());
 		element.addEventListener('focus', (e) => {
-			showTooltipForElement(e.currentTarget);
+			if (e.currentTarget.matches(':focus-visible')) {
+				showTooltipForElement(e.currentTarget);
+			}
 		});
 		element.addEventListener('blur', () => hideTooltip());
 	});

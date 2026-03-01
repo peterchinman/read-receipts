@@ -308,22 +308,23 @@ class ThreadListDisplay extends HTMLElement {
 							var(--preview-line-height) * var(--preview-lines)
 					);
 				}
+				
+				@media ${MQ.tablet} {
+  				.thread-row:focus-visible {
+  					outline: 2px solid var(--color-bubble-self);
+  					outline-offset: -2px;
+  				}
+  				.thread-row:hover {
+  					background: var(--color-menu);
+  				}
+  				.thread-row:active {
+  					background: var(--color-edge);
+  				}
+  				.thread-row.active {
+  					background: var(--color-bubble-other);
+  				}
+				}
 
-				.thread-row:focus-visible {
-					outline: 2px solid var(--color-bubble-self);
-					outline-offset: -2px;
-				}
-				.thread-row:hover {
-					background: var(--color-menu);
-				}
-				.thread-row:active {
-					background: var(--color-edge);
-				}
-				.thread-row.active {
-					@media ${MQ.tablet} {
-						background: var(--color-bubble-other);
-					}
-				}
 				:host([show-unread]) .thread-row {
 					grid-template-columns: 10px 48px 1fr;
 				}

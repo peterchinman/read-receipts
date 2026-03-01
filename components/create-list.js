@@ -8,6 +8,11 @@ import { copySvg } from './icons/copy-svg.js';
 import { trashSvg } from './icons/trash-svg.js';
 import './thread-list.js';
 import { router } from '../utils/router.js';
+import {
+	showDialog,
+	dialogCancelButtonStyle,
+	dialogDestructiveButtonStyle,
+} from '../utils/dialog.js';
 
 class ChatThreadList extends HTMLElement {
 	constructor() {
@@ -46,84 +51,7 @@ class ChatThreadList extends HTMLElement {
 				      height: 100%;
 				    }
 
-				/* Confirmation Modal */
-				.modal-overlay {
-					position: fixed;
-					top: 0;
-					left: 0;
-					width: 100%;
-					height: 100%;
-					background: rgba(0, 0, 0, 0.5);
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					z-index: 1000;
-					animation: fadeIn 0.2s ease;
-				}
-				@keyframes fadeIn {
-					from {
-						opacity: 0;
-					}
-					to {
-						opacity: 1;
-					}
-				}
-				.modal {
-					background: var(--color-page);
-					border-radius: 14px;
-					padding: 20px;
-					max-width: 320px;
-					width: 90%;
-					box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-					animation: slideUp 0.3s ease;
-				}
-				@keyframes slideUp {
-					from {
-						transform: translateY(20px);
-						opacity: 0;
-					}
-					to {
-						transform: translateY(0);
-						opacity: 1;
-					}
-				}
-				.modal-title {
-					font: 600 17px system-ui;
-					color: var(--color-ink);
-					margin-bottom: 8px;
-				}
-				.modal-message {
-					font: 13px system-ui;
-					color: var(--color-ink-subdued);
-					margin-bottom: 20px;
-					line-height: 1.4;
-				}
-				.modal-buttons {
-					display: flex;
-					gap: 8px;
-				}
-				.modal-button {
-					flex: 1;
-					padding: 11px 16px;
-					border: none;
-					border-radius: 8px;
-					font: 600 14px system-ui;
-					cursor: pointer;
-					transition: opacity 0.15s;
-				}
-				.modal-button:active {
-					opacity: 0.7;
-				}
-				.modal-button.cancel {
-					background: var(--color-edge);
-					color: var(--color-ink);
-				}
-				.modal-button.confirm {
-					background: #ff3b30;
-					color: white;
-				}
-
-				${FLOATING_MENU_CSS}
+	${FLOATING_MENU_CSS}
 			</style>
 			<thread-list
 				header-title="Drafts"
@@ -354,13 +282,6 @@ class ChatThreadList extends HTMLElement {
 		return `${month}/${day}`;
 	}
 
-	_escapeHtml(text) {
-		if (!text) return '';
-		const div = document.createElement('div');
-		div.textContent = text;
-		return div.innerHTML;
-	}
-
 	_onCopyThread(threadId) {
 		try {
 			// Set flag to prevent marking old thread as active during duplication
@@ -393,63 +314,28 @@ class ChatThreadList extends HTMLElement {
 		}
 	}
 
-	_onDeleteThread(threadId) {
-		this._showDeleteConfirmation(threadId);
-	}
-
-	_showDeleteConfirmation(threadId) {
+	async _onDeleteThread(threadId) {
 		const thread = store.listThreads().find((t) => t.id === threadId);
 		const displayName = thread ? store.getThreadDisplayName(thread) : 'this';
 
-		const modal = document.createElement('div');
-		modal.className = 'modal-overlay';
-		modal.innerHTML = html`
-			<div class="modal">
-				<div class="modal-title">Delete Thread</div>
-				<div class="modal-message">
-					Are you sure you want to delete ${this._escapeHtml(displayName)}? This
-					action cannot be undone.
-				</div>
-				<div class="modal-buttons">
-					<button class="modal-button cancel">Cancel</button>
-					<button class="modal-button confirm">Delete</button>
-				</div>
-			</div>
-		`;
+		const result = await showDialog({
+			title: 'Delete Thread',
+			body: `Are you sure you want to delete "${displayName}"? This action cannot be undone.`,
+			buttons: [
+				{ label: 'Cancel', value: null, style: dialogCancelButtonStyle },
+				{ label: 'Delete', value: 'delete', style: dialogDestructiveButtonStyle },
+			],
+		});
 
-		const cancelBtn = modal.querySelector('.modal-button.cancel');
-		const confirmBtn = modal.querySelector('.modal-button.confirm');
-
-		const closeModal = () => modal.remove();
-
-		cancelBtn.addEventListener('click', () => {
-			closeModal();
+		if (result !== 'delete') {
 			const wrapper = this._display?.shadowRoot?.querySelector(
 				`.thread-row-wrapper[data-thread-id="${threadId}"]`,
 			);
-			if (wrapper) {
-				this._swipe.deactivateRow(wrapper);
-			}
-		});
+			if (wrapper) this._swipe.deactivateRow(wrapper);
+			return;
+		}
 
-		confirmBtn.addEventListener('click', () => {
-			closeModal();
-			this._deleteThread(threadId);
-		});
-
-		modal.addEventListener('click', (e) => {
-			if (e.target === modal) {
-				closeModal();
-				const wrapper = this._display?.shadowRoot?.querySelector(
-					`.thread-row-wrapper[data-thread-id="${threadId}"]`,
-				);
-				if (wrapper) {
-					this._swipe.deactivateRow(wrapper);
-				}
-			}
-		});
-
-		this.shadowRoot.appendChild(modal);
+		this._deleteThread(threadId);
 	}
 
 	_onMenuBtnClick() {

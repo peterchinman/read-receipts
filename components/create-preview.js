@@ -1,10 +1,7 @@
 import { store } from './store.js';
 import './thread-view.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
-
-const isIOS =
-	/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+import { isIOS } from '../utils/ios-viewport.js';
 
 class ChatPreview extends HTMLElement {
 	constructor() {
@@ -53,23 +50,10 @@ class ChatPreview extends HTMLElement {
 		this.$.importFile?.addEventListener('change', this._onImportFileChange);
 		this._display?.shadowRoot?.addEventListener('click', this._onShadowClick);
 
-		// iOS viewport workarounds
-		if (isIOS && window.visualViewport && this.$.input) {
-			let previousViewportHeight = visualViewport.height;
-			visualViewport.addEventListener('resize', () => {
-				const newViewportHeight = window.visualViewport.height;
-				if (newViewportHeight < previousViewportHeight) {
-					const vh = newViewportHeight * 0.01;
-					document.documentElement.style.setProperty('--vh', `${vh}px`);
-					setTimeout(() => {
-						window.scrollTo(0, 0);
-						this._scrollToBottom();
-					});
-				} else {
-					document.documentElement.style.setProperty('--vh', '1dvh');
-				}
-				previousViewportHeight = newViewportHeight;
-			});
+		// iOS: scroll to bottom when virtual keyboard appears
+		if (isIOS && this.$.input) {
+			this._onIOSKeyboardShown = () => this._scrollToBottom();
+			document.addEventListener('ios-viewport:keyboard-shown', this._onIOSKeyboardShown);
 			this.$.input.addEventListener('blur', () => {
 				document.documentElement.style.setProperty('--vh', '1dvh');
 			});
@@ -105,6 +89,9 @@ class ChatPreview extends HTMLElement {
 			'editor:focus-message',
 			this._onEditorFocusMessage,
 		);
+		if (this._onIOSKeyboardShown) {
+			document.removeEventListener('ios-viewport:keyboard-shown', this._onIOSKeyboardShown);
+		}
 	}
 
 	#syncReadOnlyState() {

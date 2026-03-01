@@ -13,7 +13,7 @@ const ADMIN_STYLE_ID = 'admin-dashboard-styles';
 if (!document.getElementById(ADMIN_STYLE_ID)) {
 	const style = document.createElement('style');
 	style.id = ADMIN_STYLE_ID;
-	style.textContent = `
+	style.textContent = css`
 		/* Admin list panel */
 		.admin-tabs {
 			display: flex;

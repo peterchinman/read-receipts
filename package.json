@@ -10,7 +10,7 @@
 		"format:check": "prettier --check \"**/*.{js,html,css}\"",
 		"setup": "npm install && cd backend && composer install && test -f .env || cp .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate:fresh --seed",
 		"dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-		"dev:frontend": "npx live-server --port=3000 --entry-file=index.html --ignorePattern=backend/",
+		"dev:frontend": "npx live-server --port=3000 --host=localhost --entry-file=index.html --ignorePattern=backend/",
 		"dev:backend": "cd backend && php artisan serve",
 		"db:seed": "cd backend && php artisan migrate:fresh --seed"
 	},

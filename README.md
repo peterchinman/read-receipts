@@ -48,6 +48,17 @@ tail -f backend/storage/logs/laravel.log
 
 When you request a magic link, the verification URL will appear in this log.
 
+#### Previewing Email Templates
+
+While the backend is running, you can preview each email template in the browser at:
+
+- `http://localhost:8000/preview/mail/magic-link`
+- `http://localhost:8000/preview/mail/submission-accepted`
+- `http://localhost:8000/preview/mail/submission-changes-requested`
+- `http://localhost:8000/preview/mail/submission-rejected`
+
+These routes render each template with fake data and are defined in `backend/routes/web.php`.
+
 ### Database
 
 SQLite database is at `backend/database/database.sqlite`.

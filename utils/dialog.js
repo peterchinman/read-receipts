@@ -17,7 +17,7 @@ const overlayStyles = {
 	top: '0',
 	left: '0',
 	width: '100%',
-	height: '100%',
+	height: 'calc(100 * var(--vh))',
 	background: 'rgba(0, 0, 0, 0.5)',
 	display: 'flex',
 	alignItems: 'center',
@@ -50,14 +50,13 @@ const keyframeCSS = `
 // ── style helpers (exported for re-use in custom dialog content) ─────
 
 export const dialogTitleStyle = `
-	font: 600 17px system-ui;
+	font: 600 1.2rem system-ui;
 	color: var(--color-ink);
 	margin-bottom: 8px;
 `;
 
 export const dialogBodyStyle = `
-	font: 13px system-ui;
-	color: var(--color-ink-subdued);
+	color: var(--color-ink);
 	margin-bottom: 20px;
 	line-height: 1.4;
 `;
@@ -72,7 +71,7 @@ const buttonBase = `
 	padding: 11px 16px;
 	border: none;
 	border-radius: 8px;
-	font: 600 14px system-ui;
+	font: 600 1rem system-ui;
 	cursor: pointer;
 `;
 
@@ -84,6 +83,23 @@ export const dialogCancelButtonStyle = `${buttonBase}
 export const dialogConfirmButtonStyle = `${buttonBase}
 	background: var(--color-bubble-self);
 	color: white;
+`;
+
+export const dialogDestructiveButtonStyle = `${buttonBase}
+	background: #ff3b30;
+	color: white;
+`;
+
+export const dialogInputStyle = `
+	width: 100%;
+	font: 14px system-ui;
+	color: var(--color-ink);
+	padding: 10px 12px;
+	border: 1px solid var(--color-edge);
+	border-radius: 8px;
+	background: var(--color-header);
+	margin-bottom: 16px;
+	box-sizing: border-box;
 `;
 
 // ── createDialog ─────────────────────────────────────────────────────
@@ -137,9 +153,12 @@ export function showDialog({ title, body, buttons } = {}) {
 	];
 
 	return new Promise((resolve) => {
-		const { modal, close } = createDialog({
-			closeOnOverlayClick: buttons.length > 1,
-		});
+		const closeOnOverlayClick = buttons.length > 1;
+		const { overlay, modal, close } = createDialog({ closeOnOverlayClick });
+
+		if (closeOnOverlayClick) {
+			overlay.addEventListener('click', () => resolve(null), { once: true });
+		}
 
 		// Title
 		const titleEl = document.createElement('div');
