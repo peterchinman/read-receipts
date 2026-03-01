@@ -1,27 +1,42 @@
 ## Todo
 
-BEFORE RELEASE
+### BEFORE RELEASE
 
 - [ ] Improve Submission flow Dialogs
-- [ ] improve submission email styling
-- [ ] Idea: Submit button for Create mode lives in the bottom bar on desktop??
+  - [ ] More informative, make it clear what the steps are
+- [ ] Submission email styling
+- [ ] Think thru where submit button lives
+- [ ] Think thru how being "logged in" works with no top bar
+- [ ] Think thru what info we'll want to collect and display for each Author?
+  - [ ] where does this live in the database?
+  - [ ] when do I collect it? On piece approval?
+- [ ] Fully test admin approval flows.
+- [ ] Figure out how I want to handle date/time for message schema / thread editor.
+  - [ ] Menu where uses pick "Time since last message"?
+    - [ ] With options: 5 minute, 1 hr, 24. Corresponding to short margin, big margin, day break
+- [ ] Display date in Preview, new "system message" class type
+  - [ ] Should we allow Users to write to this type as "Stage Directions"??
 
-CAN DO AFTER RELEASE:
+### DEPOLOYMENT TASKS
 
+- [ ] Digital Ocean Droplet: new one, or use my existing?
+- [ ] Apache or Nginx?
+- [ ] how to set up .env
 - [ ] how to store who is admin, how to add new admins?
-- [ ] Additional text type, for "system message"
-- [ ] Info page for each piece author
+- [ ] set up resend.com for email (generous free tier)
+
+### TODO AFTER RELEASE:
+
+- [ ] Set up info page for each piece author
 - [ ] I want to be able to upload new threads from Admin. Not just approve submitted Threads.
+  - [ ] Also edit existing thrads.
 - [ ] User avatars are wrong in thread-list?
 
+### Future Features:
 
----
-
-We need to rethink how Changes Requested work. Right now, the admin sets a Thread to Changes Requested, which sends an email to the Author with a link to access that thread from the server, which adds it to the Author's local storage.
-
-Issues:
-1. The user needs to be already logged in for this link to work. We don't have a formal way to "log in", only magic links that are sent whenever the user tries to do something requiring auth, e.g. submitting a thread.
-2. Each time the user clicks that link, the thread gets downloaded and added to their local storage. It should only be able to be uploaded once.
-3. The user has no indication that a thread in their local thread list is one that has had Changes Requested. We show the notes for changes requested in the edit panel, which is good, but we should also show a flag in the thread-list.
-
-How can we address this first issue? What if the link we sent the user allowed them to download the piece, as long as they had the link?
+- [ ] Group Chats
+- [ ] Emoji Reactions
+- [ ] Green Bubble
+- [ ] Photos
+  - [ ] But do I want to host photos?
+- [ ] "Animate" messages arriving.
