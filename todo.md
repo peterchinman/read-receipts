@@ -40,3 +40,6 @@
 - [ ] Photos
   - [ ] But do I want to host photos?
 - [ ] "Animate" messages arriving.
+- [ ] Set preview input box placeholder text
+- [ ] Device top row: time, signal, wifi, battery
+- [ ] Message Statuses: delivered, not delivered, read

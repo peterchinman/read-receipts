@@ -500,7 +500,7 @@ class ChatThreadList extends HTMLElement {
 					data-action="copy"
 					data-thread-id="${threadId}"
 				>
-					${copySvg()} Copy
+					${copySvg()} Duplicate
 				</button>
 				<div class="menu-separator"></div>
 				<button

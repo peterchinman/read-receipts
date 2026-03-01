@@ -602,7 +602,7 @@ class ThreadListDisplay extends HTMLElement {
 				data-thread-id="${threadId}"
 			>
 				${copySvg()}
-				<span>Copy</span>
+				<span>Duplicate</span>
 			</button>
 			<button
 				class="action-button delete"

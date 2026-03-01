@@ -1,4 +1,4 @@
-export const SWIPE_CSS = `
+export const SWIPE_CSS = `	
 			/* Swipe gesture styles */
 			.thread-row-wrapper {
 				position: relative;
@@ -22,6 +22,7 @@ export const SWIPE_CSS = `
 			.action-button {
 				flex: 1;
 				display: flex;
+				font-size: var(--font-size-small); 
 				flex-direction: column;
 				align-items: center;
 				justify-content: center;
