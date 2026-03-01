@@ -546,14 +546,31 @@ class ChatEditor extends HTMLElement {
 		const payload = {
 			name: currentThread.name,
 			participants: currentThread.participants || [],
-			messages: currentThread.messages.map((m) => ({
-				sender: m.sender,
-				message: m.message,
-				timestamp: m.timestamp,
-			})),
+			messages: currentThread.messages
+				.filter((m) => m.message?.trim() || m.images?.length)
+				.map((m) => ({
+					sender: m.sender,
+					message: m.message,
+					timestamp: m.timestamp,
+				})),
 		};
 
 		if (authState.isAuthenticated) {
+			const email = authState.user?.email;
+			const confirm = await showDialog({
+				title: 'Confirm Submission',
+				body: `The current email address we have for you is: ${email}. If that is correct, please submit. If not, you can edit it.`,
+				buttons: [
+					{ label: 'Edit Email', value: 'edit-email', style: dialogCancelButtonStyle },
+					{ label: 'Submit', value: 'submit', style: dialogConfirmButtonStyle },
+				],
+			});
+			if (confirm === 'edit-email') {
+				await this._showSubmitDialog();
+				return;
+			}
+			if (confirm !== 'submit') return;
+
 			btn.disabled = true;
 			btn.textContent = SUBMITTING_LABEL;
 			btn.setAttribute('data-tooltip', SUBMITTING_TOOLTIP);
@@ -615,11 +632,13 @@ class ChatEditor extends HTMLElement {
 			const payload = {
 				name: thread.name,
 				participants: thread.participants || [],
-				messages: thread.messages.map((m) => ({
-					sender: m.sender,
-					message: m.message,
-					timestamp: m.timestamp,
-				})),
+				messages: thread.messages
+					.filter((m) => m.message?.trim() || m.images?.length)
+					.map((m) => ({
+						sender: m.sender,
+						message: m.message,
+						timestamp: m.timestamp,
+					})),
 			};
 			try {
 				const result = await apiClient.submitThread(payload);

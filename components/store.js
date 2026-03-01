@@ -122,7 +122,12 @@ class ThreadStore extends EventTarget {
 		try {
 			const payload = {
 				version: CURRENT_SCHEMA_VERSION,
-				threads: this.#threads,
+				threads: this.#threads.map((thread) => ({
+					...thread,
+					messages: thread.messages.filter(
+						(m) => m.message?.trim() || m.images?.length,
+					),
+				})),
 			};
 			localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(payload));
 		} catch (err) {
