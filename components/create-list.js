@@ -254,9 +254,11 @@ class ChatThreadList extends HTMLElement {
 		if (!thread.messages || thread.messages.length === 0) {
 			return 'No messages yet';
 		}
-		const lastMsg = thread.messages[thread.messages.length - 1];
-		if (lastMsg.message) return lastMsg.message;
-		if (lastMsg.images && lastMsg.images.length > 0) return '(Image)';
+		for (let i = thread.messages.length - 1; i >= 0; i--) {
+			const msg = thread.messages[i];
+			if (msg.message?.trim()) return msg.message;
+			if (msg.images?.length) return '(Image)';
+		}
 		return 'No messages yet';
 	}
 

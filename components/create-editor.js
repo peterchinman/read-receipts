@@ -555,6 +555,14 @@ class ChatEditor extends HTMLElement {
 				})),
 		};
 
+		if (payload.messages.length === 0) {
+			await showDialog({
+				title: 'Nothing to submit',
+				body: 'Please add at least one message before submitting.',
+			});
+			return;
+		}
+
 		if (authState.isAuthenticated) {
 			const email = authState.user?.email;
 			const confirm = await showDialog({
