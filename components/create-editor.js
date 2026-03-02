@@ -563,6 +563,15 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
+		const recipientName = currentThread.participants?.[0]?.full_name?.trim();
+		if (!recipientName) {
+			await showDialog({
+				title: 'Recipient required',
+				body: 'Please add a recipient name before submitting.',
+			});
+			return;
+		}
+
 		if (authState.isAuthenticated) {
 			const email = authState.user?.email;
 			const confirm = await showDialog({

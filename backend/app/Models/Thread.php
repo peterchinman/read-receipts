@@ -64,6 +64,12 @@ class Thread extends Model
         ];
     }
 
+    public function displayName(): string
+    {
+        return $this->name
+            ?: (($this->participants[0]['full_name'] ?? null) ?: 'Untitled');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

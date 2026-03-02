@@ -762,7 +762,7 @@ class ThreadDisplay extends HTMLElement {
 						bottom: var(--single-line-message-height);
 						left: 0;
 						min-width: max-content;
-						color: black;
+						color: var(--color-ink);
 
 						padding-inline: 0.3rem;
 						padding-block: 0.3rem;
@@ -777,6 +777,7 @@ class ThreadDisplay extends HTMLElement {
 							padding-inline: 0.6rem;
 							padding-block: 0.3rem;
 							border-radius: 0.3rem;
+							list-style-type: none;
 						}
 
 						.options-item:hover {

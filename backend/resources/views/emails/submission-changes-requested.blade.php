@@ -11,7 +11,7 @@
 
         <p>Thank you for submitting "<strong>{{ $threadName }}</strong>" to {{ $appName }}.</p>
 
-        <p>We'd love to publish your piece, but we have a few suggestions first:</p>
+        <p>I am interested in publishing your piece, but I have a few changes I'd like to see first.</p>
 
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
             <strong>Editor's notes:</strong>
@@ -20,12 +20,12 @@
 
         <p>Please review the notes above and edit your piece. Once you're happy with the changes, resubmit it for review.</p>
 
-        <a href="{!! $editUrl !!}" style="display: inline-block; background-color: #0d84ff; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 10px 0;">Edit Your Piece</a>
+        <p>Click the link below to edit your piece.</p>
 
-        <div style="font-size: 14px; color: #333;">
-            <p>Thank you for sharing your work with us.</p>
-            <p>&mdash; The {{ $appName }} Team</p>
-        </div>
+        <a href="{{ $editUrl }}" style="display: inline-block; background-color: #0d84ff; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 10px 0;">Edit Your Piece</a>
+
+        <p>Or copy and paste this link into a browser:</p>
+        <p style="word-break: break-all;">{!! $editUrl !!}</p>
     </div>
 </body>
 </html>

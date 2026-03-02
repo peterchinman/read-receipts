@@ -140,6 +140,7 @@ function renderAdminDashboard(container) {
 		router.navigate('/');
 		return;
 	}
+	container.classList.add('app-container--admin');
 	container.innerHTML = '<admin-dashboard></admin-dashboard>';
 	setupModeSwitching(container);
 }
@@ -192,6 +193,7 @@ async function handleEditParam(editId, editToken) {
 		const thread = store.importFromBackend(data);
 		if (thread) {
 			replaceCurrentThreadId(thread.id);
+			store.loadThread(thread.id);
 			setLastActiveThreadId(thread.id);
 		}
 		// Clean ?edit= and ?token= from URL

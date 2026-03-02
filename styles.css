@@ -295,6 +295,33 @@ header-nav {
 		justify-self: center;
 	}
 
+	/* ===== Admin View: Three columns ===== */
+	.app-container--admin {
+		place-items: stretch;
+		place-content: stretch;
+		grid-template-columns: 1fr 1fr 1fr;
+	}
+
+	.app-container--admin .pane--threads {
+		grid-column: 1;
+		grid-row: 1;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.app-container--admin .pane--editor {
+		grid-column: 2;
+		grid-row: 1;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.app-container--admin .pane--preview {
+		grid-column: 3;
+		grid-row: 1;
+		display: block;
+	}
+
 	/* ===== Create View: Two columns (tablet) ===== */
 	.app-container--create {
 		place-items: stretch;

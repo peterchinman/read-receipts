@@ -2,10 +2,11 @@
 // Three-panel submission review queue using app-container grid layout
 // Uses light DOM so .pane sections participate in the parent grid
 
-import { html } from '../utils/template.js';
+import { html, css } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { authState } from './auth-state.js';
 import { router } from '../utils/router.js';
+import { getThreadDisplayName } from '../utils/thread.js';
 import './thread-view.js';
 
 // Inject admin-specific styles into the document once
@@ -496,7 +497,7 @@ class AdminDashboard extends HTMLElement {
 				data-id="${sub.id}"
 			>
 				<div class="admin-submission-item-title">
-					<span>${sub.name || sub.recipient_name || 'Untitled'}</span>
+					<span>${getThreadDisplayName(sub)}</span>
 					${sub.is_resubmission
 						? html`<span class="admin-badge-resubmitted">Resubmitted</span>`
 						: ''}
@@ -517,7 +518,7 @@ class AdminDashboard extends HTMLElement {
 
 		return html`
 			<div class="admin-action-content">
-				<h2 class="admin-action-header">${sub.name || sub.recipient_name || 'Untitled'}</h2>
+				<h2 class="admin-action-header">${getThreadDisplayName(sub)}</h2>
 				<div class="admin-action-meta">
 					by ${sub.author?.name || 'Anonymous'}<br />
 					${sub.author?.email || ''}
@@ -868,7 +869,7 @@ class AdminDashboard extends HTMLElement {
 
 		if (
 			!confirm(
-				`Delete "${this.#selectedSubmission.name || 'Untitled'}"? This cannot be undone.`,
+				`Delete "${getThreadDisplayName(this.#selectedSubmission)}"? This cannot be undone.`,
 			)
 		) {
 			return;

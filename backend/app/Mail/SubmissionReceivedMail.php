@@ -29,7 +29,7 @@ class SubmissionReceivedMail extends Mailable
         return new Content(
             view: 'emails.submission-received',
             with: [
-                'threadName' => $this->thread->name ?? 'Untitled',
+                'threadName' => $this->thread->displayName(),
                 'appName' => config('app.name'),
             ],
         );

@@ -5,6 +5,7 @@
 - [ ] Improve Submission flow Dialogs
   - [ ] More informative, make it clear what the steps are
 - [ ] Submission email styling
+- [ ] we should have an email template for resubmissions.
 - [ ] Think thru where submit button lives
 - [ ] Think thru how being "logged in" works with no top bar
 - [ ] Think thru what info we'll want to collect and display for each Author?

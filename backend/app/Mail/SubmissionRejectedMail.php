@@ -30,7 +30,7 @@ class SubmissionRejectedMail extends Mailable
         return new Content(
             view: 'emails.submission-rejected',
             with: [
-                'threadName' => $this->thread->name ?? 'Untitled',
+                'threadName' => $this->thread->displayName(),
                 'notes' => $this->notes,
                 'createUrl' => config('app.frontend_url') . '/create',
                 'appName' => config('app.name'),

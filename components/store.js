@@ -1,4 +1,5 @@
 // ThreadStore: manages multiple message threads with persistence
+import { getThreadDisplayName } from '../utils/thread.js';
 const THREADS_STORAGE_KEY = 'message-simulator:threads';
 const CURRENT_SCHEMA_VERSION = 2;
 
@@ -297,8 +298,7 @@ class ThreadStore extends EventTarget {
 	}
 
 	getThreadDisplayName(thread) {
-		if (!thread) return '';
-		return thread.name || thread.participants?.[0]?.full_name || 'Unknown';
+		return getThreadDisplayName(thread);
 	}
 
 	// ===== Message Methods (operate on current thread) =====
@@ -568,8 +568,7 @@ class ThreadStore extends EventTarget {
 
 		thread.updatedAt = new Date().toISOString();
 
-		// Make active and save
-		this.loadThread(thread.id);
+		// Save (caller is responsible for loading/activating the thread)
 		this.#scheduleSave();
 		this.#emitChange('import');
 

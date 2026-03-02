@@ -14,7 +14,7 @@
         <a href="{{ $url }}" style="display: inline-block; background-color: #0d84ff; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 10px 0;">Submit</a>
 
         <p>Or copy and paste this link into a browser:</p>
-        <p style="word-break: break-all;">{{ $url }}</p>
+        <p style="word-break: break-all;">{!! $url !!}</p>
 
         <p><strong>IMPORTANT NOTE:</strong> your drafts are only stored locally, by your browser. So, you'll need to open this link in the same browser you used to compose the draft.</p>
         

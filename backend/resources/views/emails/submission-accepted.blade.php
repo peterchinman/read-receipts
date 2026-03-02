@@ -17,7 +17,6 @@
 
         <div style="font-size: 14px; color: #333;">
             <p>Thank you for sharing your work with us.</p>
-            <p>— The {{ $appName }} Team</p>
         </div>
     </div>
 </body>

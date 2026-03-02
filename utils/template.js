@@ -8,3 +8,5 @@ export function html(strings, ...values) {
 	}
 	return result;
 }
+
+export { html as css };

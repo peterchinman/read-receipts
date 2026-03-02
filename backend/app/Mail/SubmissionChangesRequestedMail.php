@@ -30,7 +30,7 @@ class SubmissionChangesRequestedMail extends Mailable
         return new Content(
             view: 'emails.submission-changes-requested',
             with: [
-                'threadName' => $this->thread->name ?? 'Untitled',
+                'threadName' => $this->thread->displayName(),
                 'notes' => $this->notes,
                 'editUrl' => config('app.frontend_url') . '/create?edit=' . $this->thread->id . '&token=' . $this->thread->edit_token,
                 'appName' => config('app.name'),
