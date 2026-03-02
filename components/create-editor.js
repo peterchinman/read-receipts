@@ -572,21 +572,23 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
-		if (authState.isAuthenticated) {
-			const email = authState.user?.email;
-			const confirm = await showDialog({
-				title: 'Confirm Submission',
-				body: `The current email address we have for you is: ${email}. If that is correct, please submit. If not, you can edit it.`,
-				buttons: [
-					{ label: 'Edit Email', value: 'edit-email', style: dialogCancelButtonStyle },
-					{ label: 'Submit', value: 'submit', style: dialogConfirmButtonStyle },
-				],
-			});
-			if (confirm === 'edit-email') {
-				await this._showSubmitDialog();
-				return;
+		if (authState.isAuthenticated || isResubmit) {
+			if (!isResubmit) {
+				const email = authState.user?.email;
+				const confirm = await showDialog({
+					title: 'Confirm Submission',
+					body: `The current email address we have for you is: ${email}. If that is correct, please submit. If not, you can edit it.`,
+					buttons: [
+						{ label: 'Edit Email', value: 'edit-email', style: dialogCancelButtonStyle },
+						{ label: 'Submit', value: 'submit', style: dialogConfirmButtonStyle },
+					],
+				});
+				if (confirm === 'edit-email') {
+					await this._showSubmitDialog();
+					return;
+				}
+				if (confirm !== 'submit') return;
 			}
-			if (confirm !== 'submit') return;
 
 			btn.disabled = true;
 			btn.textContent = SUBMITTING_LABEL;
@@ -594,8 +596,12 @@ class ChatEditor extends HTMLElement {
 
 			try {
 				if (isResubmit) {
-					await apiClient.resubmitThread(currentThread.backendId, payload);
+					await apiClient.resubmitThread(currentThread.backendId, {
+						...payload,
+						...(currentThread.editToken && { edit_token: currentThread.editToken }),
+					});
 					delete currentThread.adminNotes;
+					delete currentThread.editToken;
 					store.save();
 					this.#syncAdminNotes(currentThread);
 				} else {

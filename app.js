@@ -192,6 +192,10 @@ async function handleEditParam(editId, editToken) {
 		}
 		const thread = store.importFromBackend(data);
 		if (thread) {
+			thread.editToken = editToken;
+			// importFromBackend only schedules a debounced save; flush synchronously
+			// here so editToken is persisted before the URL params are removed.
+			store.save();
 			replaceCurrentThreadId(thread.id);
 			store.loadThread(thread.id);
 			setLastActiveThreadId(thread.id);

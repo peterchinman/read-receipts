@@ -11,9 +11,11 @@
 
         <p>Your submission "<strong>{{ $threadName }}</strong>" has been accepted for publication!</p>
 
-        <p>Your piece will be published on our site shortly. We'll send you another email once it's live.</p>
+        <p>I need a few more details before we can publish.</p>
+       
+        <p> Click the button below to provide your payment details and any author info that you would like displayed with the piece.</p>
 
-        <a href="{{ $viewUrl }}" style="display: inline-block; background-color: #0d84ff; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 10px 0;">View Your Piece</a>
+        <p>After I process the payment, your piece will be published on the site shortly. I'll send you another email once it's live.</p>
 
         <div style="font-size: 14px; color: #333;">
             <p>Thank you for sharing your work with us.</p>

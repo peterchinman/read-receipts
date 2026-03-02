@@ -473,11 +473,11 @@ class AdminDashboard extends HTMLElement {
 							: null;
 					display.setRecipient({
 						name:
-							snapshot?.recipient_name ??
-							this.#selectedSubmission.recipient_name,
+							snapshot?.participants?.[0]?.full_name ??
+							this.#selectedSubmission.participants?.[0]?.full_name,
 						location:
-							snapshot?.recipient_location ??
-							this.#selectedSubmission.recipient_location,
+							snapshot?.participants?.[0]?.location ??
+							this.#selectedSubmission.participants?.[0]?.location,
 					});
 					display.setMessages(
 						snapshot?.messages ?? this.#selectedSubmission.messages,

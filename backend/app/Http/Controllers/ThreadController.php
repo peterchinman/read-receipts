@@ -79,7 +79,13 @@ class ThreadController extends Controller
 
     public function resubmit(Request $request, Thread $thread)
     {
-        if ($thread->user_id !== $request->user()->id) {
+        $editToken = $request->input('edit_token');
+
+        if ($editToken) {
+            if (!$thread->edit_token || !hash_equals($thread->edit_token, $editToken)) {
+                return response()->json(['error' => 'Not found'], 404);
+            }
+        } elseif ($request->user()?->id !== $thread->user_id) {
             return response()->json(['error' => 'Not found'], 404);
         }
 
