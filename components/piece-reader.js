@@ -102,7 +102,6 @@ class PieceView extends HTMLElement {
 					location: this.#piece.participants?.[0]?.location || '',
 				});
 				display.setMessages(this.#piece.messages);
-				display.scrollToBottom();
 			}
 		}
 	}
