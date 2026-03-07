@@ -417,6 +417,15 @@ class ThreadListDisplay extends HTMLElement {
 					white-space: nowrap;
 					flex-shrink: 0;
 				}
+				.info-needed-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-bubble-self);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
 				.thread-preview {
 					font-size: var(--preview-font-size);
 					font-family: system-ui;
@@ -554,10 +563,11 @@ class ThreadListDisplay extends HTMLElement {
 		const submitted = thread.submitted || false;
 		const pending = thread.pending || false;
 		const changesRequested = thread.changesRequested || false;
+		const infoNeeded = thread.infoNeeded || false;
 
 		row.setAttribute(
 			'aria-label',
-			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : pending ? ', pending submission' : changesRequested ? ', edits requested' : ''}`,
+			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : pending ? ', pending submission' : changesRequested ? ', edits requested' : infoNeeded ? ', info needed' : ''}`,
 		);
 
 		const badgeHtml = submitted
@@ -566,7 +576,9 @@ class ThreadListDisplay extends HTMLElement {
 				? '<span class="pending-badge">Pending</span>'
 				: changesRequested
 					? '<span class="changes-requested-badge">Edits Req\'d</span>'
-					: '';
+					: infoNeeded
+						? '<span class="info-needed-badge">Info Needed</span>'
+						: '';
 
 		const unread = thread.unread ?? false;
 

@@ -1146,6 +1146,9 @@ class ChatEditor extends HTMLElement {
 		if (threadInfoEditor) threadInfoEditor.style.display = 'none';
 		if (recipientInfoEditor) recipientInfoEditor.style.display = 'none';
 
+		// Ensure cards-list readonly class is cleared (may be set from a previously submitted thread)
+		this.shadowRoot?.querySelector('.cards-list')?.classList.remove('readonly');
+
 		// Disable thread name and recipient inputs
 		if (threadNameInput) threadNameInput.disabled = true;
 		if (recipientNameInput) recipientNameInput.disabled = true;

@@ -25,6 +25,16 @@ class AuthorInfoController extends Controller
 
         $thread->load('authorInfo');
 
+        $authorInfo = $thread->authorInfo;
+
+        // If this thread has no author info yet, look for info from a previous piece by the same user
+        if (!$authorInfo) {
+            $authorInfo = AuthorInfo::whereHas('thread', fn($q) => $q->where('user_id', $thread->user_id))
+                ->where('thread_id', '!=', $thread->id)
+                ->latest()
+                ->first();
+        }
+
         return response()->json([
             'id'           => $thread->id,
             'name'         => $thread->name,
@@ -32,12 +42,12 @@ class AuthorInfoController extends Controller
             'messages'     => $thread->messages,
             'status'       => $thread->status,
             'events'       => [],
-            'existing'     => $thread->authorInfo ? [
-                'payment_platform' => $thread->authorInfo->payment_platform,
-                'payment_username' => $thread->authorInfo->payment_username,
-                'name'             => $thread->authorInfo->name,
-                'link'             => $thread->authorInfo->link,
-                'bio'              => $thread->authorInfo->bio,
+            'existing'     => $authorInfo ? [
+                'payment_platform' => $authorInfo->payment_platform,
+                'payment_username' => $authorInfo->payment_username,
+                'name'             => $authorInfo->name,
+                'link'             => $authorInfo->link,
+                'bio'              => $authorInfo->bio,
             ] : null,
         ]);
     }

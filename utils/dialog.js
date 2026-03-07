@@ -116,20 +116,25 @@ const drawerKeyframeCSS = `
 `;
 
 /**
- * Creates a bottom-sheet drawer overlay and appends it to the document body.
+ * Creates a bottom-sheet drawer overlay and appends it to the document body
+ * (or an optional container for scoped placement).
  *
- * @param {Object}  [options]
- * @param {boolean} [options.closeOnOverlayClick=true]
+ * @param {Object}           [options]
+ * @param {boolean}          [options.closeOnOverlayClick=true]
+ * @param {Node|ShadowRoot}  [options.container]  Append to this node instead of document.body.
+ *                                                 When provided the overlay uses position:absolute.
  * @returns {{ overlay: HTMLElement, drawer: HTMLElement, close: () => void }}
  */
-export function createDrawer({ closeOnOverlayClick = true } = {}) {
+export function createDrawer({ closeOnOverlayClick = true, container } = {}) {
+	const scoped = !!container;
+
 	const overlay = document.createElement('div');
 	Object.assign(overlay.style, {
-		position: 'fixed',
+		position: scoped ? 'absolute' : 'fixed',
 		top: '0',
 		left: '0',
 		width: '100%',
-		height: 'calc(100 * var(--vh, 1dvh))',
+		height: scoped ? '100%' : 'calc(100 * var(--vh, 1dvh))',
 		background: 'var(--color-dialog-overlay, hsl(0 0 0 / 0.5))',
 		display: 'flex',
 		alignItems: 'flex-end',
@@ -147,7 +152,7 @@ export function createDrawer({ closeOnOverlayClick = true } = {}) {
 		borderRadius: '20px 20px 0 0',
 		padding: '12px 20px 32px',
 		width: '100%',
-		minHeight: '85dvh',
+		minHeight: scoped ? '85%' : '85dvh',
 		overflowY: 'auto',
 		boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.15)',
 		animation: 'drawer-slide 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -235,7 +240,7 @@ export function createDrawer({ closeOnOverlayClick = true } = {}) {
 		}
 	}, { passive: true });
 
-	document.body.appendChild(overlay);
+	(container ?? document.body).appendChild(overlay);
 	return { overlay, drawer, close };
 }
 

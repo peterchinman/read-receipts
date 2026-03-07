@@ -72,6 +72,7 @@ class PieceView extends HTMLElement {
 					max-height: 100%;
 					min-height: 0;
 					overflow: hidden;
+					position: relative;
 				}
 
 				.loading,
@@ -136,7 +137,7 @@ class PieceView extends HTMLElement {
 
 	#showAuthorInfoDialog() {
 		const info = this.#piece?.author_info;
-		const { drawer } = createDrawer();
+		const { drawer } = createDrawer({ container: this.#shadow });
 
 		const rowStyle = `
 			display: flex;

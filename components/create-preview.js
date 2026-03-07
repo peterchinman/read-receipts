@@ -20,6 +20,16 @@ class ChatPreview extends HTMLElement {
 		this._onImportChatClick = this._onImportChatClick.bind(this);
 		this._onImportFileChange = this._onImportFileChange.bind(this);
 		this._onShadowClick = this._onShadowClick.bind(this);
+		this._lastDisplayWidth = null;
+		this._shrinkWrapResizeObserver = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const width = Math.round(entry.contentRect.width);
+				if (width !== this._lastDisplayWidth) {
+					this._lastDisplayWidth = width;
+					this._display?._scheduleShrinkWrapAll();
+				}
+			}
+		});
 	}
 
 	connectedCallback() {
@@ -69,6 +79,12 @@ class ChatPreview extends HTMLElement {
 		this._display?.setRecipient(store.getRecipient());
 		this._display?.setMessages(store.getMessages());
 		this.#syncReadOnlyState();
+
+		// Re-run shrink wrap whenever the thread-view's width changes (e.g. the preview
+		// pane transitions from hidden/position:absolute to visible/position:static on mobile,
+		// or on window resize). This ensures bubbles are measured at their correct dimensions
+		// regardless of which navigation path made the pane visible.
+		if (this._display) this._shrinkWrapResizeObserver.observe(this._display);
 	}
 
 	disconnectedCallback() {
@@ -92,6 +108,8 @@ class ChatPreview extends HTMLElement {
 		if (this._onIOSKeyboardShown) {
 			document.removeEventListener('ios-viewport:keyboard-shown', this._onIOSKeyboardShown);
 		}
+		this._shrinkWrapResizeObserver.disconnect();
+		this._lastDisplayWidth = null;
 	}
 
 	#syncReadOnlyState() {

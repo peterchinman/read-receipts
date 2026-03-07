@@ -2,7 +2,6 @@
 
 ### BEFORE RELEASE
 
-- [ ] If user already has a bio from a previous piece, we should prepopulate author info form with that
 - [ ] Fully test admin approval flows.
   - [ ] make sure Submission magic link only works once
   - [ ] Does Changes Request link expire? It shouldn't. BUT! it also shouldn't work if there is a newer Changes Requested for the "same" piece. How is this tracked.

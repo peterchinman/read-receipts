@@ -375,9 +375,9 @@ function setupModeSwitching(appContainer) {
 	const updateInitialMode = () => {
 		const width = window.innerWidth;
 		if (width < 900) {
-			// Mobile: default to preview mode
+			// Mobile: default to edit mode
 			if (!appContainer.getAttribute('data-mode')) {
-				appContainer.setAttribute('data-mode', 'preview');
+				appContainer.setAttribute('data-mode', 'edit');
 			}
 		} else {
 			// Tablet/Desktop: clear mode attribute

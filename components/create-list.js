@@ -203,8 +203,8 @@ class ChatThreadList extends HTMLElement {
 
 				if (appContainer) {
 					if (width < BP.tablet) {
-						// Mobile: show only preview
-						appContainer.setAttribute('data-mode', 'preview');
+						// Mobile: show editor
+						appContainer.setAttribute('data-mode', 'edit');
 					} else if (width < BP.desktop) {
 						// Tablet: show editor in left, preview in right
 						appContainer.setAttribute('data-mode', 'edit');
@@ -242,6 +242,7 @@ class ChatThreadList extends HTMLElement {
 				changesRequested: Boolean(
 					thread.adminNotes?.length && !thread.submittedAt,
 				),
+				infoNeeded: Boolean(thread.authorInfoMode && !thread.authorInfoSubmitted),
 			};
 		});
 

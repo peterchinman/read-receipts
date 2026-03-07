@@ -9,9 +9,10 @@
 		"format": "prettier --write \"**/*.{js,html,css}\" --plugin=prettier-plugin-embed",
 		"format:check": "prettier --check \"**/*.{js,html,css}\"",
 		"setup": "npm install && cd backend && composer install && test -f .env || cp .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate:fresh --seed",
-		"dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+		"dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:worker\"",
 		"dev:frontend": "npx live-server --port=3000 --host=localhost --entry-file=index.html --ignorePattern=backend/",
 		"dev:backend": "cd backend && php artisan serve",
+		"dev:worker": "cd backend && php artisan queue:work",
 		"db:seed": "cd backend && php artisan migrate:fresh --seed"
 	},
 	"keywords": [],
