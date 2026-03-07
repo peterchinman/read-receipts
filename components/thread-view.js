@@ -1156,9 +1156,9 @@ class ThreadDisplay extends HTMLElement {
 	#removeMessageNodes(id) {
 		const container = this.$.messageList;
 		if (!container) return;
-		container
-			.querySelectorAll(`[data-id="${id}"]`)
-			.forEach((el) => el.remove());
+		container.querySelectorAll(`[data-id="${id}"]`).forEach((el) => {
+			el.remove();
+		});
 	}
 
 	#insertMessageNodesAtIndex(message, messages) {

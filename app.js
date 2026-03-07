@@ -8,7 +8,6 @@ import { config } from './utils/config.js';
 import { initIOSViewport } from './utils/ios-viewport.js';
 import {
 	getCurrentThreadId,
-	setCurrentThreadId,
 	onThreadIdChange,
 	replaceCurrentThreadId,
 } from './utils/url-state.js';
