@@ -30,8 +30,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--padding-inline: 0.9rem;
 
-	--message-spacing: calc(8rem / 14);
-	--consecutive-message-spacing: calc(3rem / 14);
+	--message-spacing: calc(13.5rem / 14);
+	--consecutive-message-spacing: calc(1.5rem / 14);
 
 	--border-radius: 1rem;
 

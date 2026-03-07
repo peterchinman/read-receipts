@@ -160,6 +160,7 @@ class ThreadDisplay extends HTMLElement {
 		if (Array.isArray(messages)) this._messages = messages;
 		const nodes = this.#insertMessageNodesAtIndex(message, messages);
 		this._shrinkWrapFor(nodes);
+		this.#refreshConsecutiveAround(nodes);
 	}
 
 	renderUpdate(message, messages) {
@@ -168,16 +169,25 @@ class ThreadDisplay extends HTMLElement {
 		this.#removeMessageNodes(message.id);
 		const nodes = this.#insertMessageNodesAtIndex(message, messages);
 		this._shrinkWrapFor(nodes);
+		this.#refreshConsecutiveAround(nodes);
 	}
 
 	renderDelete(message) {
 		if (!message) return;
+		const deletedNodes = this.$.messageList?.querySelectorAll(
+			`[data-id="${message.id}"]`,
+		);
+		const nextRow = deletedNodes?.length
+			? this.#nextMessageRow(deletedNodes[deletedNodes.length - 1])
+			: null;
 		this.#removeMessageNodes(message.id);
+		if (nextRow) this.#applyConsecutive(nextRow, this.#prevMessageRow(nextRow));
 	}
 
 	renderReset(messages) {
 		this._messages = Array.isArray(messages) ? messages : [];
 		this.#renderAll(this._messages);
+		this.#refreshConsecutiveSpacing();
 		this._scheduleShrinkWrapAll();
 	}
 
@@ -480,15 +490,14 @@ class ThreadDisplay extends HTMLElement {
 						);
 					}
 
-					&.self:has(+ .self),
-					&.other:has(+ .other) {
+					&.self:has(+ .self.consecutive),
+					&.other:has(+ .other.consecutive) {
 						svg {
 							display: none;
 						}
 					}
 
-					&.self + .self,
-					&.other + .other {
+					&.consecutive {
 						.bubble {
 							margin-top: var(--consecutive-message-spacing);
 						}
@@ -1134,14 +1143,20 @@ class ThreadDisplay extends HTMLElement {
 		const sender =
 			m && (m.sender === 'self' || m.sender === 'other') ? m.sender : 'self';
 		const id = m && m.id ? m.id : '';
+		const timestamp = m?.timestamp ?? '';
 		if (m && Array.isArray(m.images) && m.images.length > 0) {
 			for (const img of m.images) {
 				const imageNode = this.#createImage(img, sender, id);
-				if (imageNode) nodes.push(imageNode);
+				if (imageNode) {
+					if (timestamp) imageNode.dataset.timestamp = timestamp;
+					nodes.push(imageNode);
+				}
 			}
 		}
 		if (m && typeof m.message === 'string' && m.message.length > 0) {
-			nodes.push(this.#createBubbleRow(m.message, sender, id));
+			const bubbleRow = this.#createBubbleRow(m.message, sender, id);
+			if (timestamp) bubbleRow.dataset.timestamp = timestamp;
+			nodes.push(bubbleRow);
 		}
 		return nodes;
 	}
@@ -1221,6 +1236,65 @@ class ThreadDisplay extends HTMLElement {
 				if (spacer) messageList.insertBefore(n, spacer);
 				else messageList.appendChild(n);
 			}
+		}
+	}
+
+	#prevMessageRow(row) {
+		let el = row.previousElementSibling;
+		while (el && !el.classList.contains('message-row')) {
+			el = el.previousElementSibling;
+		}
+		return el;
+	}
+
+	#nextMessageRow(row) {
+		let el = row.nextElementSibling;
+		while (el && !el.classList.contains('message-row')) {
+			el = el.nextElementSibling;
+		}
+		return el;
+	}
+
+	#isConsecutiveRow(prevRow, currRow) {
+		const prevSender = prevRow.classList.contains('self') ? 'self' : 'other';
+		const currSender = currRow.classList.contains('self') ? 'self' : 'other';
+		if (prevSender !== currSender) return false;
+		const prevTime = prevRow.dataset.timestamp
+			? new Date(prevRow.dataset.timestamp).getTime()
+			: NaN;
+		const currTime = currRow.dataset.timestamp
+			? new Date(currRow.dataset.timestamp).getTime()
+			: NaN;
+		if (isNaN(prevTime) || isNaN(currTime)) return false;
+		return currTime - prevTime < 15 * 60 * 1000;
+	}
+
+	#applyConsecutive(row, prevRow) {
+		if (prevRow && this.#isConsecutiveRow(prevRow, row)) {
+			row.classList.add('consecutive');
+		} else {
+			row.classList.remove('consecutive');
+		}
+	}
+
+	#refreshConsecutiveAround(nodes) {
+		if (!nodes.length) return;
+		for (const node of nodes) {
+			this.#applyConsecutive(node, this.#prevMessageRow(node));
+		}
+		const lastNode = nodes[nodes.length - 1];
+		const nextRow = this.#nextMessageRow(lastNode);
+		if (nextRow) this.#applyConsecutive(nextRow, this.#prevMessageRow(nextRow));
+	}
+
+	#refreshConsecutiveSpacing() {
+		const list = this.$.messageList;
+		if (!list) return;
+		const rows = list.querySelectorAll('.message-row');
+		let prevRow = null;
+		for (const row of rows) {
+			this.#applyConsecutive(row, prevRow);
+			prevRow = row;
 		}
 	}
 
