@@ -196,15 +196,15 @@ class ChatThreadList extends HTMLElement {
 				}
 
 				setCurrentThreadId(threadId);
-				store.loadThread(threadId);
+				const thread = store.loadThread(threadId);
 
 				const width = window.innerWidth;
 				const appContainer = document.getElementById('app');
 
 				if (appContainer) {
 					if (width < BP.tablet) {
-						// Mobile: show editor
-						appContainer.setAttribute('data-mode', 'edit');
+						// Mobile: show editor for author-info mode, preview otherwise
+						appContainer.setAttribute('data-mode', thread?.authorInfoMode ? 'edit' : 'preview');
 					} else if (width < BP.desktop) {
 						// Tablet: show editor in left, preview in right
 						appContainer.setAttribute('data-mode', 'edit');

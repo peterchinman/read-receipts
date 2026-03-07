@@ -25,8 +25,6 @@ class ThreadListDisplay extends HTMLElement {
 		this._threads = [];
 		this._activeId = null;
 		this._headerTitle = 'Messages';
-		this._emptyTitle = 'No threads yet';
-		this._emptySubtitle = 'Click + to create one';
 		this.$ = {};
 		this._onRowClick = this._onRowClick.bind(this);
 		this._onRowKeyDown = this._onRowKeyDown.bind(this);
@@ -37,8 +35,6 @@ class ThreadListDisplay extends HTMLElement {
 	static get observedAttributes() {
 		return [
 			'header-title',
-			'empty-title',
-			'empty-subtitle',
 			'show-actions',
 			'show-create',
 			'show-header',
@@ -69,14 +65,6 @@ class ThreadListDisplay extends HTMLElement {
 			case 'header-title':
 				this._headerTitle = newValue || 'Messages';
 				this.#renderHeader();
-				break;
-			case 'empty-title':
-				this._emptyTitle = newValue || '';
-				this.#renderList();
-				break;
-			case 'empty-subtitle':
-				this._emptySubtitle = newValue || '';
-				this.#renderList();
 				break;
 			case 'show-actions':
 				this.#renderList();
@@ -113,12 +101,6 @@ class ThreadListDisplay extends HTMLElement {
 		this.#renderHeader();
 	}
 
-	setEmptyState(title, subtitle = '') {
-		this._emptyTitle = title || '';
-		this._emptySubtitle = subtitle || '';
-		this.#renderList();
-	}
-
 	#applyNavConfig() {
 		const navArrow = this.$?.navArrow;
 		if (!navArrow) return;
@@ -133,12 +115,6 @@ class ThreadListDisplay extends HTMLElement {
 	#syncAttributes() {
 		if (this.hasAttribute('header-title')) {
 			this._headerTitle = this.getAttribute('header-title') || 'Messages';
-		}
-		if (this.hasAttribute('empty-title')) {
-			this._emptyTitle = this.getAttribute('empty-title') || '';
-		}
-		if (this.hasAttribute('empty-subtitle')) {
-			this._emptySubtitle = this.getAttribute('empty-subtitle') || '';
 		}
 	}
 
@@ -308,21 +284,21 @@ class ThreadListDisplay extends HTMLElement {
 							var(--preview-line-height) * var(--preview-lines)
 					);
 				}
-				
+
 				@media ${MQ.tablet} {
-  				.thread-row:focus-visible {
-  					outline: 2px solid var(--color-bubble-self);
-  					outline-offset: -2px;
-  				}
-  				.thread-row:hover {
-  					background: var(--color-menu);
-  				}
-  				.thread-row:active {
-  					background: var(--color-edge);
-  				}
-  				.thread-row.active {
-  					background: var(--color-bubble-other);
-  				}
+						.thread-row:focus-visible {
+							outline: 2px solid var(--color-bubble-self);
+							outline-offset: -2px;
+						}
+						.thread-row:hover {
+							background: var(--color-menu);
+						}
+						.thread-row:active {
+							background: var(--color-edge);
+						}
+						.thread-row.active {
+							background: var(--color-bubble-other);
+						}
 				}
 
 				:host([show-unread]) .thread-row {
@@ -448,9 +424,6 @@ class ThreadListDisplay extends HTMLElement {
 					color: var(--color-ink-subdued);
 					gap: 1rem;
 				}
-				.empty-state-text {
-					font: 14px system-ui;
-				}
 
 				${SWIPE_CSS}
 				${HIDE_SCROLLBAR_CSS}
@@ -510,23 +483,6 @@ class ThreadListDisplay extends HTMLElement {
 		if (!container) return;
 		const threads = this._threads || [];
 		container.innerHTML = '';
-
-		if (threads.length === 0) {
-			const empty = document.createElement('div');
-			empty.className = 'empty-state';
-			const title = document.createElement('div');
-			title.className = 'empty-state-text';
-			title.textContent = this._emptyTitle || '';
-			empty.appendChild(title);
-			if (this._emptySubtitle) {
-				const subtitle = document.createElement('div');
-				subtitle.className = 'empty-state-text';
-				subtitle.textContent = this._emptySubtitle;
-				empty.appendChild(subtitle);
-			}
-			container.appendChild(empty);
-			return;
-		}
 
 		const showActions = this.hasAttribute('show-actions');
 

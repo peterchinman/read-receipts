@@ -185,6 +185,23 @@ function renderCreateView(container) {
 }
 
 /**
+ * Navigate to the appropriate pane after a thread is selected or loaded from the URL.
+ * - Mobile: preview (or editor for author-info mode)
+ * - Tablet: editor on left, preview always visible on right
+ * - Desktop: no-op (all panes visible)
+ */
+function navigateToThread(thread) {
+	const width = window.innerWidth;
+	const appContainer = document.getElementById('app');
+	if (!appContainer) return;
+	if (width < 900) {
+		appContainer.setAttribute('data-mode', thread?.authorInfoMode ? 'edit' : 'preview');
+	} else if (width < 1200) {
+		appContainer.setAttribute('data-mode', 'edit');
+	}
+}
+
+/**
  * Handle ?edit=ID&token=TOKEN param for resubmit flow
  */
 async function handleEditParam(editId, editToken) {
@@ -203,6 +220,7 @@ async function handleEditParam(editId, editToken) {
 			replaceCurrentThreadId(thread.id);
 			store.loadThread(thread.id);
 			setLastActiveThreadId(thread.id);
+			navigateToThread(thread);
 		}
 		// Clean ?edit= and ?token= from URL
 		const url = new URL(window.location.href);
@@ -230,6 +248,7 @@ async function handleAuthorInfoParam(authorInfoId, token) {
 			replaceCurrentThreadId(thread.id);
 			store.loadThread(thread.id);
 			setLastActiveThreadId(thread.id);
+			navigateToThread(thread);
 		}
 		// Clean URL params
 		const url = new URL(window.location.href);
@@ -255,9 +274,10 @@ function setupUrlThreadManagement() {
 		// Priority 1: Load thread from URL (if it exists)
 		const threads = store.listThreads();
 		if (threads.some((t) => t.id === urlThreadId)) {
-			// Valid thread in URL
-			store.loadThread(urlThreadId);
+			// Valid thread in URL — navigate to preview/editor
+			const thread = store.loadThread(urlThreadId);
 			setLastActiveThreadId(urlThreadId);
+			navigateToThread(thread);
 		} else {
 			// Invalid thread in URL - fall back and update URL
 			const lastThreadId = getLastActiveThreadId();
@@ -308,9 +328,10 @@ function setupUrlThreadManagement() {
 			// Check if thread exists
 			const threads = store.listThreads();
 			if (threads.some((t) => t.id === threadId)) {
-				// Valid thread
-				store.loadThread(threadId);
+				// Valid thread — navigate to preview/editor
+				const thread = store.loadThread(threadId);
 				setLastActiveThreadId(threadId);
+				navigateToThread(thread);
 			} else {
 				// Invalid thread in URL - fall back and update URL
 				const lastThreadId = getLastActiveThreadId();
@@ -374,13 +395,13 @@ function setupModeSwitching(appContainer) {
 	// Set initial mode based on viewport
 	const updateInitialMode = () => {
 		const width = window.innerWidth;
-		if (width < 900) {
-			// Mobile: default to edit mode
+		if (width < 1200) {
+			// Mobile/Tablet: default to list mode (user picks a thread first)
 			if (!appContainer.getAttribute('data-mode')) {
-				appContainer.setAttribute('data-mode', 'edit');
+				appContainer.setAttribute('data-mode', 'list');
 			}
 		} else {
-			// Tablet/Desktop: clear mode attribute
+			// Desktop: clear mode attribute (all panes visible)
 			appContainer.removeAttribute('data-mode');
 		}
 	};
