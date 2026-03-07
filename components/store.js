@@ -85,7 +85,13 @@ export function parseDuration(isoDuration) {
 export function computeTimestamps(thread) {
 	let cur = new Date(thread.initialMessageTime || new Date());
 	return thread.messages.map((m, i) => {
-		if (i > 0) cur = new Date(cur.getTime() + parseDuration(m.timeSincePrevious));
+		if (i > 0) {
+			if (m.timeSincePrevious === 'EXACT' && m.exactTimestamp) {
+				cur = new Date(m.exactTimestamp);
+			} else {
+				cur = new Date(cur.getTime() + parseDuration(m.timeSincePrevious));
+			}
+		}
 		return cur.toISOString();
 	});
 }
@@ -408,7 +414,9 @@ class ThreadStore extends EventTarget {
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		const reason =
-			patch.timeSincePrevious !== undefined ? 'timesince-updated' : 'update';
+			patch.timeSincePrevious !== undefined || patch.exactTimestamp !== undefined
+				? 'timesince-updated'
+				: 'update';
 		this.#emitChange(reason, thread.messages[idx]);
 	}
 
@@ -812,6 +820,15 @@ class ThreadStore extends EventTarget {
 				// First message must not have timeSincePrevious
 				delete m.timeSincePrevious;
 				continue;
+			}
+			if (m.timeSincePrevious === 'EXACT' && !m.exactTimestamp) {
+				// EXACT mode requires a paired exactTimestamp — fall back gracefully
+				const prev = messages[i - 1];
+				if (prev?.timestamp && m.timestamp) {
+					m.timeSincePrevious = this.#inferTimeSince(prev.timestamp, m.timestamp);
+				} else {
+					m.timeSincePrevious = 'PT1M';
+				}
 			}
 			if (!m.timeSincePrevious) {
 				// Compute from timestamps if available, otherwise default to 1 min

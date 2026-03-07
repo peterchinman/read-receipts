@@ -161,6 +161,7 @@ class ThreadDisplay extends HTMLElement {
 		const nodes = this.#insertMessageNodesAtIndex(message, messages);
 		this._shrinkWrapFor(nodes);
 		this.#refreshConsecutiveAround(nodes);
+		this.#refreshDateSeparators();
 	}
 
 	renderUpdate(message, messages) {
@@ -170,6 +171,7 @@ class ThreadDisplay extends HTMLElement {
 		const nodes = this.#insertMessageNodesAtIndex(message, messages);
 		this._shrinkWrapFor(nodes);
 		this.#refreshConsecutiveAround(nodes);
+		this.#refreshDateSeparators();
 	}
 
 	renderDelete(message) {
@@ -182,12 +184,14 @@ class ThreadDisplay extends HTMLElement {
 			: null;
 		this.#removeMessageNodes(message.id);
 		if (nextRow) this.#applyConsecutive(nextRow, this.#prevMessageRow(nextRow));
+		this.#refreshDateSeparators();
 	}
 
 	renderReset(messages) {
 		this._messages = Array.isArray(messages) ? messages : [];
 		this.#renderAll(this._messages);
 		this.#refreshConsecutiveSpacing();
+		this.#refreshDateSeparators();
 		this._scheduleShrinkWrapAll();
 	}
 
@@ -476,18 +480,18 @@ class ThreadDisplay extends HTMLElement {
 					/*transform: translateX(100%);*/
 				}
 
+				.message-list > :first-child .container {
+					padding-top: calc(
+						var(--message-spacing) + var(--preview-header-height, 0px)
+					);
+				}
+
 				.message-row {
 					width: 100%;
 					position: relative;
 
 					&:not(:first-child) .bubble {
 						margin-top: var(--message-spacing);
-					}
-
-					&:first-child .container {
-						padding-top: calc(
-							var(--message-spacing) + var(--preview-header-height, 0px)
-						);
 					}
 
 					&.self:has(+ .self.consecutive),
@@ -502,25 +506,27 @@ class ThreadDisplay extends HTMLElement {
 							margin-top: var(--consecutive-message-spacing);
 						}
 					}
+
+					.container {
+						display: flex;
+						flex-direction: column;
+						padding-inline: var(--padding-inline);
+
+						&.message {
+							position: absolute;
+							top: 0;
+							left: 0;
+							width: 100%;
+						}
+
+						&.mask {
+							background-color: var(--color-page);
+							mix-blend-mode: var(--mask-blend-mode);
+						}
+					}
 				}
 
-				.container {
-					display: flex;
-					flex-direction: column;
-					padding-inline: var(--padding-inline);
 
-					&.message {
-						position: absolute;
-						top: 0;
-						left: 0;
-						width: 100%;
-					}
-
-					&.mask {
-						background-color: var(--color-page);
-						mix-blend-mode: var(--mask-blend-mode);
-					}
-				}
 
 				.bubble {
 					position: relative;
@@ -812,6 +818,21 @@ class ThreadDisplay extends HTMLElement {
 
 				:host(:not([interactive])) .bottom-area {
 					pointer-events: none;
+				}
+
+				.date-separator {
+					background-color: var(--color-page);
+					font-size: var(--font-size-small);
+					color: var(--color-ink-subdued);
+
+					.container {
+						text-align: center;
+						padding-block: 0.5rem;
+					}
+
+					.date {
+						font-weight: 500;
+					}
 				}
 
 				${HIDE_SCROLLBAR_CSS}
@@ -1304,6 +1325,62 @@ class ThreadDisplay extends HTMLElement {
 		return (
 			container.scrollHeight - container.scrollTop - container.clientHeight < 10
 		);
+	}
+
+	#getDateKey(timestamp) {
+		if (!timestamp) return null;
+		const d = new Date(timestamp);
+		if (isNaN(d.getTime())) return null;
+		return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+	}
+
+	#formatDateLabel(timestamp, showYear = false) {
+		const d = new Date(timestamp);
+		const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+		const month = d.toLocaleDateString('en-US', { month: 'short' });
+		const day = d.getDate();
+		const year = d.getFullYear();
+		let hours = d.getHours();
+		const minutes = d.getMinutes();
+		const ampm = hours >= 12 ? 'pm' : 'am';
+		hours = hours % 12 || 12;
+		const time = `${hours}:${String(minutes).padStart(2, '0')}${ampm}`;
+		const dateStr = showYear
+			? `${dayName}, ${month} ${day}, ${year}`
+			: `${dayName}, ${month} ${day}`;
+		return { date: dateStr, time };
+	}
+
+	#createDateSeparator(timestamp, showYear = false) {
+		const el = document.createElement('div');
+		el.className = 'date-separator';
+		el.setAttribute('aria-hidden', 'true');
+		const { date, time } = this.#formatDateLabel(timestamp, showYear);
+		el.innerHTML = `<div class="container"><span class="date">${date}</span> at ${time}</div>`;
+		return el;
+	}
+
+	#refreshDateSeparators() {
+		const list = this.$.messageList;
+		if (!list) return;
+		list.querySelectorAll('.date-separator').forEach((el) => el.remove());
+		const rows = list.querySelectorAll('.message-row');
+		let prevDateKey = null;
+		let prevYear = new Date().getFullYear();
+		for (const row of rows) {
+			const dateKey = this.#getDateKey(row.dataset.timestamp);
+			if (dateKey && (!prevDateKey || dateKey !== prevDateKey)) {
+				const msgYear = new Date(row.dataset.timestamp).getFullYear();
+				list.insertBefore(
+					this.#createDateSeparator(row.dataset.timestamp, msgYear !== prevYear),
+					row,
+				);
+			}
+			if (dateKey) {
+				prevDateKey = dateKey;
+				prevYear = new Date(row.dataset.timestamp).getFullYear();
+			}
+		}
 	}
 
 	_shrinkWrapInit() {

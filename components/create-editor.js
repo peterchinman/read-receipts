@@ -1004,6 +1004,7 @@ class ChatEditor extends HTMLElement {
 		ensureAttr(card, 'sender', m.sender || 'self');
 		ensureAttr(card, 'timestamp', m.timestamp || '');
 		ensureAttr(card, 'text', textValue);
+		ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
 	}
 
 	#syncFirstCardAttr() {
@@ -1127,6 +1128,7 @@ class ChatEditor extends HTMLElement {
 			ensureAttr(card, 'sender', m.sender || 'self');
 			ensureAttr(card, 'timestamp', m.timestamp || '');
 			ensureAttr(card, 'text', textValue);
+			ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
 			existing.delete(m.id);
 		});
 

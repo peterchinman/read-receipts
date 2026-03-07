@@ -13,6 +13,7 @@ class MessageCard extends HTMLElement {
 			'only',
 			'is-first',
 			'time-since-previous',
+			'exact-timestamp',
 		];
 	}
 
@@ -124,6 +125,66 @@ class MessageCard extends HTMLElement {
 				.time-since-select:hover {
 					color: var(--color-ink);
 				}
+				.exact-time-container {
+					display: none;
+					align-items: center;
+					gap: calc(4rem / 14);
+				}
+				.exact-time-input {
+					all: unset;
+					height: min-content;
+					font: inherit;
+					font-size: calc(12rem / 14);
+					cursor: pointer;
+					position: relative;
+					field-sizing: content;
+				}
+				.exact-time-input:not(:focus) {
+					color: transparent;
+				}
+				.exact-time-input:focus {
+					color: var(--color-ink);
+					outline: none;
+				}
+				.exact-time-input:hover:not(:focus) {
+					color: transparent;
+				}
+				.exact-time-input::before {
+					position: absolute;
+					left: 0;
+					top: 0;
+					content: attr(data-formatted);
+					pointer-events: none;
+					color: var(--color-ink-subdued);
+				}
+				.exact-time-input:hover::before {
+					color: var(--color-ink);
+				}
+				.exact-time-input:focus::before {
+					display: none;
+				}
+				.exact-time-input::-webkit-calendar-picker-indicator {
+					opacity: 0;
+					position: absolute;
+					width: 100%;
+					height: 100%;
+					cursor: pointer;
+					z-index: 1;
+				}
+				.exact-time-reset {
+					all: unset;
+					cursor: pointer;
+					font-size: calc(12rem / 14);
+					color: var(--color-ink-subdued);
+					line-height: 1;
+					min-width: 2rem;
+					display: flex;
+					justify-content: center;
+					align-items: center;
+				}
+				.exact-time-reset:hover {
+					color: var(--color-ink);
+				}
 				.actions {
 					display: none;
 
@@ -169,11 +230,29 @@ class MessageCard extends HTMLElement {
 							class="initial-time-input"
 						/>
 						<span class="date-text"></span>
-						<select class="time-since-select" data-tooltip="Time since previous message">
+						<select
+							class="time-since-select"
+							data-tooltip="Time since previous message"
+						>
 							<option value="PT1M">1 min</option>
 							<option value="PT1H">1 hour</option>
 							<option value="P1D">1 day</option>
+							<option value="EXACT">Exact time</option>
 						</select>
+						<div class="exact-time-container">
+							<button
+								class="exact-time-reset"
+								data-tooltip="Switch to relative time"
+								type="button"
+							>
+								×
+							</button>
+							<input
+								part="exact-date-input"
+								type="datetime-local"
+								class="exact-time-input"
+							/>
+						</div>
 					</div>
 					<div class="right">
 						<div class="actions">
@@ -307,14 +386,27 @@ class MessageCard extends HTMLElement {
 	get timeSincePrevious() {
 		return this.getAttribute('time-since-previous') || 'PT1M';
 	}
+	get exactTimestamp() {
+		return this.getAttribute('exact-timestamp') || '';
+	}
 
 	#formatDate(iso) {
 		if (!iso) return '';
 		try {
 			const d = new Date(iso);
 			const months = [
-				'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-				'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+				'Jan',
+				'Feb',
+				'Mar',
+				'Apr',
+				'May',
+				'Jun',
+				'Jul',
+				'Aug',
+				'Sep',
+				'Oct',
+				'Nov',
+				'Dec',
 			];
 			const month = months[d.getMonth()];
 			const day = d.getDate();
@@ -352,6 +444,10 @@ class MessageCard extends HTMLElement {
 		const dateInput = this.shadowRoot.querySelector('.initial-time-input');
 		const dateText = this.shadowRoot.querySelector('.date-text');
 		const timeSinceSelect = this.shadowRoot.querySelector('.time-since-select');
+		const exactTimeContainer = this.shadowRoot.querySelector(
+			'.exact-time-container',
+		);
+		const exactTimeInput = this.shadowRoot.querySelector('.exact-time-input');
 
 		if (textarea && textarea.value !== this.text) {
 			textarea.value = this.text;
@@ -392,10 +488,29 @@ class MessageCard extends HTMLElement {
 		} else {
 			if (dateInput) dateInput.style.display = 'none';
 			if (dateText) dateText.style.display = 'none';
-			if (timeSinceSelect) timeSinceSelect.style.display = '';
 
+			const isExact = this.timeSincePrevious === 'EXACT';
 			if (timeSinceSelect) {
-				timeSinceSelect.value = this.timeSincePrevious;
+				timeSinceSelect.style.display = isExact ? 'none' : '';
+				if (!isExact) timeSinceSelect.value = this.timeSincePrevious;
+			}
+			if (exactTimeContainer) {
+				exactTimeContainer.style.display = isExact ? 'flex' : 'none';
+				if (isExact && exactTimeInput) {
+					const iso = this.exactTimestamp;
+					try {
+						if (iso) {
+							const d = new Date(iso);
+							const pad = (n) => String(n).padStart(2, '0');
+							exactTimeInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+						} else {
+							exactTimeInput.value = '';
+						}
+					} catch (_e) {
+						exactTimeInput.value = '';
+					}
+					this.#updateExactDateDisplay(exactTimeInput);
+				}
 			}
 		}
 	}
@@ -409,16 +524,30 @@ class MessageCard extends HTMLElement {
 		dateInput.setAttribute('title', formatted);
 	}
 
+	#updateExactDateDisplay(input) {
+		const iso = input.value
+			? new Date(input.value).toISOString()
+			: this.exactTimestamp;
+		const formatted = this.#formatDate(iso);
+		input.setAttribute('data-formatted', formatted);
+		input.setAttribute('title', formatted);
+	}
+
 	#syncReadOnly() {
 		const isReadOnly = this.hasAttribute('readonly');
 		const textarea = this.shadowRoot?.querySelector('textarea');
 		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
 		const dateInput = this.shadowRoot?.querySelector('.initial-time-input');
-		const timeSinceSelect = this.shadowRoot?.querySelector('.time-since-select');
+		const timeSinceSelect =
+			this.shadowRoot?.querySelector('.time-since-select');
 		const deleteBtn = this.shadowRoot?.querySelector('[part="delete"]');
 		const addBelowBtn = this.shadowRoot?.querySelector('[part="add-below"]');
-		const insertImageBtn = this.shadowRoot?.querySelector('[part="insert-image"]');
+		const insertImageBtn = this.shadowRoot?.querySelector(
+			'[part="insert-image"]',
+		);
 
+		const exactTimeInput = this.shadowRoot?.querySelector('.exact-time-input');
+		const exactTimeReset = this.shadowRoot?.querySelector('.exact-time-reset');
 		if (textarea) textarea.disabled = isReadOnly;
 		if (senderSwitch) {
 			if (isReadOnly) senderSwitch.setAttribute('disabled', '');
@@ -426,8 +555,10 @@ class MessageCard extends HTMLElement {
 		}
 		if (dateInput) dateInput.disabled = isReadOnly;
 		if (timeSinceSelect) timeSinceSelect.disabled = isReadOnly;
+		if (exactTimeInput) exactTimeInput.disabled = isReadOnly;
+		if (exactTimeReset) exactTimeReset.disabled = isReadOnly;
 		const isOnly = this.hasAttribute('only');
-		if (deleteBtn) deleteBtn.style.display = (isReadOnly || isOnly) ? 'none' : '';
+		if (deleteBtn) deleteBtn.style.display = isReadOnly || isOnly ? 'none' : '';
 		if (addBelowBtn) addBelowBtn.style.display = isReadOnly ? 'none' : '';
 		if (insertImageBtn) insertImageBtn.style.display = isReadOnly ? 'none' : '';
 	}
@@ -509,6 +640,14 @@ class MessageCard extends HTMLElement {
 				patch: { initialTime: iso },
 			});
 			this.#updateDateDisplay(target);
+		} else if (target.matches('.exact-time-input')) {
+			const value = target.value;
+			const iso = value ? new Date(value).toISOString() : null;
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { exactTimestamp: iso },
+			});
+			this.#updateExactDateDisplay(target);
 		}
 	}
 
@@ -516,16 +655,31 @@ class MessageCard extends HTMLElement {
 		if (this.hasAttribute('readonly')) return;
 		const target = e.target;
 		if (target && target.matches('select.time-since-select')) {
-			this.#emit('editor:update', {
-				id: this.messageId,
-				patch: { timeSincePrevious: target.value },
-			});
+			const value = target.value;
+			if (value === 'EXACT') {
+				this.#emit('editor:update', {
+					id: this.messageId,
+					patch: { timeSincePrevious: 'EXACT', exactTimestamp: this.timestamp },
+				});
+			} else {
+				this.#emit('editor:update', {
+					id: this.messageId,
+					patch: { timeSincePrevious: value },
+				});
+			}
 		}
 	}
 
 	_onClick(e) {
 		if (this.hasAttribute('readonly')) return;
 		const button = e.target.closest('button');
+		if (button && button.classList.contains('exact-time-reset')) {
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { timeSincePrevious: 'PT1M' },
+			});
+			return;
+		}
 		if (button && button.part) {
 			// Handle button clicks
 			if (button.part.contains('delete')) {
