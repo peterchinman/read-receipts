@@ -132,8 +132,10 @@ class ChatEditor extends HTMLElement {
 					font: 12px system-ui;
 					color: var(--color-ink-subdued);
 				}
-				.info-editor input {
+				.info-editor input,
+				.info-editor textarea {
 					all: unset;
+					box-sizing: border-box;
 					font: 14px system-ui;
 					color: var(--color-ink);
 					padding: 8px 10px;
@@ -141,7 +143,17 @@ class ChatEditor extends HTMLElement {
 					border-radius: 8px;
 					background: var(--color-header);
 				}
-				.info-editor input::placeholder {
+				.info-editor textarea {
+					resize: vertical;
+					min-height: 80px;
+				}
+				.info-editor input::placeholder,
+				.info-editor textarea::placeholder {
+					color: var(--color-ink-subdued);
+				}
+				.info-editor .optional {
+					font-size: 0.8em;
+					font-weight: 400;
 					color: var(--color-ink-subdued);
 				}
 				button {
@@ -214,7 +226,7 @@ class ChatEditor extends HTMLElement {
 					></icon-arrow>
 				</div>
 				<div class="cards-list hide-scrollbar">
-					<div class="info-editor">
+					<div class="info-editor" id="thread-info-editor">
 						<div class="title">Thread</div>
 						<label>
 							Thread Name (optional)
@@ -226,7 +238,7 @@ class ChatEditor extends HTMLElement {
 							/>
 						</label>
 					</div>
-					<div class="info-editor">
+					<div class="info-editor" id="recipient-info-editor">
 						<div class="title">Recipient</div>
 						<label>
 							Name
@@ -355,6 +367,7 @@ class ChatEditor extends HTMLElement {
 		initTooltips(this.shadowRoot, this);
 
 		this.#syncReadOnlyState();
+		this.#syncAuthorInfoMode(currentThread);
 
 		// Auto-submit if returning from magic link verification
 		this.#checkPendingSubmission();
@@ -533,6 +546,11 @@ class ChatEditor extends HTMLElement {
 	}
 
 	async _onSubmit() {
+		if (store.getCurrentThread()?.authorInfoMode) {
+			await this.#submitAuthorInfo();
+			return;
+		}
+
 		const btn = this.shadowRoot.getElementById('submit-btn');
 		if (!btn || btn.disabled) return;
 
@@ -709,6 +727,7 @@ class ChatEditor extends HTMLElement {
 			this.#syncAdminNotes(currentThread);
 			this.#render(store.getMessages());
 			this.#syncReadOnlyState();
+			this.#syncAuthorInfoMode(currentThread);
 			return;
 		}
 
@@ -773,6 +792,18 @@ class ChatEditor extends HTMLElement {
 	#syncSubmitButton(thread) {
 		const btn = this.shadowRoot?.getElementById('submit-btn');
 		if (!btn) return;
+		if (thread?.authorInfoMode) {
+			if (thread.authorInfoSubmitted) {
+				btn.disabled = true;
+				btn.textContent = 'Submitted';
+				btn.setAttribute('data-tooltip', 'Info already submitted');
+			} else {
+				btn.disabled = false;
+				btn.textContent = 'Submit Info';
+				btn.setAttribute('data-tooltip', 'Submit author and payment info');
+			}
+			return;
+		}
 		const isPending = store.isCurrentThreadPending();
 		const isSubmitted = store.isCurrentThreadSubmitted();
 		if (isSubmitted) {
@@ -812,6 +843,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncReadOnlyState() {
+		// In author info mode, input state is managed by #syncAuthorInfoMode
+		if (store.getCurrentThread()?.authorInfoMode) return;
+
 		const submitted = store.isCurrentThreadSubmitted();
 		const pending = store.isCurrentThreadPending();
 		const threadNameInput = this.$?.threadNameInput;
@@ -1005,6 +1039,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#render(messages) {
+		// In author info mode, rendering is handled by #syncAuthorInfoMode
+		if (store.getCurrentThread()?.authorInfoMode) return;
+
 		const cardsList =
 			this.shadowRoot && this.shadowRoot.querySelector('.cards-list');
 		if (!cardsList) return;
@@ -1071,6 +1108,146 @@ class ChatEditor extends HTMLElement {
 		for (const card of cards) {
 			if (isOnly) card.setAttribute('only', '');
 			else card.removeAttribute('only');
+		}
+	}
+
+	#escapeAttr(text) {
+		return String(text ?? '')
+			.replace(/&/g, '&amp;')
+			.replace(/"/g, '&quot;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
+	}
+
+	#syncAuthorInfoMode(thread) {
+		const clearBtn = this.shadowRoot?.getElementById('clear-chat');
+		const exportBtn = this.shadowRoot?.getElementById('export-json');
+		const threadNameInput = this.$?.threadNameInput;
+		const recipientNameInput = this.$?.recipientNameInput;
+		const recipientLocationInput = this.$?.recipientLocationInput;
+
+		const threadInfoEditor = this.shadowRoot?.getElementById('thread-info-editor');
+		const recipientInfoEditor = this.shadowRoot?.getElementById('recipient-info-editor');
+
+		if (!thread?.authorInfoMode) {
+			// Restore hidden buttons and editors
+			if (clearBtn) clearBtn.style.display = '';
+			if (exportBtn) exportBtn.style.display = '';
+			if (threadInfoEditor) threadInfoEditor.style.display = '';
+			if (recipientInfoEditor) recipientInfoEditor.style.display = '';
+			// Remove injected form if present
+			this.shadowRoot?.getElementById('author-info-section')?.remove();
+			return;
+		}
+
+		// Hide Clear, Export buttons and Thread/Recipient editors
+		if (clearBtn) clearBtn.style.display = 'none';
+		if (exportBtn) exportBtn.style.display = 'none';
+		if (threadInfoEditor) threadInfoEditor.style.display = 'none';
+		if (recipientInfoEditor) recipientInfoEditor.style.display = 'none';
+
+		// Disable thread name and recipient inputs
+		if (threadNameInput) threadNameInput.disabled = true;
+		if (recipientNameInput) recipientNameInput.disabled = true;
+		if (recipientLocationInput) recipientLocationInput.disabled = true;
+
+		// Remove existing cards
+		for (const card of this.shadowRoot.querySelectorAll('.editor-card')) {
+			card.remove();
+		}
+
+		// Remove existing author-info-section (to re-render)
+		this.shadowRoot?.getElementById('author-info-section')?.remove();
+
+		const ex = thread.existingAuthorInfo;
+		const section = document.createElement('div');
+		section.id = 'author-info-section';
+
+		if (thread.authorInfoSubmitted) {
+			section.innerHTML = `
+				<div class="info-editor">
+					<div class="title">Submitted</div>
+					<p style="font: 14px system-ui; color: var(--color-ink); margin: 0;">
+						Your info has been received. We'll be in touch when your piece is published.
+					</p>
+				</div>
+			`;
+		} else {
+			section.innerHTML = `
+				<div class="info-editor">
+					<div class="title">Payment Info</div>
+					<label>Payment platform
+						<input id="ai-platform" type="text" placeholder="e.g. Venmo, PayPal, Cash App" value="${this.#escapeAttr(ex?.payment_platform)}" />
+					</label>
+					<label>Payment username
+						<input id="ai-username" type="text" placeholder="Your username on that platform" value="${this.#escapeAttr(ex?.payment_username)}" />
+					</label>
+				</div>
+				<div class="info-editor">
+					<div class="title">Author Info <span class="optional">(optional)</span></div>
+					<label>Display name
+						<input id="ai-name" type="text" placeholder="Leave blank to publish anonymously" value="${this.#escapeAttr(ex?.name)}" />
+					</label>
+					<label>Link
+						<input id="ai-link" type="url" placeholder="https://your-website.com" value="${this.#escapeAttr(ex?.link)}" />
+					</label>
+					<label>Bio
+						<textarea id="ai-bio" placeholder="A short bio...">${this.#escapeHtml(ex?.bio ?? '')}</textarea>
+					</label>
+				</div>
+			`;
+		}
+
+		// Insert after admin-notes-container
+		const adminNotes = this.shadowRoot?.getElementById('admin-notes-container');
+		if (adminNotes) {
+			adminNotes.after(section);
+		} else {
+			this.shadowRoot?.querySelector('.cards-list')?.appendChild(section);
+		}
+	}
+
+	async #submitAuthorInfo() {
+		const btn = this.shadowRoot.getElementById('submit-btn');
+		const thread = store.getCurrentThread();
+		if (!thread?.authorInfoToken || btn?.disabled) return;
+
+		const platform = this.shadowRoot.getElementById('ai-platform')?.value?.trim();
+		const username = this.shadowRoot.getElementById('ai-username')?.value?.trim();
+		if (!platform || !username) {
+			await showDialog({
+				title: 'Required fields missing',
+				body: 'Payment platform and username are required.',
+			});
+			return;
+		}
+
+		btn.disabled = true;
+		btn.textContent = 'Submitting...';
+
+		const data = {
+			payment_platform: platform,
+			payment_username: username,
+			name: this.shadowRoot.getElementById('ai-name')?.value?.trim() || null,
+			link: this.shadowRoot.getElementById('ai-link')?.value?.trim() || null,
+			bio: this.shadowRoot.getElementById('ai-bio')?.value?.trim() || null,
+		};
+
+		try {
+			await apiClient.submitAuthorInfo(thread.backendId, thread.authorInfoToken, data);
+			thread.authorInfoSubmitted = true;
+			store.save();
+			this.#syncAuthorInfoMode(thread);
+			btn.textContent = 'Submitted';
+			btn.disabled = true;
+			await showDialog({
+				title: 'Thank you!',
+				body: "Your info has been received. We'll be in touch when your piece is published.",
+			});
+		} catch (err) {
+			btn.disabled = false;
+			btn.textContent = 'Submit Info';
+			alert('Failed to submit: ' + (err.message || 'Unknown error'));
 		}
 	}
 }

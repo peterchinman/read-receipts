@@ -90,6 +90,56 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 			flex-shrink: 0;
 		}
 
+		.admin-badge-info-received {
+			font: 10px/1 system-ui;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			padding: 3px 6px;
+			border-radius: 4px;
+			background: var(--color-status-green);
+			color: #fff;
+			flex-shrink: 0;
+		}
+
+		.admin-badge-info-pending {
+			font: 10px/1 system-ui;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			padding: 3px 6px;
+			border-radius: 4px;
+			background: var(--color-hover, #f0f0f0);
+			color: var(--color-ink-subdued, #888);
+			flex-shrink: 0;
+		}
+
+		.admin-author-info-block {
+			background: var(--color-hover, #f5f5f7);
+			border-radius: 8px;
+			padding: 12px 14px;
+			font: 13px/1.5 system-ui;
+			color: var(--color-ink, #000);
+		}
+
+		.admin-author-info-block dt {
+			font-weight: 600;
+			color: var(--color-ink-subdued, #666);
+			font-size: 11px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			margin-top: 8px;
+		}
+
+		.admin-author-info-block dt:first-child {
+			margin-top: 0;
+		}
+
+		.admin-author-info-block dd {
+			margin: 2px 0 0 0;
+			word-break: break-word;
+		}
+
 		.admin-empty {
 			padding: 40px 16px;
 			text-align: center;
@@ -328,6 +378,36 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 			overflow: visible;
 			text-overflow: unset;
 		}
+
+		.admin-token-link-block {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: var(--color-hover, #f5f5f7);
+			border-radius: 8px;
+			padding: 8px 12px;
+		}
+
+		.admin-token-link-url {
+			flex: 1;
+			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font: 12px/1.4 monospace;
+			color: var(--color-ink-subdued, #666);
+		}
+
+		.admin-token-copy-btn {
+			flex-shrink: 0;
+			padding: 4px 10px;
+			font: 600 12px system-ui;
+			border: 1px solid var(--color-edge, #ccc);
+			border-radius: 6px;
+			background: var(--color-page, #fff);
+			color: var(--color-ink, #000);
+			cursor: pointer;
+		}
 	`;
 	document.head.appendChild(style);
 }
@@ -489,6 +569,7 @@ class AdminDashboard extends HTMLElement {
 	}
 
 	#renderSubmissionItem(sub) {
+		const isApprovedTab = this.#activeTab === 'approved';
 		return html`
 			<div
 				class="admin-submission-item ${this.#selectedSubmission?.id === sub.id
@@ -501,6 +582,11 @@ class AdminDashboard extends HTMLElement {
 					${sub.is_resubmission
 						? html`<span class="admin-badge-resubmitted">Resubmitted</span>`
 						: ''}
+					${isApprovedTab
+						? (sub.author_info_received
+							? html`<span class="admin-badge-info-received">Info ✓</span>`
+							: html`<span class="admin-badge-info-pending">Info pending</span>`)
+						: ''}
 				</div>
 				<div class="admin-submission-item-meta">
 					by ${sub.author?.name || 'Anonymous'} &bull;
@@ -510,10 +596,22 @@ class AdminDashboard extends HTMLElement {
 		`;
 	}
 
+	#renderTokenLinkBlock(label, url) {
+		const attrUrl = url.replace(/&/g, '&amp;');
+		return html`
+			<p class="admin-action-section-label">${label}</p>
+			<div class="admin-token-link-block">
+				<span class="admin-token-link-url">${url}</span>
+				<button class="admin-token-copy-btn" data-copy-url="${attrUrl}">Copy</button>
+			</div>
+		`;
+	}
+
 	#renderActionPanel() {
 		const sub = this.#selectedSubmission;
 		const isSubmitted = sub.status === 'submitted';
 		const isAccepted = sub.status === 'accepted';
+		const isChangesRequested = sub.status === 'changes_requested';
 		const isPublished = sub.status === 'published';
 
 		return html`
@@ -578,6 +676,17 @@ class AdminDashboard extends HTMLElement {
 										Mark as Paid
 									</button>`}
 							</div>
+					${sub.author_info_token
+						? this.#renderTokenLinkBlock('Author Info Link', `${window.location.origin}/create?author-info=${sub.id}&token=${sub.author_info_token}`)
+						: ''}
+					${this.#renderAuthorInfoSection(sub)}
+				`
+					: ''}
+				${isChangesRequested
+					? html`
+					${sub.edit_token
+						? this.#renderTokenLinkBlock('Edit Link', `${window.location.origin}/create?edit=${sub.id}&token=${sub.edit_token}`)
+						: ''}
 				`
 					: ''}
 				${isPublished
@@ -601,6 +710,24 @@ class AdminDashboard extends HTMLElement {
 					: ''}
 				${this.#renderEventHistory(sub.events)}
 			</div>
+		`;
+	}
+
+	#renderAuthorInfoSection(sub) {
+		if (!sub.author_info_received) {
+			return html`<p class="admin-action-section-label">Author info not yet received</p>`;
+		}
+
+		const info = sub.author_info;
+		return html`
+			<p class="admin-action-section-label">Author Info</p>
+			<dl class="admin-author-info-block">
+				<dt>Payment</dt>
+				<dd>${info.payment_platform} — ${info.payment_username}</dd>
+				${info.name ? html`<dt>Name</dt><dd>${info.name}</dd>` : ''}
+				${info.link ? html`<dt>Link</dt><dd><a href="${info.link}" target="_blank" rel="noopener noreferrer">${info.link}</a></dd>` : ''}
+				${info.bio ? html`<dt>Bio</dt><dd>${info.bio}</dd>` : ''}
+			</dl>
 		`;
 	}
 
@@ -754,6 +881,19 @@ class AdminDashboard extends HTMLElement {
 		if (markPaidBtn) {
 			markPaidBtn.addEventListener('click', () => this.#handleMarkPaid());
 		}
+
+		// Copy token link buttons
+		this.querySelectorAll('[data-copy-url]').forEach((btn) => {
+			btn.addEventListener('click', async () => {
+				const url = btn.dataset.copyUrl;
+				try {
+					await navigator.clipboard.writeText(url);
+					const orig = btn.textContent;
+					btn.textContent = 'Copied!';
+					setTimeout(() => { btn.textContent = orig; }, 1500);
+				} catch (_e) {}
+			});
+		});
 
 		// Delete
 		const deleteBtn = this.querySelector('#delete-btn');

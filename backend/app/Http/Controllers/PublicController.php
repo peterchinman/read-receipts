@@ -10,7 +10,7 @@ class PublicController extends Controller
     public function index(Request $request)
     {
         $threads = Thread::published()
-            ->with(['user:id,name,display_name'])
+            ->with(['user:id,name,display_name', 'authorInfo'])
             ->orderBy('published_at', 'desc')
             ->paginate(20);
 
@@ -31,7 +31,7 @@ class PublicController extends Controller
             return response()->json(['error' => 'Thread not found'], 404);
         }
 
-        $thread->load(['user:id,name,display_name']);
+        $thread->load(['user:id,name,display_name', 'authorInfo']);
 
         return response()->json($this->formatPublicThread($thread));
     }
@@ -51,6 +51,11 @@ class PublicController extends Controller
                 'message' => $msg['message'],
                 'timestamp' => $msg['timestamp'] ?? null,
             ]),
+            'author_info' => $thread->authorInfo ? [
+                'name' => $thread->authorInfo->name,
+                'bio' => $thread->authorInfo->bio,
+                'link' => $thread->authorInfo->link,
+            ] : null,
         ];
     }
 }

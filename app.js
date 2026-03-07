@@ -3,6 +3,7 @@ import { store } from './components/store.js';
 import { router } from './utils/router.js';
 import { authState } from './components/auth-state.js';
 import { apiClient } from './utils/api-client.js';
+import { showDialog } from './utils/dialog.js';
 import { config } from './utils/config.js';
 import { initIOSViewport } from './utils/ios-viewport.js';
 import {
@@ -165,11 +166,14 @@ function renderCreateView(container) {
 	// Load store
 	store.load();
 
-	// Handle ?edit=ID&token=TOKEN for resubmit flow
+	// Handle ?author-info=ID or ?edit=ID query params
 	const searchParams = new URLSearchParams(window.location.search);
+	const authorInfoId = searchParams.get('author-info');
 	const editId = searchParams.get('edit');
 	const editToken = searchParams.get('token');
-	if (editId) {
+	if (authorInfoId) {
+		handleAuthorInfoParam(authorInfoId, editToken);
+	} else if (editId) {
 		handleEditParam(editId, editToken);
 	}
 
@@ -207,6 +211,36 @@ async function handleEditParam(editId, editToken) {
 		window.history.replaceState({}, '', url.pathname + url.search);
 	} catch (_e) {
 		// Silently fail — user may not be authenticated or thread not found
+	}
+}
+
+/**
+ * Handle ?author-info=ID&token=TOKEN param for accepted submission flow
+ */
+async function handleAuthorInfoParam(authorInfoId, token) {
+	try {
+		if (!token) return;
+		const data = await apiClient.getAuthorInfoForm(authorInfoId, token);
+		const thread = store.importFromBackend(data);
+		if (thread) {
+			thread.authorInfoToken = token;
+			thread.authorInfoMode = true;
+			if (data.existing) thread.existingAuthorInfo = data.existing;
+			store.save();
+			replaceCurrentThreadId(thread.id);
+			store.loadThread(thread.id);
+			setLastActiveThreadId(thread.id);
+		}
+		// Clean URL params
+		const url = new URL(window.location.href);
+		url.searchParams.delete('author-info');
+		url.searchParams.delete('token');
+		window.history.replaceState({}, '', url.pathname + url.search);
+	} catch (_e) {
+		showDialog({
+			title: 'Link invalid or expired',
+			body: 'This author info link is no longer valid. Please contact us if you need a new one.',
+		});
 	}
 }
 

@@ -44,6 +44,7 @@ class ThreadDisplay extends HTMLElement {
 			'show-back-button',
 			'show-info-button',
 			'show-compose-button',
+			'show-right-info-button',
 		];
 	}
 
@@ -319,6 +320,10 @@ class ThreadDisplay extends HTMLElement {
 					display: flex;
 				}
 
+				:host([show-right-info-button]) .right-info-btn {
+					display: flex;
+				}
+
 				.header-right {
 					justify-self: end;
 					min-width: 1px; /* keep the third column from collapsing weirdly */
@@ -405,7 +410,8 @@ class ThreadDisplay extends HTMLElement {
 
 				:host([show-back-button]) .preview-header,
 				:host([show-info-button]) .preview-header,
-				:host([show-compose-button]) .preview-header {
+				:host([show-compose-button]) .preview-header,
+				:host([show-right-info-button]) .preview-header {
 					grid-template-columns: 1fr auto 1fr;
 				}
 
@@ -829,6 +835,9 @@ class ThreadDisplay extends HTMLElement {
 						<div class="recipient-location" id="recipientLocation"></div>
 					</div>
 					<div class="header-right">
+						<button class="icon-btn right-info-btn" aria-label="About">
+							${infoSvg()}
+						</button>
 						<button class="icon-btn compose-btn" aria-label="Create">
 							${composeSvg()}
 						</button>
@@ -916,10 +925,21 @@ class ThreadDisplay extends HTMLElement {
 			recipientLocation: this.shadowRoot.querySelector('#recipientLocation'),
 			navArrow: this.shadowRoot.querySelector('.nav-arrow'),
 			infoBtn: this.shadowRoot.querySelector('.info-btn'),
+			rightInfoBtn: this.shadowRoot.querySelector('.right-info-btn'),
 			composeBtn: this.shadowRoot.querySelector('.compose-btn'),
 		};
 
 		this.$.infoBtn?.addEventListener('click', () => {
+			this.dispatchEvent(
+				new CustomEvent('navigate', {
+					detail: { action: 'info' },
+					bubbles: true,
+					composed: true,
+				}),
+			);
+		});
+
+		this.$.rightInfoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
 				new CustomEvent('navigate', {
 					detail: { action: 'info' },

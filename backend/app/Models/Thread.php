@@ -50,6 +50,7 @@ class Thread extends Model
         'messages',
         'status',
         'edit_token',
+        'author_info_token',
         'submitted_at',
         'published_at',
     ];
@@ -80,6 +81,11 @@ class Thread extends Model
         return $this->hasMany(SubmissionEvent::class)->orderBy('created_at', 'desc');
     }
 
+    public function authorInfo()
+    {
+        return $this->hasOne(AuthorInfo::class);
+    }
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
@@ -92,7 +98,10 @@ class Thread extends Model
 
     public function accept(User $admin, ?string $notes = null): void
     {
-        $this->update(['status' => 'accepted']);
+        $this->update([
+            'status' => 'accepted',
+            'author_info_token' => Str::random(64),
+        ]);
 
         $this->submissionEvents()->create([
             'event_type' => 'accepted',
@@ -117,6 +126,7 @@ class Thread extends Model
         $this->update([
             'status' => 'published',
             'published_at' => now(),
+            'author_info_token' => null,
         ]);
 
         $this->submissionEvents()->create([

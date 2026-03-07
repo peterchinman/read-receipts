@@ -6,6 +6,7 @@ import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import './thread-view.js';
 import { authState } from './auth-state.js';
+import { createDrawer, dialogTitleStyle, dialogBodyStyle } from '../utils/dialog.js';
 
 class PieceView extends HTMLElement {
 	#shadow;
@@ -114,13 +115,12 @@ class PieceView extends HTMLElement {
 	}
 
 	#renderPiece() {
-		const showCompose = authState.isAuthenticated || authState.isAdmin;
 		let navText = 'Back';
 		try {
 			const count = parseInt(sessionStorage.getItem('message-simulator:unread-count') || '0', 10);
 			if (count > 0) navText = String(count);
 		} catch {}
-		return html`<thread-view show-back-button nav-text="${navText}" nav-action="back" ${showCompose ? 'show-compose-button' : ''}></thread-view>`;
+		return html`<thread-view show-back-button nav-text="${navText}" nav-action="back" show-right-info-button></thread-view>`;
 	}
 
 	_onNavigate(e) {
@@ -129,6 +129,64 @@ class PieceView extends HTMLElement {
 			router.navigate('/');
 		} else if (action === 'create') {
 			router.navigate('/create');
+		} else if (action === 'info') {
+			this.#showAuthorInfoDialog();
+		}
+	}
+
+	#showAuthorInfoDialog() {
+		const info = this.#piece?.author_info;
+		const { drawer } = createDrawer();
+
+		const rowStyle = `
+			display: flex;
+			gap: .5rem;
+			padding: .5rem 0;
+			line-height: 1.4;
+		`;
+		const keyStyle = `
+			flex: 0 0 32px;
+			font: 600 0.8rem system-ui;
+			text-transform: lowercase;
+			color: var(--color-ink-subdued);
+			padding-top: 1px;
+		`;
+		const valueStyle = `
+			flex: 1;
+			font: 0.9rem system-ui;
+			color: var(--color-ink);
+			word-break: break-word;
+		`;
+
+		const addRow = (key, valueEl) => {
+			const row = document.createElement('div');
+			row.style.cssText = rowStyle;
+			const keyEl = document.createElement('span');
+			keyEl.style.cssText = keyStyle;
+			keyEl.textContent = key;
+			row.appendChild(keyEl);
+			const val = document.createElement('span');
+			val.style.cssText = valueStyle;
+			val.appendChild(valueEl);
+			row.appendChild(val);
+			drawer.appendChild(row);
+		};
+
+		const nameText = document.createTextNode(info?.name || 'Anonymous');
+		addRow('by', nameText);
+
+		if (info?.link) {
+			const a = document.createElement('a');
+			a.href = info.link;
+			a.target = '_blank';
+			a.rel = 'noopener noreferrer';
+			a.textContent = info.link;
+			a.style.cssText = 'color: var(--color-primary, #007aff);';
+			addRow('Link', a);
+		}
+
+		if (info?.bio) {
+			addRow('Bio', document.createTextNode(info.bio));
 		}
 	}
 }

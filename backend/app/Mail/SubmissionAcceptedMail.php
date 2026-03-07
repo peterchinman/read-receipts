@@ -32,6 +32,7 @@ class SubmissionAcceptedMail extends Mailable
                 'threadName' => $this->thread->displayName(),
                 'viewUrl' => config('app.frontend_url') . '/piece/' . $this->thread->id,
                 'appName' => config('app.name'),
+                'authorInfoUrl' => config('app.frontend_url') . '/create?author-info=' . $this->thread->id . '&token=' . $this->thread->author_info_token,
             ],
         );
     }

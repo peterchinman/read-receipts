@@ -180,6 +180,12 @@ class ApiClient {
 		});
 	}
 
+	async resendAcceptance(id) {
+		return this.#request(`/admin/submissions/${id}/resend-acceptance`, {
+			method: 'POST',
+		});
+	}
+
 	async requestChanges(id, notes) {
 		return this.#request(`/admin/submissions/${id}/request-changes`, {
 			method: 'POST',
@@ -194,6 +200,18 @@ class ApiClient {
 
 	async resubmitThread(id, data) {
 		return this.#request(`/submit/${id}/resubmit`, {
+			method: 'POST',
+			body: JSON.stringify(data),
+		});
+	}
+
+	// Author info endpoints (token-gated, no auth required)
+	async getAuthorInfoForm(threadId, token) {
+		return this.#request(`/author-info/${threadId}?token=${encodeURIComponent(token)}`);
+	}
+
+	async submitAuthorInfo(threadId, token, data) {
+		return this.#request(`/author-info/${threadId}?token=${encodeURIComponent(token)}`, {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});

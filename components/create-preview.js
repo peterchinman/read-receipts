@@ -96,8 +96,8 @@ class ChatPreview extends HTMLElement {
 
 	#syncReadOnlyState() {
 		if (!this._display) return;
-		const submitted = store.isCurrentThreadSubmitted();
-		if (submitted) {
+		const nonInteractive = store.isCurrentThreadSubmitted() || !!store.getCurrentThread()?.authorInfoMode;
+		if (nonInteractive) {
 			this._display.removeAttribute('interactive');
 		} else {
 			this._display.setAttribute('interactive', '');

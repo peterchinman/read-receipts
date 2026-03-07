@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthorInfoController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Middleware\AdminMiddleware;
@@ -23,6 +24,10 @@ Route::prefix('published')->group(function () {
 Route::get('/submissions/{thread}/edit', [ThreadController::class, 'showByEditToken']);
 Route::post('/submit/{thread}/resubmit', [ThreadController::class, 'resubmit']);
 
+// Token-gated author info (no auth required)
+Route::get('/author-info/{thread}', [AuthorInfoController::class, 'show']);
+Route::post('/author-info/{thread}', [AuthorInfoController::class, 'store']);
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -41,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/submissions/{thread}/publish', [AdminController::class, 'publish']);
         Route::post('/submissions/{thread}/request-changes', [AdminController::class, 'requestChanges']);
         Route::post('/submissions/{thread}/mark-paid', [AdminController::class, 'markPaid']);
+        Route::post('/submissions/{thread}/resend-acceptance', [AdminController::class, 'resendAcceptance']);
         Route::delete('/submissions/{thread}', [AdminController::class, 'destroy']);
     });
 });

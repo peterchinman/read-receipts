@@ -102,6 +102,143 @@ export const dialogInputStyle = `
 	box-sizing: border-box;
 `;
 
+// ── createDrawer ─────────────────────────────────────────────────────
+
+const drawerKeyframeCSS = `
+	@keyframes drawer-overlay-fade {
+		from { opacity: 0; }
+		to   { opacity: 1; }
+	}
+	@keyframes drawer-slide {
+		from { transform: translateY(100%); }
+		to   { transform: translateY(0); }
+	}
+`;
+
+/**
+ * Creates a bottom-sheet drawer overlay and appends it to the document body.
+ *
+ * @param {Object}  [options]
+ * @param {boolean} [options.closeOnOverlayClick=true]
+ * @returns {{ overlay: HTMLElement, drawer: HTMLElement, close: () => void }}
+ */
+export function createDrawer({ closeOnOverlayClick = true } = {}) {
+	const overlay = document.createElement('div');
+	Object.assign(overlay.style, {
+		position: 'fixed',
+		top: '0',
+		left: '0',
+		width: '100%',
+		height: 'calc(100 * var(--vh, 1dvh))',
+		background: 'var(--color-dialog-overlay, hsl(0 0 0 / 0.5))',
+		display: 'flex',
+		alignItems: 'flex-end',
+		zIndex: '1000',
+		animation: 'drawer-overlay-fade 0.2s ease',
+	});
+
+	const style = document.createElement('style');
+	style.textContent = drawerKeyframeCSS;
+	overlay.appendChild(style);
+
+	const drawer = document.createElement('div');
+	Object.assign(drawer.style, {
+		background: 'var(--color-page)',
+		borderRadius: '20px 20px 0 0',
+		padding: '12px 20px 32px',
+		width: '100%',
+		minHeight: '85dvh',
+		overflowY: 'auto',
+		boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.15)',
+		animation: 'drawer-slide 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+	});
+	drawer.addEventListener('click', (e) => e.stopPropagation());
+
+	// Drag handle
+	const handle = document.createElement('div');
+	Object.assign(handle.style, {
+		width: '36px',
+		height: '5px',
+		borderRadius: '3px',
+		background: 'var(--color-edge)',
+		margin: '0 auto 20px',
+	});
+	drawer.appendChild(handle);
+
+	overlay.appendChild(drawer);
+
+	const close = () => overlay.remove();
+
+	if (closeOnOverlayClick) {
+		overlay.addEventListener('click', close);
+	}
+
+	// Swipe-to-dismiss
+	let startY = 0;
+	let currentDelta = 0;
+	let dragging = false;
+	let lastY = 0;
+	let lastTime = 0;
+	let velocity = 0;
+
+	const DISMISS_TRANSITION = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+
+	drawer.addEventListener('touchstart', (e) => {
+		startY = e.touches[0].clientY;
+		lastY = startY;
+		lastTime = Date.now();
+		currentDelta = 0;
+		velocity = 0;
+		dragging = false;
+	}, { passive: true });
+
+	drawer.addEventListener('touchmove', (e) => {
+		const y = e.touches[0].clientY;
+		const now = Date.now();
+		const elapsed = now - lastTime || 1;
+		velocity = (y - lastY) / elapsed;
+		lastY = y;
+		lastTime = now;
+
+		const delta = y - startY;
+
+		// Only begin dragging when at scroll top and moving downward
+		if (!dragging) {
+			if (delta > 0 && drawer.scrollTop === 0) {
+				dragging = true;
+			} else {
+				return;
+			}
+		}
+
+		currentDelta = Math.max(0, delta);
+		drawer.style.transition = 'none';
+		drawer.style.transform = `translateY(${currentDelta}px)`;
+	}, { passive: true });
+
+	drawer.addEventListener('touchend', () => {
+		if (!dragging) return;
+		dragging = false;
+
+		const shouldDismiss = currentDelta > drawer.offsetHeight * 0.25 || velocity > 0.5;
+
+		if (shouldDismiss) {
+			drawer.style.transition = DISMISS_TRANSITION;
+			drawer.style.transform = `translateY(100%)`;
+			drawer.addEventListener('transitionend', close, { once: true });
+		} else {
+			drawer.style.transition = DISMISS_TRANSITION;
+			drawer.style.transform = '';
+			drawer.addEventListener('transitionend', () => {
+				drawer.style.transition = '';
+			}, { once: true });
+		}
+	}, { passive: true });
+
+	document.body.appendChild(overlay);
+	return { overlay, drawer, close };
+}
+
 // ── createDialog ─────────────────────────────────────────────────────
 
 /**

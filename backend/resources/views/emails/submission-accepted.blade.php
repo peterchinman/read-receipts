@@ -13,7 +13,12 @@
 
         <p>I need a few more details before we can publish.</p>
        
-        <p> Click the button below to provide your payment details and any author info that you would like displayed with the piece.</p>
+        <p>Click the button below to provide your payment details and any author info that you would like displayed with the piece.</p>
+
+        <a href="{{ $authorInfoUrl }}" style="display: inline-block; background-color: #0d84ff; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin: 10px 0;">Provide Author Info</a>
+
+        <p>Or copy and paste this link into a browser:</p>
+        <p style="word-break: break-all;">{!! $authorInfoUrl !!}</p>
 
         <p>After I process the payment, your piece will be published on the site shortly. I'll send you another email once it's live.</p>
 

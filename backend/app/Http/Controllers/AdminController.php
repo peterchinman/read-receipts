@@ -9,6 +9,7 @@ use App\Models\Thread;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -23,7 +24,7 @@ class AdminController extends Controller
         }
 
         $threads = Thread::whereIn('status', $statuses)
-            ->with(['user:id,name,display_name,email', 'submissionEvents'])
+            ->with(['user:id,name,display_name,email', 'submissionEvents', 'authorInfo'])
             ->orderBy('submitted_at', 'asc')
             ->paginate(20);
 
@@ -49,7 +50,7 @@ class AdminController extends Controller
             return response()->json(['error' => 'Submission not found'], 404);
         }
 
-        $thread->load(['user:id,name,display_name,email', 'submissionEvents.admin']);
+        $thread->load(['user:id,name,display_name,email', 'submissionEvents.admin', 'authorInfo']);
 
         return response()->json($this->formatSubmission($thread));
     }
@@ -66,7 +67,7 @@ class AdminController extends Controller
 
         $thread->accept(Auth::user(), $validated['notes'] ?? null);
 
-        Mail::to($thread->user->email)->send(new SubmissionAcceptedMail($thread));
+        Mail::to($thread->user->email)->queue(new SubmissionAcceptedMail($thread));
 
         return response()->json(['message' => 'Submission accepted']);
     }
@@ -83,7 +84,7 @@ class AdminController extends Controller
 
         $thread->reject(Auth::user(), $validated['notes'] ?? null);
 
-        Mail::to($thread->user->email)->send(new SubmissionRejectedMail($thread, $validated['notes'] ?? null));
+        Mail::to($thread->user->email)->queue(new SubmissionRejectedMail($thread, $validated['notes'] ?? null));
 
         return response()->json(['message' => 'Submission rejected']);
     }
@@ -100,7 +101,7 @@ class AdminController extends Controller
 
         $thread->requestChanges(Auth::user(), $validated['notes']);
 
-        Mail::to($thread->user->email)->send(new SubmissionChangesRequestedMail($thread, $validated['notes']));
+        Mail::to($thread->user->email)->queue(new SubmissionChangesRequestedMail($thread, $validated['notes']));
 
         return response()->json(['message' => 'Changes requested']);
     }
@@ -122,12 +123,30 @@ class AdminController extends Controller
             return response()->json(['error' => 'Can only mark accepted submissions as paid'], 422);
         }
 
+        if ($thread->submissionEvents()->where('event_type', 'paid')->exists()) {
+            return response()->json(['error' => 'Already marked as paid'], 422);
+        }
+
         $thread->submissionEvents()->create([
             'event_type' => 'paid',
             'admin_id' => Auth::id(),
         ]);
 
         return response()->json(['message' => 'Marked as paid']);
+    }
+
+    public function resendAcceptance(Thread $thread)
+    {
+        if ($thread->status !== 'accepted') {
+            return response()->json(['error' => 'Can only resend acceptance email for accepted submissions'], 422);
+        }
+
+        // Rotate the token so old links are invalidated before resending
+        $thread->update(['author_info_token' => Str::random(64)]);
+
+        Mail::to($thread->user->email)->queue(new SubmissionAcceptedMail($thread));
+
+        return response()->json(['message' => 'Acceptance email resent']);
     }
 
     public function destroy(Thread $thread)
@@ -164,6 +183,16 @@ class AdminController extends Controller
                 'snapshot' => $event->snapshot,
                 'created_at' => $event->created_at->toISOString(),
             ]) ?? [],
+            'author_info_received' => $thread->authorInfo !== null,
+            'author_info' => $thread->authorInfo ? [
+                'payment_platform' => $thread->authorInfo->payment_platform,
+                'payment_username' => $thread->authorInfo->payment_username,
+                'name' => $thread->authorInfo->name,
+                'link' => $thread->authorInfo->link,
+                'bio' => $thread->authorInfo->bio,
+            ] : null,
+            'author_info_token' => $thread->author_info_token,
+            'edit_token' => $thread->edit_token,
         ];
     }
 }
