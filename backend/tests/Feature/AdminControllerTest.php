@@ -67,7 +67,7 @@ class AdminControllerTest extends TestCase
         ]);
 
         // Verify acceptance email was sent
-        Mail::assertSent(SubmissionAcceptedMail::class, function ($mail) use ($thread) {
+        Mail::assertQueued(SubmissionAcceptedMail::class, function ($mail) use ($thread) {
             return $mail->hasTo($this->regularUser->email);
         });
     }
@@ -105,7 +105,7 @@ class AdminControllerTest extends TestCase
         ]);
 
         // Verify rejection email was sent
-        Mail::assertSent(SubmissionRejectedMail::class, function ($mail) use ($thread) {
+        Mail::assertQueued(SubmissionRejectedMail::class, function ($mail) use ($thread) {
             return $mail->hasTo($this->regularUser->email);
         });
     }

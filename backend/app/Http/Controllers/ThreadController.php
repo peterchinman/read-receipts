@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ResubmissionReceivedMail;
 use App\Mail\SubmissionReceivedMail;
 use App\Models\Thread;
 use Illuminate\Http\Request;
@@ -41,7 +42,7 @@ class ThreadController extends Controller
             'event_type' => 'submitted',
         ]);
 
-        Mail::to($request->user()->email)->send(new SubmissionReceivedMail($thread));
+        Mail::to($request->user()->email)->queue(new SubmissionReceivedMail($thread));
 
         return response()->json([
             'message' => 'Submission received',
@@ -116,6 +117,9 @@ class ThreadController extends Controller
                 'position' => $i,
             ])->all(),
         ]);
+
+        $email = $request->user()?->email ?? $thread->user->email;
+        Mail::to($email)->queue(new ResubmissionReceivedMail($thread));
 
         return response()->json(['message' => 'Resubmission received']);
     }

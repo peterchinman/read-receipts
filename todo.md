@@ -2,7 +2,6 @@
 
 ### BEFORE RELEASE
 
-- [ ] we should have an email template for resubmissions.
 - [ ] If user already has a bio from a previous piece, we should prepopulate author info form with that
 - [ ] Fully test admin approval flows.
   - [ ] make sure Submission magic link only works once

@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SubmissionAcceptedMail extends Mailable
+class ResubmissionReceivedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,18 +20,16 @@ class SubmissionAcceptedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your submission has been accepted!',
+            subject: 'We\'ve received your resubmission',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.submission-accepted',
+            view: 'emails.resubmission-received',
             with: [
                 'threadName' => $this->thread->displayName(),
-                'viewUrl' => config('app.frontend_url') . '/piece/' . $this->thread->id,
-                'authorInfoUrl' => config('app.frontend_url') . '/create?author-info=' . $this->thread->id . '&token=' . $this->thread->author_info_token,
             ],
         );
     }

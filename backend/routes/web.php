@@ -3,6 +3,7 @@
 use App\Mail\MagicLinkMail;
 use App\Mail\SubmissionAcceptedMail;
 use App\Mail\SubmissionChangesRequestedMail;
+use App\Mail\ResubmissionReceivedMail;
 use App\Mail\SubmissionReceivedMail;
 use App\Mail\SubmissionRejectedMail;
 use App\Models\AuthToken;
@@ -31,6 +32,15 @@ Route::prefix('preview/mail')->group(function () {
         ]);
 
         return new SubmissionReceivedMail($thread);
+    });
+
+    Route::get('/resubmission-received', function () {
+        $thread = new Thread([
+            'name' => 'My Example Submission',
+            'id' => 1,
+        ]);
+
+        return new ResubmissionReceivedMail($thread);
     });
 
     Route::get('/submission-accepted', function () {

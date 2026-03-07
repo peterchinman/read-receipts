@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\ResubmissionReceivedMail;
+use App\Mail\SubmissionReceivedMail;
 use App\Models\Thread;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class ThreadControllerTest extends TestCase
@@ -17,6 +20,7 @@ class ThreadControllerTest extends TestCase
     {
         parent::setUp();
         $this->user = User::factory()->create();
+        Mail::fake();
     }
 
     public function test_submit_with_valid_payload(): void
@@ -53,6 +57,10 @@ class ThreadControllerTest extends TestCase
             'thread_id' => $thread->id,
             'event_type' => 'submitted',
         ]);
+
+        Mail::assertQueued(SubmissionReceivedMail::class, function ($mail) {
+            return $mail->hasTo($this->user->email);
+        });
     }
 
     public function test_submit_requires_authentication(): void
@@ -92,5 +100,51 @@ class ThreadControllerTest extends TestCase
         $this->assertNull($thread->name);
         $this->assertNull($thread->participants);
         $this->assertEquals('submitted', $thread->status);
+    }
+
+    public function test_resubmit_with_auth_user_queues_email(): void
+    {
+        $thread = Thread::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => 'changes_requested',
+            'edit_token' => 'some-edit-token',
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->postJson("/api/submit/{$thread->id}/resubmit", [
+                'messages' => [
+                    ['sender' => 'self', 'message' => 'Revised message'],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertJson(['message' => 'Resubmission received']);
+
+        Mail::assertQueued(ResubmissionReceivedMail::class, function ($mail) {
+            return $mail->hasTo($this->user->email);
+        });
+    }
+
+    public function test_resubmit_with_edit_token_queues_email(): void
+    {
+        $thread = Thread::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => 'changes_requested',
+            'edit_token' => 'secret-edit-token',
+        ]);
+
+        $response = $this->postJson("/api/submit/{$thread->id}/resubmit", [
+            'edit_token' => 'secret-edit-token',
+            'messages' => [
+                ['sender' => 'self', 'message' => 'Revised message'],
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['message' => 'Resubmission received']);
+
+        Mail::assertQueued(ResubmissionReceivedMail::class, function ($mail) {
+            return $mail->hasTo($this->user->email);
+        });
     }
 }

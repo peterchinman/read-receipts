@@ -30,7 +30,6 @@ class SubmissionReceivedMail extends Mailable
             view: 'emails.submission-received',
             with: [
                 'threadName' => $this->thread->displayName(),
-                'appName' => config('app.name'),
             ],
         );
     }
