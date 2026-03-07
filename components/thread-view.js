@@ -7,9 +7,13 @@ import { infoSvg } from './icons/info-svg.js';
 import { composeSvg } from './icons/compose-svg.js';
 import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 
-const isIOS =
-	/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const _ua = navigator.userAgent;
+const _vendor = navigator.vendor;
+const _isSafari =
+	!!_vendor && _vendor.includes('Apple') && !!_ua && !_ua.includes('CriOS') && !_ua.includes('FxiOS');
+const _isIOS =
+	/iPhone|iPod/.test(_ua) || /iPad/.test(_ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isSafariOrIOS = _isSafari || _isIOS;
 
 class ThreadDisplay extends HTMLElement {
 	static FLASH_DURATION_MS = 1500;
@@ -49,7 +53,7 @@ class ThreadDisplay extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.classList.toggle('ios', Boolean(isIOS));
+		this.classList.toggle('ios', Boolean(isSafariOrIOS));
 
 		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 		if (isTouch) this.classList.add('touch-screen');
@@ -1478,7 +1482,7 @@ class ThreadDisplay extends HTMLElement {
 	}
 
 	_scheduleIOSGradientSync() {
-		if (!isIOS) return;
+		if (!isSafariOrIOS) return;
 		const list = this.$?.messageList;
 		if (!list) return;
 		if (this._iosGradientSyncRafId)
