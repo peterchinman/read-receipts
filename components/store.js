@@ -58,6 +58,56 @@ const WELCOME_MESSAGES = [
 
 const DEFAULT_MESSAGES = [];
 
+// ===== Pure helper functions (exported for testing) =====
+
+export function parseDuration(isoDuration) {
+	const re =
+		/^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/;
+	const m = String(isoDuration || '').match(re);
+	if (!m) return 60000; // fallback: 1 min
+	// Use ?? 0 so unmatched optional groups (undefined) default to 0
+	// rather than NaN (which is what Number(undefined) produces)
+	const years  = Number(m[1] ?? 0);
+	const months = Number(m[2] ?? 0);
+	const days   = Number(m[3] ?? 0);
+	const hours  = Number(m[4] ?? 0);
+	const mins   = Number(m[5] ?? 0);
+	const secs   = Number(m[6] ?? 0);
+	return (
+		((years * 365 + months * 30 + days) * 86400 +
+			hours * 3600 +
+			mins * 60 +
+			secs) *
+		1000
+	);
+}
+
+export function computeTimestamps(thread) {
+	let cur = new Date(thread.initialMessageTime || new Date());
+	return thread.messages.map((m, i) => {
+		if (i > 0) cur = new Date(cur.getTime() + parseDuration(m.timeSincePrevious));
+		return cur.toISOString();
+	});
+}
+
+export function inferTimeSince(prevIso, curIso) {
+	const diffMs = Math.max(0, new Date(curIso) - new Date(prevIso));
+	const totalSecs = Math.round(diffMs / 1000);
+	if (totalSecs === 0) return 'PT1M'; // fallback
+	const days = Math.floor(totalSecs / 86400);
+	const hours = Math.floor((totalSecs % 86400) / 3600);
+	const mins = Math.floor((totalSecs % 3600) / 60);
+	const secs = totalSecs % 60;
+	let s = 'P';
+	if (days) s += `${days}D`;
+	// Only add T designator when there are time components
+	const timePart =
+		(hours ? `${hours}H` : '') + (mins ? `${mins}M` : '') + (secs ? `${secs}S` : '');
+	if (timePart) s += `T${timePart}`;
+	// s can't be bare 'P' here since totalSecs > 0
+	return s;
+}
+
 class ThreadStore extends EventTarget {
 	#threads = [];
 	#currentThreadId = null;
@@ -201,6 +251,7 @@ class ThreadStore extends EventTarget {
 			name: undefined, // No custom name initially
 			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
 			participants: JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS)),
+			initialMessageTime: new Date().toISOString(),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -219,6 +270,7 @@ class ThreadStore extends EventTarget {
 			name: `${this.getThreadDisplayName(original)} (Copy)`,
 			messages: JSON.parse(JSON.stringify(original.messages)), // Deep clone
 			participants: JSON.parse(JSON.stringify(original.participants || [])),
+			initialMessageTime: original.initialMessageTime || new Date().toISOString(),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			// Duplicated threads are always editable — never copy submittedAt or pendingAt
@@ -306,7 +358,11 @@ class ThreadStore extends EventTarget {
 	getMessages() {
 		const thread = this.getCurrentThread();
 		if (!thread) return [];
-		return thread.messages.slice();
+		return this.#getComputedMessages(thread);
+	}
+
+	getMessagesForThread(thread) {
+		return this.#getComputedMessages(thread);
 	}
 
 	addMessage(afterId) {
@@ -318,7 +374,7 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			sender: 'self',
 			message: '',
-			timestamp: new Date().toISOString(),
+			timeSincePrevious: 'PT1M',
 		};
 
 		if (!afterId) {
@@ -327,6 +383,11 @@ class ThreadStore extends EventTarget {
 			const idx = thread.messages.findIndex((m) => m.id === afterId);
 			if (idx === -1) thread.messages.push(msg);
 			else thread.messages.splice(idx + 1, 0, msg);
+		}
+
+		// If the new message ended up at index 0, it should not have timeSincePrevious
+		if (thread.messages[0] === msg) {
+			delete msg.timeSincePrevious;
 		}
 
 		thread.updatedAt = new Date().toISOString();
@@ -346,7 +407,18 @@ class ThreadStore extends EventTarget {
 		thread.messages[idx] = { ...thread.messages[idx], ...patch };
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
-		this.#emitChange('update', thread.messages[idx]);
+		const reason =
+			patch.timeSincePrevious !== undefined ? 'timesince-updated' : 'update';
+		this.#emitChange(reason, thread.messages[idx]);
+	}
+
+	updateInitialMessageTime(iso) {
+		const thread = this.getCurrentThread();
+		if (!thread || thread.submittedAt) return;
+		thread.initialMessageTime = iso;
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('timesince-updated');
 	}
 
 	deleteMessage(id) {
@@ -359,6 +431,12 @@ class ThreadStore extends EventTarget {
 		if (idx === -1) return;
 
 		const removed = thread.messages.splice(idx, 1)[0];
+
+		// If deleted message was first, new first should not have timeSincePrevious
+		if (idx === 0 && thread.messages.length > 0) {
+			delete thread.messages[0].timeSincePrevious;
+		}
+
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('delete', removed);
@@ -442,7 +520,7 @@ class ThreadStore extends EventTarget {
 
 		const payload = {
 			version: CURRENT_SCHEMA_VERSION,
-			messages: thread.messages,
+			messages: this.#getComputedMessages(thread),
 			participants: thread.participants || [],
 		};
 		return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
@@ -493,11 +571,21 @@ class ThreadStore extends EventTarget {
 			.filter(this.#isValidMessage.bind(this));
 
 		this.#ensureMessageIds(imported);
-		this.#ensureMessageTimestamps(imported);
+		this.#ensureTimeSincePrevious(imported);
+
+		// Extract initialMessageTime from first message's timestamp (if present)
+		const initialMessageTime =
+			imported[0]?.timestamp || new Date().toISOString();
+
+		// Remove timestamp fields — timestamps will be computed from initialMessageTime + timeSincePrevious
+		for (const m of imported) {
+			delete m.timestamp;
+		}
 
 		// Create a new thread for the imported data
 		const newThread = this.createThread();
 		newThread.messages = imported;
+		newThread.initialMessageTime = initialMessageTime;
 
 		if (importedParticipants && importedParticipants.length > 0) {
 			const p = importedParticipants[0];
@@ -534,14 +622,29 @@ class ThreadStore extends EventTarget {
 		delete thread.submittedAt;
 		delete thread.pendingAt;
 
-		// Populate messages with local IDs/timestamps
-		const messages = (backendThread.messages || []).map((m, i) => ({
+		// Populate messages with local IDs and raw timestamps for duration computation
+		const rawMessages = (backendThread.messages || []).map((m, i) => ({
 			id: this.#generateId(),
 			sender: m.sender,
 			message: m.message,
 			timestamp: m.timestamp || new Date(Date.now() + i * 1000).toISOString(),
 		}));
-		thread.messages = messages;
+
+		// Extract initialMessageTime from first message
+		thread.initialMessageTime =
+			rawMessages[0]?.timestamp || new Date().toISOString();
+
+		// Convert to timeSincePrevious model (no stored timestamps)
+		thread.messages = rawMessages.map((m, i) => {
+			const result = { id: m.id, sender: m.sender, message: m.message };
+			if (i > 0) {
+				result.timeSincePrevious = this.#inferTimeSince(
+					rawMessages[i - 1].timestamp,
+					m.timestamp,
+				);
+			}
+			return result;
+		});
 
 		// Populate participants
 		if (
@@ -577,14 +680,25 @@ class ThreadStore extends EventTarget {
 
 	// ===== Private Methods =====
 
+	#getComputedMessages(thread) {
+		const timestamps = computeTimestamps(thread);
+		return thread.messages.map((m, i) => ({ ...m, timestamp: timestamps[i] }));
+	}
+
+	#inferTimeSince(prevIso, curIso) {
+		return inferTimeSince(prevIso, curIso);
+	}
+
 	#createDefaultThread() {
+		const now = new Date();
 		return {
 			id: this.#generateId(),
 			name: undefined,
 			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
 			participants: JSON.parse(JSON.stringify(WELCOME_PARTICIPANTS)),
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
+			initialMessageTime: '2025-01-15T09:00:00.000Z',
+			createdAt: now.toISOString(),
+			updatedAt: now.toISOString(),
 		};
 	}
 
@@ -599,12 +713,18 @@ class ThreadStore extends EventTarget {
 	#emitChange(reason, message = null, threadId = null) {
 		const thread = this.getCurrentThread();
 		const p = thread?.participants?.[0];
+		const computedMessages = thread ? this.#getComputedMessages(thread) : [];
+		// Resolve message to its computed version (with timestamp)
+		const computedMessage =
+			message && message.id
+				? computedMessages.find((m) => m.id === message.id) || message
+				: message;
 		this.dispatchEvent(
 			new CustomEvent('messages:changed', {
 				detail: {
 					reason,
-					message,
-					messages: thread ? thread.messages.slice() : [],
+					message: computedMessage,
+					messages: computedMessages,
 					recipient: {
 						name: p?.full_name || '',
 						location: p?.location || '',
@@ -636,12 +756,11 @@ class ThreadStore extends EventTarget {
 	}
 
 	#withIdsAndTimestamps(arr) {
-		const now = Date.now();
 		return arr.map((m, i) => ({
 			id: this.#generateId(),
 			sender: m.sender === 'self' || m.sender === 'other' ? m.sender : 'self',
 			message: typeof m.message === 'string' ? m.message : '',
-			timestamp: new Date(now + i * 1000).toISOString(),
+			...(i > 0 && { timeSincePrevious: 'PT1M' }),
 		}));
 	}
 
@@ -685,27 +804,28 @@ class ThreadStore extends EventTarget {
 		return changed;
 	}
 
-	#ensureMessageTimestamps(messages) {
-		let changed = false;
-		const base = Date.now();
+	#ensureTimeSincePrevious(messages) {
 		for (let i = 0; i < messages.length; i++) {
 			const m = messages[i];
 			if (!m || typeof m !== 'object') continue;
-			if (!Object.prototype.hasOwnProperty.call(m, 'timestamp')) {
-				m.timestamp = new Date(base + i * 1000).toISOString();
-				changed = true;
+			if (i === 0) {
+				// First message must not have timeSincePrevious
+				delete m.timeSincePrevious;
 				continue;
 			}
-			if (
-				m.timestamp === undefined ||
-				m.timestamp === null ||
-				m.timestamp === ''
-			) {
-				m.timestamp = new Date(base + i * 1000).toISOString();
-				changed = true;
+			if (!m.timeSincePrevious) {
+				// Compute from timestamps if available, otherwise default to 1 min
+				const prev = messages[i - 1];
+				if (prev?.timestamp && m.timestamp) {
+					m.timeSincePrevious = this.#inferTimeSince(
+						prev.timestamp,
+						m.timestamp,
+					);
+				} else {
+					m.timeSincePrevious = 'PT1M';
+				}
 			}
 		}
-		return changed;
 	}
 }
 

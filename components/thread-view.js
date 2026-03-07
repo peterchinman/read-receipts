@@ -628,7 +628,7 @@ class ThreadDisplay extends HTMLElement {
 				}
 
 				/* Match the existing "no tail for consecutive messages" behavior. */
-				:host(.ios) .message-row.self:has(+ .self) .bubble.message::after {
+				:host(.ios) .message-row.self:has(+ .self.consecutive) .bubble.message::after {
 					display: none;
 				}
 

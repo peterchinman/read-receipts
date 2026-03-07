@@ -4,7 +4,16 @@ import './sender-switch.js';
 
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
-		return ['message-id', 'sender', 'timestamp', 'text', 'readonly', 'only'];
+		return [
+			'message-id',
+			'sender',
+			'timestamp',
+			'text',
+			'readonly',
+			'only',
+			'is-first',
+			'time-since-previous',
+		];
 	}
 
 	constructor() {
@@ -12,6 +21,7 @@ class MessageCard extends HTMLElement {
 		this.attachShadow({ mode: 'open' });
 		this._onClick = this._onClick.bind(this);
 		this._onInput = this._onInput.bind(this);
+		this._onChange = this._onChange.bind(this);
 		this._onKeyDown = this._onKeyDown.bind(this);
 		this._consecutiveEnters = 0;
 		this._lastEnterTime = 0;
@@ -60,7 +70,7 @@ class MessageCard extends HTMLElement {
 					overflow-wrap: break-word;
 					margin-top: calc(16rem / 14);
 				}
-				.date-display {
+				.initial-time-input {
 					all: unset;
 					height: min-content;
 					font: inherit;
@@ -68,17 +78,17 @@ class MessageCard extends HTMLElement {
 					cursor: pointer;
 					position: relative;
 				}
-				.date-display:not(:focus) {
+				.initial-time-input:not(:focus) {
 					color: transparent;
 				}
-				.date-display:focus {
+				.initial-time-input:focus {
 					color: var(--color-ink);
 					outline: none;
 				}
-				.date-display:hover:not(:focus) {
+				.initial-time-input:hover:not(:focus) {
 					color: transparent;
 				}
-				.date-display::before {
+				.initial-time-input::before {
 					position: absolute;
 					left: 0;
 					top: 0;
@@ -86,19 +96,33 @@ class MessageCard extends HTMLElement {
 					pointer-events: none;
 					color: var(--color-ink-subdued);
 				}
-				.date-display:hover::before {
+				.initial-time-input:hover::before {
 					color: var(--color-ink);
 				}
-				.date-display:focus::before {
+				.initial-time-input:focus::before {
 					display: none;
 				}
-				.date-display::-webkit-calendar-picker-indicator {
+				.initial-time-input::-webkit-calendar-picker-indicator {
 					opacity: 0;
 					position: absolute;
 					width: 100%;
 					height: 100%;
 					cursor: pointer;
 					z-index: 1;
+				}
+				.date-text {
+					font-size: calc(12rem / 14);
+					color: var(--color-ink-subdued);
+				}
+				.time-since-select {
+					all: unset;
+					font: inherit;
+					font-size: calc(12rem / 14);
+					cursor: pointer;
+					color: var(--color-ink-subdued);
+				}
+				.time-since-select:hover {
+					color: var(--color-ink);
 				}
 				.actions {
 					display: none;
@@ -142,8 +166,14 @@ class MessageCard extends HTMLElement {
 						<input
 							part="date-input"
 							type="datetime-local"
-							class="date-display"
+							class="initial-time-input"
 						/>
+						<span class="date-text"></span>
+						<select class="time-since-select" data-tooltip="Time since previous message">
+							<option value="PT1M">1 min</option>
+							<option value="PT1H">1 hour</option>
+							<option value="P1D">1 day</option>
+						</select>
 					</div>
 					<div class="right">
 						<div class="actions">
@@ -218,6 +248,7 @@ class MessageCard extends HTMLElement {
 		`;
 		this.shadowRoot.addEventListener('click', this._onClick);
 		this.shadowRoot.addEventListener('input', this._onInput);
+		this.shadowRoot.addEventListener('change', this._onChange);
 		this.shadowRoot.addEventListener('keydown', this._onKeyDown);
 
 		// Listen for changes on the sender switch
@@ -240,13 +271,15 @@ class MessageCard extends HTMLElement {
 		});
 
 		// Setup tooltip positioning for action buttons
-		initTooltips(this.shadowRoot, this);
+		this._cleanupTooltips = initTooltips(this.shadowRoot, this);
 	}
 
 	disconnectedCallback() {
 		this.shadowRoot.removeEventListener('click', this._onClick);
 		this.shadowRoot.removeEventListener('input', this._onInput);
+		this.shadowRoot.removeEventListener('change', this._onChange);
 		this.shadowRoot.removeEventListener('keydown', this._onKeyDown);
+		this._cleanupTooltips?.();
 	}
 
 	attributeChangedCallback(name) {
@@ -268,24 +301,20 @@ class MessageCard extends HTMLElement {
 	get timestamp() {
 		return this.getAttribute('timestamp') || '';
 	}
+	get isFirst() {
+		return this.hasAttribute('is-first');
+	}
+	get timeSincePrevious() {
+		return this.getAttribute('time-since-previous') || 'PT1M';
+	}
 
 	#formatDate(iso) {
 		if (!iso) return '';
 		try {
 			const d = new Date(iso);
 			const months = [
-				'Jan',
-				'Feb',
-				'Mar',
-				'Apr',
-				'May',
-				'Jun',
-				'Jul',
-				'Aug',
-				'Sep',
-				'Oct',
-				'Nov',
-				'Dec',
+				'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+				'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 			];
 			const month = months[d.getMonth()];
 			const day = d.getDate();
@@ -293,8 +322,7 @@ class MessageCard extends HTMLElement {
 			let hours = d.getHours();
 			const minutes = d.getMinutes();
 			const ampm = hours >= 12 ? 'pm' : 'am';
-			hours = hours % 12;
-			hours = hours ? hours : 12; // the hour '0' should be '12'
+			hours = hours % 12 || 12;
 			const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
 			return `${month} ${day}, ${year} ${hours}:${minutesStr}${ampm}`;
 		} catch (_e) {
@@ -321,9 +349,10 @@ class MessageCard extends HTMLElement {
 	#syncFromAttrs() {
 		const textarea = this.shadowRoot.querySelector('textarea');
 		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
-		const dateInput = this.shadowRoot.querySelector(
-			'input[type="datetime-local"]',
-		);
+		const dateInput = this.shadowRoot.querySelector('.initial-time-input');
+		const dateText = this.shadowRoot.querySelector('.date-text');
+		const timeSinceSelect = this.shadowRoot.querySelector('.time-since-select');
+
 		if (textarea && textarea.value !== this.text) {
 			textarea.value = this.text;
 			this.#resizeTextarea(textarea);
@@ -337,29 +366,41 @@ class MessageCard extends HTMLElement {
 				senderSwitch.checked = isSelf;
 			}
 		}
-		if (dateInput) {
-			// Convert ISO to local datetime-local format safely
-			const iso = this.timestamp;
-			try {
-				if (iso) {
-					const d = new Date(iso);
-					const pad = (n) => String(n).padStart(2, '0');
-					const v = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-					dateInput.value = v;
-				} else {
+
+		if (this.isFirst) {
+			if (dateInput) dateInput.style.display = '';
+			if (dateText) dateText.style.display = 'none';
+			if (timeSinceSelect) timeSinceSelect.style.display = 'none';
+
+			// Set the datetime-local value from timestamp (= initialMessageTime for first card)
+			if (dateInput) {
+				const iso = this.timestamp;
+				try {
+					if (iso) {
+						const d = new Date(iso);
+						const pad = (n) => String(n).padStart(2, '0');
+						const v = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+						dateInput.value = v;
+					} else {
+						dateInput.value = '';
+					}
+				} catch (_e) {
 					dateInput.value = '';
 				}
-			} catch (_e) {
-				dateInput.value = '';
+				this.#updateDateDisplay(dateInput);
 			}
-			// Set the display value to formatted text
-			this.#updateDateDisplay(dateInput);
+		} else {
+			if (dateInput) dateInput.style.display = 'none';
+			if (dateText) dateText.style.display = 'none';
+			if (timeSinceSelect) timeSinceSelect.style.display = '';
+
+			if (timeSinceSelect) {
+				timeSinceSelect.value = this.timeSincePrevious;
+			}
 		}
 	}
 
 	#updateDateDisplay(dateInput) {
-		// Use a data attribute or title to store the formatted text
-		// We'll use CSS to show the formatted text
 		const iso = dateInput.value
 			? new Date(dateInput.value).toISOString()
 			: this.timestamp;
@@ -372,7 +413,8 @@ class MessageCard extends HTMLElement {
 		const isReadOnly = this.hasAttribute('readonly');
 		const textarea = this.shadowRoot?.querySelector('textarea');
 		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
-		const dateInput = this.shadowRoot?.querySelector('input[type="datetime-local"]');
+		const dateInput = this.shadowRoot?.querySelector('.initial-time-input');
+		const timeSinceSelect = this.shadowRoot?.querySelector('.time-since-select');
 		const deleteBtn = this.shadowRoot?.querySelector('[part="delete"]');
 		const addBelowBtn = this.shadowRoot?.querySelector('[part="add-below"]');
 		const insertImageBtn = this.shadowRoot?.querySelector('[part="insert-image"]');
@@ -383,6 +425,7 @@ class MessageCard extends HTMLElement {
 			else senderSwitch.removeAttribute('disabled');
 		}
 		if (dateInput) dateInput.disabled = isReadOnly;
+		if (timeSinceSelect) timeSinceSelect.disabled = isReadOnly;
 		const isOnly = this.hasAttribute('only');
 		if (deleteBtn) deleteBtn.style.display = (isReadOnly || isOnly) ? 'none' : '';
 		if (addBelowBtn) addBelowBtn.style.display = isReadOnly ? 'none' : '';
@@ -458,14 +501,25 @@ class MessageCard extends HTMLElement {
 				id: this.messageId,
 				patch: { message: target.value },
 			});
-		} else if (target.matches('input[type="datetime-local"]')) {
+		} else if (target.matches('.initial-time-input')) {
 			const value = target.value;
 			const iso = value ? new Date(value).toISOString() : null;
 			this.#emit('editor:update', {
 				id: this.messageId,
-				patch: { timestamp: iso },
+				patch: { initialTime: iso },
 			});
 			this.#updateDateDisplay(target);
+		}
+	}
+
+	_onChange(e) {
+		if (this.hasAttribute('readonly')) return;
+		const target = e.target;
+		if (target && target.matches('select.time-since-select')) {
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { timeSincePrevious: target.value },
+			});
 		}
 	}
 
@@ -493,9 +547,11 @@ class MessageCard extends HTMLElement {
 		if (
 			e.target.matches('textarea') ||
 			e.target.matches('input') ||
+			e.target.matches('select') ||
 			e.target.matches('sender-switch') ||
 			e.target.closest('textarea') ||
 			e.target.closest('input') ||
+			e.target.closest('select') ||
 			e.target.closest('sender-switch')
 		) {
 			return;

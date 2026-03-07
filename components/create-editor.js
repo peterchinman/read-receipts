@@ -364,7 +364,7 @@ class ChatEditor extends HTMLElement {
 		this.#syncSubmitButton(currentThread);
 		this.#syncAdminNotes(currentThread);
 		this.#render(store.getMessages());
-		initTooltips(this.shadowRoot, this);
+		this._cleanupTooltips = initTooltips(this.shadowRoot, this);
 
 		this.#syncReadOnlyState();
 		this.#syncAuthorInfoMode(currentThread);
@@ -402,6 +402,7 @@ class ChatEditor extends HTMLElement {
 				this._onRecipientInput,
 			);
 		}
+		this._cleanupTooltips?.();
 		if (this._headerObserver) {
 			this._headerObserver.disconnect();
 			this._headerObserver = null;
@@ -564,7 +565,7 @@ class ChatEditor extends HTMLElement {
 		const payload = {
 			name: currentThread.name,
 			participants: currentThread.participants || [],
-			messages: currentThread.messages
+			messages: store.getMessages()
 				.filter((m) => m.message?.trim() || m.images?.length)
 				.map((m) => ({
 					sender: m.sender,
@@ -673,7 +674,7 @@ class ChatEditor extends HTMLElement {
 			const payload = {
 				name: thread.name,
 				participants: thread.participants || [],
-				messages: thread.messages
+				messages: store.getMessagesForThread(thread)
 					.filter((m) => m.message?.trim() || m.images?.length)
 					.map((m) => ({
 						sender: m.sender,
@@ -747,6 +748,9 @@ class ChatEditor extends HTMLElement {
 				break;
 			case 'delete':
 				this.#onDelete(message);
+				break;
+			case 'timesince-updated':
+				this.#render(messages);
 				break;
 			case 'recipient':
 				// No-op: we already synced inputs above; avoid rerendering cards while typing.
@@ -909,7 +913,11 @@ class ChatEditor extends HTMLElement {
 		if (store.isCurrentThreadSubmitted()) return;
 		const { id, patch } = e.detail || {};
 		if (e.type === 'editor:update' && id && patch) {
-			store.updateMessage(id, patch);
+			if (patch.initialTime !== undefined) {
+				store.updateInitialMessageTime(patch.initialTime);
+			} else {
+				store.updateMessage(id, patch);
+			}
 		} else if (e.type === 'editor:delete' && id) {
 			store.deleteMessage(id);
 		} else if (e.type === 'editor:add-below' && id) {
@@ -975,7 +983,7 @@ class ChatEditor extends HTMLElement {
 		return card;
 	}
 
-	#updateCardAttrs(card, m) {
+	#updateCardAttrs(card, m, isFirst = false) {
 		const ensureAttr = (el, name, value) => {
 			if (value == null || value === '') {
 				if (el.hasAttribute(name)) el.removeAttribute(name);
@@ -985,10 +993,27 @@ class ChatEditor extends HTMLElement {
 				el.setAttribute(name, value);
 			}
 		};
+		if (isFirst) card.setAttribute('is-first', '');
+		else card.removeAttribute('is-first');
+		ensureAttr(
+			card,
+			'time-since-previous',
+			isFirst ? '' : m.timeSincePrevious || 'PT1M',
+		);
 		const textValue = typeof m.message === 'string' ? m.message : '';
 		ensureAttr(card, 'sender', m.sender || 'self');
 		ensureAttr(card, 'timestamp', m.timestamp || '');
 		ensureAttr(card, 'text', textValue);
+	}
+
+	#syncFirstCardAttr() {
+		const cards = [
+			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
+		];
+		cards.forEach((card, i) => {
+			if (i === 0) card.setAttribute('is-first', '');
+			else card.removeAttribute('is-first');
+		});
 	}
 
 	#insertCardAtIndex(card, index) {
@@ -1013,8 +1038,9 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 		const card = this.#ensureCardForMessage(message);
-		this.#updateCardAttrs(card, message);
+		this.#updateCardAttrs(card, message, index === 0);
 		this.#insertCardAtIndex(card, index);
+		this.#syncFirstCardAttr();
 		this.#syncDeleteButtons();
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
@@ -1028,13 +1054,16 @@ class ChatEditor extends HTMLElement {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (!card) return;
-		this.#updateCardAttrs(card, message);
+		const cards = this.shadowRoot?.querySelectorAll('.editor-card');
+		const isFirst = cards && cards.length > 0 && cards[0] === card;
+		this.#updateCardAttrs(card, message, isFirst);
 	}
 
 	#onDelete(message) {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (card && card.remove) card.remove();
+		this.#syncFirstCardAttr();
 		this.#syncDeleteButtons();
 	}
 
@@ -1086,6 +1115,14 @@ class ChatEditor extends HTMLElement {
 			if (card !== referenceNode) {
 				cardsList.insertBefore(card, referenceNode);
 			}
+			const isFirst = index === 0;
+			if (isFirst) card.setAttribute('is-first', '');
+			else card.removeAttribute('is-first');
+			ensureAttr(
+				card,
+				'time-since-previous',
+				isFirst ? '' : m.timeSincePrevious || 'PT1M',
+			);
 			const textValue = typeof m.message === 'string' ? m.message : '';
 			ensureAttr(card, 'sender', m.sender || 'self');
 			ensureAttr(card, 'timestamp', m.timestamp || '');

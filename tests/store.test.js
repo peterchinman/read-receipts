@@ -5,6 +5,9 @@ import {
 	ThreadStore,
 	THREADS_STORAGE_KEY,
 	CURRENT_SCHEMA_VERSION,
+	parseDuration,
+	computeTimestamps,
+	inferTimeSince,
 } from '../components/store.js';
 
 function createLocalStorageMock() {
@@ -950,4 +953,169 @@ test('importFromBackend() updates existing thread on second changes-requested cy
 		'should reflect the most recent admin notes');
 	assert.equal(thread2.submittedAt, undefined,
 		'submittedAt should be cleared so user can edit again');
+});
+
+// ===== parseDuration() Tests =====
+
+test('parseDuration: basic units', () => {
+	assert.equal(parseDuration('PT1M'), 60_000, '1 minute');
+	assert.equal(parseDuration('PT1H'), 3_600_000, '1 hour');
+	assert.equal(parseDuration('P1D'), 86_400_000, '1 day');
+	assert.equal(parseDuration('PT30S'), 30_000, '30 seconds');
+	assert.equal(parseDuration('PT0S'), 0, '0 seconds');
+});
+
+test('parseDuration: compound durations', () => {
+	assert.equal(parseDuration('PT1H30M'), 5_400_000, '1 hour 30 min');
+	assert.equal(parseDuration('P1DT2H'), 86_400_000 + 7_200_000, '1 day 2 hours');
+	assert.equal(parseDuration('P1DT1H1M1S'), 86_400_000 + 3_600_000 + 60_000 + 1_000, '1D1H1M1S');
+});
+
+test('parseDuration: years and months use approximate day counts', () => {
+	assert.equal(parseDuration('P1Y'), 365 * 86_400_000, '1 year = 365 days');
+	assert.equal(parseDuration('P1M'), 30 * 86_400_000, '1 month = 30 days');
+});
+
+test('parseDuration: fractional seconds', () => {
+	assert.equal(parseDuration('PT1.5S'), 1_500, '1.5 seconds');
+});
+
+test('parseDuration: invalid string falls back to 1 minute', () => {
+	assert.equal(parseDuration('not-a-duration'), 60_000, 'garbage input');
+	assert.equal(parseDuration(''), 60_000, 'empty string');
+	assert.equal(parseDuration(null), 60_000, 'null');
+	assert.equal(parseDuration(undefined), 60_000, 'undefined');
+});
+
+// ===== inferTimeSince() Tests =====
+
+test('inferTimeSince: exactly 1 minute', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = '2024-01-01T00:01:00.000Z';
+	assert.equal(inferTimeSince(prev, cur), 'PT1M');
+});
+
+test('inferTimeSince: exactly 1 hour', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = '2024-01-01T01:00:00.000Z';
+	assert.equal(inferTimeSince(prev, cur), 'PT1H');
+});
+
+test('inferTimeSince: exactly 1 day', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = '2024-01-02T00:00:00.000Z';
+	assert.equal(inferTimeSince(prev, cur), 'P1D');
+});
+
+test('inferTimeSince: mixed units', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = '2024-01-02T01:30:00.000Z';  // 1 day 1 hour 30 min
+	assert.equal(inferTimeSince(prev, cur), 'P1DT1H30M');
+});
+
+test('inferTimeSince: with leftover seconds', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = '2024-01-01T00:01:45.000Z';  // 1 min 45 sec
+	assert.equal(inferTimeSince(prev, cur), 'PT1M45S');
+});
+
+test('inferTimeSince: zero diff falls back to PT1M', () => {
+	const ts = '2024-01-01T00:00:00.000Z';
+	assert.equal(inferTimeSince(ts, ts), 'PT1M');
+});
+
+test('inferTimeSince: negative diff clamps to PT1M', () => {
+	const prev = '2024-01-01T01:00:00.000Z';
+	const cur  = '2024-01-01T00:00:00.000Z';  // earlier than prev
+	assert.equal(inferTimeSince(prev, cur), 'PT1M');
+});
+
+test('inferTimeSince: round-trips with parseDuration (1 min)', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = new Date(new Date(prev).getTime() + parseDuration('PT1M')).toISOString();
+	assert.equal(inferTimeSince(prev, cur), 'PT1M');
+});
+
+test('inferTimeSince: round-trips with parseDuration (1 day 2 hours)', () => {
+	const prev = '2024-01-01T00:00:00.000Z';
+	const cur  = new Date(new Date(prev).getTime() + parseDuration('P1DT2H')).toISOString();
+	assert.equal(inferTimeSince(prev, cur), 'P1DT2H');
+});
+
+// ===== computeTimestamps() Tests =====
+
+test('computeTimestamps: single message returns initialMessageTime', () => {
+	const thread = {
+		initialMessageTime: '2024-06-01T12:00:00.000Z',
+		messages: [{ id: 'a', sender: 'self', message: 'hi' }],
+	};
+	const stamps = computeTimestamps(thread);
+	assert.equal(stamps.length, 1);
+	assert.equal(stamps[0], '2024-06-01T12:00:00.000Z');
+});
+
+test('computeTimestamps: multiple messages offset by timeSincePrevious', () => {
+	const base = '2024-06-01T12:00:00.000Z';
+	const thread = {
+		initialMessageTime: base,
+		messages: [
+			{ id: 'a', sender: 'self',  message: 'first' },
+			{ id: 'b', sender: 'other', message: 'second', timeSincePrevious: 'PT1M' },
+			{ id: 'c', sender: 'self',  message: 'third',  timeSincePrevious: 'PT1H' },
+		],
+	};
+	const stamps = computeTimestamps(thread);
+	assert.equal(stamps[0], base);
+	assert.equal(stamps[1], '2024-06-01T12:01:00.000Z');
+	assert.equal(stamps[2], '2024-06-01T13:01:00.000Z');
+});
+
+test('computeTimestamps: falls back to now when initialMessageTime is missing', () => {
+	const before = Date.now();
+	const thread = {
+		messages: [{ id: 'a', sender: 'self', message: 'hi' }],
+	};
+	const stamps = computeTimestamps(thread);
+	const after = Date.now();
+	const ts = new Date(stamps[0]).getTime();
+	assert.ok(ts >= before && ts <= after, 'timestamp should be approximately now');
+});
+
+test('computeTimestamps: invalid timeSincePrevious falls back to 1 min', () => {
+	const base = '2024-06-01T12:00:00.000Z';
+	const thread = {
+		initialMessageTime: base,
+		messages: [
+			{ id: 'a', sender: 'self',  message: 'first' },
+			{ id: 'b', sender: 'other', message: 'second', timeSincePrevious: 'BOGUS' },
+		],
+	};
+	const stamps = computeTimestamps(thread);
+	assert.equal(stamps[1], '2024-06-01T12:01:00.000Z', 'falls back to 1 min');
+});
+
+// ===== getMessages() integration (exercises #getComputedMessages) =====
+
+test('getMessages() returns computed timestamps for each message', async () => {
+	globalThis.localStorage.clear();
+	const s = new ThreadStore();
+	s.load();
+
+	// Clear default messages and start fresh
+	s.clear();
+	const base = '2024-06-01T12:00:00.000Z';
+	s.updateInitialMessageTime(base);
+
+	const m1 = s.addMessage();
+	s.updateMessage(m1.id, { message: 'first' });
+	const m2 = s.addMessage(m1.id);
+	s.updateMessage(m2.id, { message: 'second', timeSincePrevious: 'PT1H' });
+
+	const msgs = s.getMessages();
+	assert.equal(msgs[0].timestamp, base, 'first message = initialMessageTime');
+	assert.equal(msgs[1].timestamp, '2024-06-01T13:00:00.000Z', 'second = base + 1 hour');
+	// Raw stored messages should not have timestamps
+	const raw = s.getCurrentThread().messages;
+	assert.equal(raw[0].timestamp, undefined, 'raw first message has no timestamp');
+	assert.equal(raw[1].timestamp, undefined, 'raw second message has no timestamp');
 });

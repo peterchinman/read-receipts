@@ -326,18 +326,15 @@ export function initTooltips(root = document, hostElement = null) {
 			if (!_touchActive) showTooltipForElement(e.currentTarget);
 		});
 		element.addEventListener('mouseleave', () => hideTooltip());
-		element.addEventListener('focus', (e) => {
-			if (e.currentTarget.matches(':focus-visible')) {
-				showTooltipForElement(e.currentTarget);
-			}
-		});
-		element.addEventListener('blur', () => hideTooltip());
 	});
 	// Keep positioned when viewport moves
 	const onReposition = () => {
 		if (!activeTarget) return;
 		positionTooltip(activeTarget);
 	};
-	window.addEventListener('scroll', onReposition, true);
-	window.addEventListener('resize', onReposition, { passive: true });
+	const ac = new AbortController();
+	const { signal } = ac;
+	window.addEventListener('scroll', onReposition, { capture: true, signal });
+	window.addEventListener('resize', onReposition, { passive: true, signal });
+	return () => ac.abort();
 }

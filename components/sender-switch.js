@@ -84,7 +84,11 @@ class SenderSwitch extends HTMLElement {
 			checkbox.addEventListener('change', this._onChange);
 			this.#syncFromAttr();
 		}
-		initTooltips(this.shadowRoot, this);
+		this._cleanupTooltips = initTooltips(this.shadowRoot, this);
+	}
+
+	disconnectedCallback() {
+		this._cleanupTooltips?.();
 	}
 
 	attributeChangedCallback(name) {
