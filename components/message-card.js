@@ -454,10 +454,11 @@ class MessageCard extends HTMLElement {
 				const cardRect = this.getBoundingClientRect();
 				const headerHeight = parseFloat(
 					getComputedStyle(this).getPropertyValue('--editor-header-height'),
-        );
-        const BUFFER = 16;
+				);
+				const BUFFER = 16;
 				console.log('headerHeight', headerHeight);
-				cardsList.scrollTop += cardRect.top - cardsListRect.top - headerHeight - BUFFER;
+				cardsList.scrollTop +=
+					cardRect.top - cardsListRect.top - headerHeight - BUFFER;
 			}
 		}
 	}
@@ -718,11 +719,6 @@ class MessageCard extends HTMLElement {
 				this.#emit('editor:insert-image', { id: this.messageId });
 				return;
 			}
-			return;
-		}
-
-		if (e.target.matches('textarea')) {
-			this.scrollCardToTopOnIOS();
 			return;
 		}
 

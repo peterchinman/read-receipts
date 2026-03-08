@@ -30,10 +30,3 @@ export function initIOSViewport() {
 		previousViewportHeight = newViewportHeight;
 	});
 }
-
-document.addEventListener('ios-viewport:keyboard-appearing', () => {
-	console.log('keyboard shown');
-});
-document.addEventListener('ios-viewport:keyboard-hidden', () => {
-	console.log('keyboard hidden');
-});
