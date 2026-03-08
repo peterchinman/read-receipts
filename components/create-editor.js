@@ -565,7 +565,8 @@ class ChatEditor extends HTMLElement {
 		const payload = {
 			name: currentThread.name,
 			participants: currentThread.participants || [],
-			messages: store.getMessages()
+			messages: store
+				.getMessages()
 				.filter((m) => m.message?.trim() || m.images?.length)
 				.map((m) => ({
 					sender: m.sender,
@@ -598,8 +599,16 @@ class ChatEditor extends HTMLElement {
 					title: 'Confirm Submission',
 					body: `The current email address we have for you is: ${email}. If that is correct, please submit. If not, you can edit it.`,
 					buttons: [
-						{ label: 'Edit Email', value: 'edit-email', style: dialogCancelButtonStyle },
-						{ label: 'Submit', value: 'submit', style: dialogConfirmButtonStyle },
+						{
+							label: 'Edit Email',
+							value: 'edit-email',
+							style: dialogCancelButtonStyle,
+						},
+						{
+							label: 'Submit',
+							value: 'submit',
+							style: dialogConfirmButtonStyle,
+						},
 					],
 				});
 				if (confirm === 'edit-email') {
@@ -617,7 +626,9 @@ class ChatEditor extends HTMLElement {
 				if (isResubmit) {
 					await apiClient.resubmitThread(currentThread.backendId, {
 						...payload,
-						...(currentThread.editToken && { edit_token: currentThread.editToken }),
+						...(currentThread.editToken && {
+							edit_token: currentThread.editToken,
+						}),
 					});
 					delete currentThread.adminNotes;
 					delete currentThread.editToken;
@@ -674,7 +685,8 @@ class ChatEditor extends HTMLElement {
 			const payload = {
 				name: thread.name,
 				participants: thread.participants || [],
-				messages: store.getMessagesForThread(thread)
+				messages: store
+					.getMessagesForThread(thread)
 					.filter((m) => m.message?.trim() || m.images?.length)
 					.map((m) => ({
 						sender: m.sender,
@@ -1046,7 +1058,7 @@ class ChatEditor extends HTMLElement {
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
 			if (card && typeof card.focus === 'function') {
-				card.focus();
+				card.focusTextarea();
 			}
 		});
 	}
@@ -1165,8 +1177,11 @@ class ChatEditor extends HTMLElement {
 		const recipientNameInput = this.$?.recipientNameInput;
 		const recipientLocationInput = this.$?.recipientLocationInput;
 
-		const threadInfoEditor = this.shadowRoot?.getElementById('thread-info-editor');
-		const recipientInfoEditor = this.shadowRoot?.getElementById('recipient-info-editor');
+		const threadInfoEditor =
+			this.shadowRoot?.getElementById('thread-info-editor');
+		const recipientInfoEditor = this.shadowRoot?.getElementById(
+			'recipient-info-editor',
+		);
 
 		if (!thread?.authorInfoMode) {
 			// Restore hidden buttons and editors
@@ -1254,8 +1269,12 @@ class ChatEditor extends HTMLElement {
 		const thread = store.getCurrentThread();
 		if (!thread?.authorInfoToken || btn?.disabled) return;
 
-		const platform = this.shadowRoot.getElementById('ai-platform')?.value?.trim();
-		const username = this.shadowRoot.getElementById('ai-username')?.value?.trim();
+		const platform = this.shadowRoot
+			.getElementById('ai-platform')
+			?.value?.trim();
+		const username = this.shadowRoot
+			.getElementById('ai-username')
+			?.value?.trim();
 		if (!platform || !username) {
 			await showDialog({
 				title: 'Required fields missing',
@@ -1276,7 +1295,11 @@ class ChatEditor extends HTMLElement {
 		};
 
 		try {
-			await apiClient.submitAuthorInfo(thread.backendId, thread.authorInfoToken, data);
+			await apiClient.submitAuthorInfo(
+				thread.backendId,
+				thread.authorInfoToken,
+				data,
+			);
 			thread.authorInfoSubmitted = true;
 			store.save();
 			this.#syncAuthorInfoMode(thread);

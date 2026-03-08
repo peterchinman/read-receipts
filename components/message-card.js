@@ -199,12 +199,13 @@ class MessageCard extends HTMLElement {
 						color: var(--color-ink-subdued);
 					}
 				}
+				:host(:hover) .actions,
 				:host(.focused) .actions {
 					display: flex;
 				}
 				.delete-button {
 					all: unset;
-					display: flex;
+					display: none;
 					justify-content: center;
 					align-items: center;
 					width: var(--button-size);
@@ -215,6 +216,10 @@ class MessageCard extends HTMLElement {
 					svg {
 						padding: calc(var(--button-size) / 8);
 					}
+				}
+				:host(:hover) .delete-button,
+				:host(.focused) .delete-button {
+					display: flex;
 				}
 				.insert-image-button {
 					display: none !important;
@@ -428,12 +433,9 @@ class MessageCard extends HTMLElement {
 		textarea.style.height = `${textarea.scrollHeight}px`;
 	}
 
-	focus() {
+	focusTextarea() {
 		const textarea = this.shadowRoot.querySelector('textarea');
 		if (textarea) {
-			// Scroll the card into view first
-			this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-			// Then focus the textarea
 			textarea.focus();
 		}
 	}
@@ -670,7 +672,7 @@ class MessageCard extends HTMLElement {
 		}
 	}
 
-	_onClick(e) {
+  _onClick(e) {
 		if (this.hasAttribute('readonly')) return;
 		const button = e.target.closest('button');
 		if (button && button.classList.contains('exact-time-reset')) {
@@ -712,12 +714,7 @@ class MessageCard extends HTMLElement {
 		}
 
 		// Clicking anywhere else in the card should focus the textarea
-		const textarea = this.shadowRoot.querySelector('textarea');
-		if (textarea) {
-			setTimeout(() => {
-				textarea.focus();
-			}, 0);
-		}
+		this.focusTextarea();
 	}
 
 	#emit(type, detail) {

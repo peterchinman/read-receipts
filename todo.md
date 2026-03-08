@@ -2,13 +2,6 @@
 
 ### BEFORE RELEASE
 
-- [ ] Fully test admin approval flows.
-  - [ ] make sure Submission magic link only works once
-  - [ ] Does Changes Request link expire? It shouldn't. BUT! it also shouldn't work if there is a newer Changes Requested for the "same" piece. How is this tracked.
-  - [ ] Does Changes Requested link work multiple times? It should.
-- [ ] Figure out how I want to handle date/time for message schema / thread editor.
-  - [ ] Menu where uses pick "Time since last message"?
-    - [ ] With options: 5 minute, 1 hr, 24. Corresponding to short margin, big margin, day break
 - [ ] Display date in Preview, new "system message" class type
   - [ ] Should we allow Users to write to this type as "Stage Directions"??
 
