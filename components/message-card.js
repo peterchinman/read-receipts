@@ -1,6 +1,7 @@
 import { html } from '../utils/template.js';
 import { initTooltips } from '../utils/tooltip.js';
 import './sender-switch.js';
+import { isIOS } from '../utils/ios-viewport.js';
 
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
@@ -35,6 +36,8 @@ class MessageCard extends HTMLElement {
 			navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
 		const metaKey = isMac ? '⌘' : 'Ctrl';
 
+		if (isIOS) this.classList.add('ios');
+
 		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
@@ -47,6 +50,9 @@ class MessageCard extends HTMLElement {
 					font-size: 14px;
 					line-height: var(--line-height);
 					background: var(--color-page);
+				}
+				:host(.ios) .card:focus-within {
+					border-color: var(--color-bubble-self);
 				}
 				.row {
 					display: flex;
@@ -440,6 +446,22 @@ class MessageCard extends HTMLElement {
 		}
 	}
 
+	scrollCardToTopOnIOS() {
+		if (isIOS) {
+			const cardsList = this.closest('.cards-list');
+			if (cardsList) {
+				const cardsListRect = cardsList.getBoundingClientRect();
+				const cardRect = this.getBoundingClientRect();
+				const headerHeight = parseFloat(
+					getComputedStyle(this).getPropertyValue('--editor-header-height'),
+        );
+        const BUFFER = 16;
+				console.log('headerHeight', headerHeight);
+				cardsList.scrollTop += cardRect.top - cardsListRect.top - headerHeight - BUFFER;
+			}
+		}
+	}
+
 	#syncFromAttrs() {
 		const textarea = this.shadowRoot.querySelector('textarea');
 		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
@@ -672,7 +694,7 @@ class MessageCard extends HTMLElement {
 		}
 	}
 
-  _onClick(e) {
+	_onClick(e) {
 		if (this.hasAttribute('readonly')) return;
 		const button = e.target.closest('button');
 		if (button && button.classList.contains('exact-time-reset')) {
@@ -699,14 +721,15 @@ class MessageCard extends HTMLElement {
 			return;
 		}
 
-		// If clicking on a focusable element (textarea, input) or sender-switch, don't interfere
+		if (e.target.matches('textarea')) {
+			this.scrollCardToTopOnIOS();
+			return;
+		}
+
+		// If clicking on an interactable element, don't interfere
 		if (
-			e.target.matches('textarea') ||
-			e.target.matches('input') ||
 			e.target.matches('select') ||
 			e.target.matches('sender-switch') ||
-			e.target.closest('textarea') ||
-			e.target.closest('input') ||
 			e.target.closest('select') ||
 			e.target.closest('sender-switch')
 		) {
@@ -714,6 +737,7 @@ class MessageCard extends HTMLElement {
 		}
 
 		// Clicking anywhere else in the card should focus the textarea
+		this.scrollCardToTopOnIOS();
 		this.focusTextarea();
 	}
 

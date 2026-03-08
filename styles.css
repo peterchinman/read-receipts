@@ -154,6 +154,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 html {
 	font-size: var(--font-size);
+	overflow: hidden;
 
 	--pane-gap: clamp(1rem, 1.5vw, calc(36rem / 14));
 }

@@ -7,6 +7,7 @@ import { MQ } from '../utils/breakpoints.js';
 import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 import { authState } from './auth-state.js';
 import { apiClient } from '../utils/api-client.js';
+import { isIOS } from '../utils/ios-viewport.js';
 import {
 	createDialog,
 	showDialog,
@@ -90,7 +91,7 @@ class ChatEditor extends HTMLElement {
 				}
 
 				/* Hide Threads arrow at desktop (1200px+) since all panes are visible */
-				@media ${MQ.desktop} {
+				@media ${MQ.desktop}		 {
 					.editor-header icon-arrow:not([arrow-right]) {
 						display: none;
 					}
@@ -109,6 +110,9 @@ class ChatEditor extends HTMLElement {
 					overflow: auto;
 					padding: 12px;
 					padding-top: calc(12px + var(--editor-header-height, 0px));
+				}
+				:host(.ios) .cards-list {
+					padding-bottom: 100dvh;
 				}
 				.info-editor {
 					border: 1px solid var(--color-edge);
@@ -270,6 +274,8 @@ class ChatEditor extends HTMLElement {
 				/>
 			</div>
 		`;
+
+		if (isIOS) this.classList.add('ios');
 
 		const headerEl = this.shadowRoot.querySelector('.editor-header');
 		const cardsListEl = this.shadowRoot.querySelector('.cards-list');
@@ -1058,6 +1064,7 @@ class ChatEditor extends HTMLElement {
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
 			if (card && typeof card.focus === 'function') {
+				card.scrollCardToTopOnIOS();
 				card.focusTextarea();
 			}
 		});

@@ -63,7 +63,7 @@ class ChatPreview extends HTMLElement {
 		// iOS: scroll to bottom when virtual keyboard appears
 		if (isIOS && this.$.input) {
 			this._onIOSKeyboardShown = () => this._scrollToBottom();
-			document.addEventListener('ios-viewport:keyboard-shown', this._onIOSKeyboardShown);
+			document.addEventListener('ios-viewport:keyboard-appearing', this._onIOSKeyboardShown);
 			this.$.input.addEventListener('blur', () => {
 				document.documentElement.style.setProperty('--vh', '1dvh');
 			});
@@ -106,7 +106,7 @@ class ChatPreview extends HTMLElement {
 			this._onEditorFocusMessage,
 		);
 		if (this._onIOSKeyboardShown) {
-			document.removeEventListener('ios-viewport:keyboard-shown', this._onIOSKeyboardShown);
+			document.removeEventListener('ios-viewport:keyboard-appearing', this._onIOSKeyboardShown);
 		}
 		this._shrinkWrapResizeObserver.disconnect();
 		this._lastDisplayWidth = null;
