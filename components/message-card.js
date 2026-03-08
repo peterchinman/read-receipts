@@ -67,6 +67,21 @@ class MessageCard extends HTMLElement {
 					display: flex;
 					gap: calc(10rem / 14);
 				}
+				.input-container {
+					position: relative;
+
+					.click-receiver {
+						display: none;
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+					}
+				}
+				:host(.ios) .click-receiver {
+					display: block;
+				}
 				.row textarea {
 					all: unset;
 					flex: 1;
@@ -330,6 +345,8 @@ class MessageCard extends HTMLElement {
 						placeholder="Message..."
 						rows="1"
 					></textarea>
+					<!-- On iOS, clicking directly on the textarea causes scroll issues b/c of the virtual keyboard appearing and the os attempting to keep the textarea in view. So, instead we place this click-receiver above the textarea. -->
+					<div class="click-receiver"></div>
 				</div>
 				<div class="row actions">
 					<div class="left"></div>
@@ -573,7 +590,7 @@ class MessageCard extends HTMLElement {
 
 		const exactTimeInput = this.shadowRoot?.querySelector('.exact-time-input');
 		const exactTimeReset = this.shadowRoot?.querySelector('.exact-time-reset');
-		if (textarea) textarea.disabled = isReadOnly;
+		if (textarea) textarea.readOnly = isReadOnly;
 		if (senderSwitch) {
 			if (isReadOnly) senderSwitch.setAttribute('disabled', '');
 			else senderSwitch.removeAttribute('disabled');
