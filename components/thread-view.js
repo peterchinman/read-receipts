@@ -539,6 +539,7 @@ class ThreadDisplay extends HTMLElement {
 					padding-inline: var(--message-padding-inline);
 					padding-block: var(--message-padding-block);
 					border-radius: var(--border-radius);
+					white-space: pre-wrap;
 
 					max-width: 66%;
 
