@@ -473,7 +473,6 @@ class MessageCard extends HTMLElement {
 					getComputedStyle(this).getPropertyValue('--editor-header-height'),
 				);
 				const BUFFER = 16;
-				console.log('headerHeight', headerHeight);
 				cardsList.scrollTop +=
 					cardRect.top - cardsListRect.top - headerHeight - BUFFER;
 			}
@@ -714,7 +713,8 @@ class MessageCard extends HTMLElement {
 
 	_onClick(e) {
 		if (this.hasAttribute('readonly')) return;
-		const button = e.target.closest('button');
+		const target = e.composedPath()[0] ?? e.target;
+		const button = target.closest?.('button');
 		if (button && button.classList.contains('exact-time-reset')) {
 			this.#emit('editor:update', {
 				id: this.messageId,
@@ -741,10 +741,10 @@ class MessageCard extends HTMLElement {
 
 		// If clicking on an interactable element, don't interfere
 		if (
-			e.target.matches('select') ||
-			e.target.matches('sender-switch') ||
-			e.target.closest('select') ||
-			e.target.closest('sender-switch')
+			target.matches?.('select') ||
+			target.matches?.('sender-switch') ||
+			target.closest?.('select') ||
+			target.closest?.('sender-switch')
 		) {
 			return;
 		}
