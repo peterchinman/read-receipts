@@ -5,12 +5,8 @@
 #   1. Clone the repo into its final location before running this script:
 #        Public repo:
 #          git clone https://github.com/YOUR_USERNAME/YOUR_REPO /var/www/readreceipts
-#        Private repo (use a GitHub personal access token):
-#          git clone https://YOUR_TOKEN@github.com/YOUR_USERNAME/YOUR_REPO /var/www/readreceipts
 #
 #   2. Have your deployer SSH public key ready to paste when prompted.
-#      Generate it locally if needed:
-#        ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/readreceipts_deploy -N ""
 #
 # After running:
 #   - Trigger a deploy by pushing to main (or manually run the GitHub Actions workflow)
@@ -25,7 +21,7 @@ read -rp "Admin email (for SSL cert): " ADMIN_EMAIL
 
 APP_DIR=/var/www/readreceipts
 DEPLOY_USER=deployer
-PHP_VER=8.3
+PHP_VER=8.4
 
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Error: repo not found at $APP_DIR. Clone it there before running this script."
