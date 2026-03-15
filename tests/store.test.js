@@ -124,7 +124,10 @@ test('createThread() generates unique ID and returns thread object', async () =>
 
 	assert.ok(thread1.id !== thread2.id, 'threads should have unique IDs');
 	assert.ok(Array.isArray(thread1.messages), 'thread should have messages');
-	assert.ok(Array.isArray(thread1.participants), 'thread should have participants');
+	assert.ok(
+		Array.isArray(thread1.participants),
+		'thread should have participants',
+	);
 	assert.equal(typeof thread1.createdAt, 'string', 'should have createdAt');
 	assert.equal(typeof thread1.updatedAt, 'string', 'should have updatedAt');
 	assert.equal(
@@ -162,7 +165,11 @@ test('duplicateThread() creates copy with new ID', async () => {
 		original.messages.length,
 		'should copy all messages',
 	);
-	assert.deepEqual(copy.participants, original.participants, 'should copy participants');
+	assert.deepEqual(
+		copy.participants,
+		original.participants,
+		'should copy participants',
+	);
 
 	const allThreads = s.listThreads();
 	assert.equal(allThreads.length, 2, 'should have 2 threads');
@@ -568,7 +575,10 @@ test('load() with pre-existing threads sets a current thread', async () => {
 	s2.load();
 
 	const current = s2.getCurrentThread();
-	assert.ok(current, 'getCurrentThread() should not be null after loading existing threads');
+	assert.ok(
+		current,
+		'getCurrentThread() should not be null after loading existing threads',
+	);
 	assert.ok(current.id, 'current thread should have an id');
 	assert.ok(
 		s2.getMessages().some((m) => m.message === 'persisted msg'),
@@ -585,13 +595,19 @@ test('importFromBackend() does not duplicate thread with same backendId', async 
 	const backendThread = {
 		id: 99,
 		name: 'Backend Thread',
-		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
+		participants: [
+			{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null },
+		],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
-			{ type: 'changes_requested', notes: 'Fix this', created_at: new Date().toISOString() },
+			{
+				type: 'changes_requested',
+				notes: 'Fix this',
+				created_at: new Date().toISOString(),
+			},
 		],
 	};
 
@@ -600,17 +616,22 @@ test('importFromBackend() does not duplicate thread with same backendId', async 
 	// First import
 	const thread1 = s.importFromBackend(backendThread);
 	await flushTimers();
-	assert.equal(s.listThreads().length, countBefore + 1,
-		'first import should create a new thread');
+	assert.equal(
+		s.listThreads().length,
+		countBefore + 1,
+		'first import should create a new thread',
+	);
 	assert.equal(thread1.backendId, 99);
 
 	// Second import of the same backend thread (user clicks link again)
 	const thread2 = s.importFromBackend(backendThread);
 	await flushTimers();
-	assert.equal(s.listThreads().length, countBefore + 1,
-		'second import should NOT create another thread');
-	assert.equal(thread2.id, thread1.id,
-		'should return the same local thread');
+	assert.equal(
+		s.listThreads().length,
+		countBefore + 1,
+		'second import should NOT create another thread',
+	);
+	assert.equal(thread2.id, thread1.id, 'should return the same local thread');
 	assert.equal(thread2.backendId, 99);
 	assert.equal(thread2.participants?.[0]?.full_name, 'Alice');
 });
@@ -623,8 +644,16 @@ test('markThreadSubmitted() sets submittedAt and isCurrentThreadSubmitted() retu
 	await flushTimers();
 
 	const thread = s.getCurrentThread();
-	assert.equal(s.isCurrentThreadSubmitted(), false, 'should not be submitted initially');
-	assert.equal(thread.submittedAt, undefined, 'submittedAt should be undefined');
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		false,
+		'should not be submitted initially',
+	);
+	assert.equal(
+		thread.submittedAt,
+		undefined,
+		'submittedAt should be undefined',
+	);
 
 	let lastReason = null;
 	s.addEventListener('messages:changed', (e) => {
@@ -634,10 +663,21 @@ test('markThreadSubmitted() sets submittedAt and isCurrentThreadSubmitted() retu
 	s.markThreadSubmitted(thread.id);
 	await flushTimers();
 
-	assert.equal(s.isCurrentThreadSubmitted(), true, 'should be submitted after marking');
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		true,
+		'should be submitted after marking',
+	);
 	const updated = s.getCurrentThread();
-	assert.ok(typeof updated.submittedAt === 'string', 'submittedAt should be an ISO string');
-	assert.equal(lastReason, 'thread-submitted', 'should emit thread-submitted event');
+	assert.ok(
+		typeof updated.submittedAt === 'string',
+		'submittedAt should be an ISO string',
+	);
+	assert.equal(
+		lastReason,
+		'thread-submitted',
+		'should emit thread-submitted event',
+	);
 });
 
 test('mutation methods are no-ops on submitted thread', async () => {
@@ -656,35 +696,62 @@ test('mutation methods are no-ops on submitted thread', async () => {
 
 	// addMessage should return null
 	const added = s.addMessage();
-	assert.equal(added, null, 'addMessage should return null on submitted thread');
+	assert.equal(
+		added,
+		null,
+		'addMessage should return null on submitted thread',
+	);
 
 	// updateMessage should be no-op
 	const firstMsg = s.getMessages()[0];
 	s.updateMessage(firstMsg.id, { message: 'changed' });
-	assert.equal(s.getMessages()[0].message, firstMsg.message, 'updateMessage should be no-op');
+	assert.equal(
+		s.getMessages()[0].message,
+		firstMsg.message,
+		'updateMessage should be no-op',
+	);
 
 	// deleteMessage should be no-op
 	const msgCount = s.getMessages().length;
 	s.deleteMessage(firstMsg.id);
-	assert.equal(s.getMessages().length, msgCount, 'deleteMessage should be no-op');
+	assert.equal(
+		s.getMessages().length,
+		msgCount,
+		'deleteMessage should be no-op',
+	);
 
 	// insertImage should be no-op
 	s.insertImage(firstMsg.id, 'data:image/png;base64,abc');
 	const msg = s.getMessages()[0];
-	assert.ok(!msg.images || msg.images.length === 0, 'insertImage should be no-op');
+	assert.ok(
+		!msg.images || msg.images.length === 0,
+		'insertImage should be no-op',
+	);
 
 	// updateRecipient should be no-op
 	s.updateRecipient({ name: 'Changed Name' });
-	assert.equal(s.getRecipient().name, originalRecipient.name, 'updateRecipient should be no-op');
+	assert.equal(
+		s.getRecipient().name,
+		originalRecipient.name,
+		'updateRecipient should be no-op',
+	);
 
 	// updateThreadName should be no-op
 	s.updateThreadName(thread.id, 'New Name');
 	const afterNameUpdate = s.getCurrentThread();
-	assert.equal(afterNameUpdate.name, originalName, 'updateThreadName should be no-op');
+	assert.equal(
+		afterNameUpdate.name,
+		originalName,
+		'updateThreadName should be no-op',
+	);
 
 	// clear should be no-op
 	s.clear();
-	assert.equal(s.getMessages().length, originalMessages.length, 'clear should be no-op');
+	assert.equal(
+		s.getMessages().length,
+		originalMessages.length,
+		'clear should be no-op',
+	);
 });
 
 test('duplicateThread() does NOT copy submittedAt', async () => {
@@ -697,7 +764,11 @@ test('duplicateThread() does NOT copy submittedAt', async () => {
 	s.markThreadSubmitted(thread.id);
 	await flushTimers();
 
-	assert.equal(s.isCurrentThreadSubmitted(), true, 'original should be submitted');
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		true,
+		'original should be submitted',
+	);
 
 	const copy = s.duplicateThread(thread.id);
 	assert.ok(copy, 'should return duplicated thread');
@@ -705,7 +776,11 @@ test('duplicateThread() does NOT copy submittedAt', async () => {
 
 	// Switch to the copy and verify it's editable
 	s.loadThread(copy.id);
-	assert.equal(s.isCurrentThreadSubmitted(), false, 'copy should not be submitted');
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		false,
+		'copy should not be submitted',
+	);
 
 	// Verify mutations work on the copy
 	const added = s.addMessage();
@@ -728,7 +803,10 @@ test('deleteThread() still works on submitted threads', async () => {
 	await flushTimers();
 
 	const remaining = s.listThreads();
-	assert.ok(!remaining.some((t) => t.id === thread1.id), 'submitted thread should be deleted');
+	assert.ok(
+		!remaining.some((t) => t.id === thread1.id),
+		'submitted thread should be deleted',
+	);
 });
 
 test('messages are isolated between threads', async () => {
@@ -782,23 +860,36 @@ test('importFromBackend() only shows most recent admin notes', async () => {
 	const backendThread = {
 		id: 200,
 		name: 'Multi-round Thread',
-		participants: [{ id: 'p1', full_name: 'Bob', location: 'London', avatar_url: null }],
+		participants: [
+			{ id: 'p1', full_name: 'Bob', location: 'London', avatar_url: null },
+		],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
 			// Most recent first (desc order)
-			{ type: 'changes_requested', notes: 'Round 2 notes', created_at: '2026-02-08T12:00:00Z' },
-			{ type: 'changes_requested', notes: 'Round 1 notes', created_at: '2026-02-07T12:00:00Z' },
+			{
+				type: 'changes_requested',
+				notes: 'Round 2 notes',
+				created_at: '2026-02-08T12:00:00Z',
+			},
+			{
+				type: 'changes_requested',
+				notes: 'Round 1 notes',
+				created_at: '2026-02-07T12:00:00Z',
+			},
 		],
 	};
 
 	const thread = s.importFromBackend(backendThread);
 	await flushTimers();
 
-	assert.deepEqual(thread.adminNotes, ['Round 2 notes'],
-		'should only contain the most recent admin notes');
+	assert.deepEqual(
+		thread.adminNotes,
+		['Round 2 notes'],
+		'should only contain the most recent admin notes',
+	);
 });
 
 test('full lifecycle: submit stores backendId so importFromBackend updates in place on changes requested', async () => {
@@ -822,21 +913,39 @@ test('full lifecycle: submit stores backendId so importFromBackend updates in pl
 	s.markThreadSubmitted(localThread.id);
 	await flushTimers();
 
-	assert.equal(s.isCurrentThreadSubmitted(), true, 'thread should be submitted');
-	assert.equal(s.getCurrentThread().backendId, backendId, 'backend ID should be stored');
-	assert.equal(s.listThreads().length, countBefore, 'no new thread should exist yet');
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		true,
+		'thread should be submitted',
+	);
+	assert.equal(
+		s.getCurrentThread().backendId,
+		backendId,
+		'backend ID should be stored',
+	);
+	assert.equal(
+		s.listThreads().length,
+		countBefore,
+		'no new thread should exist yet',
+	);
 
 	// Step 3: admin requests changes → importFromBackend is called with the same backend ID
 	const backendThread = {
 		id: backendId,
 		name: 'My Piece',
-		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
+		participants: [
+			{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null },
+		],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
-			{ type: 'changes_requested', notes: 'Please revise the opening', created_at: new Date().toISOString() },
+			{
+				type: 'changes_requested',
+				notes: 'Please revise the opening',
+				created_at: new Date().toISOString(),
+			},
 		],
 	};
 
@@ -844,20 +953,35 @@ test('full lifecycle: submit stores backendId so importFromBackend updates in pl
 	await flushTimers();
 
 	// Should update the existing thread, not create a new one
-	assert.equal(s.listThreads().length, countBefore,
-		'importFromBackend should update in place, not add a new thread');
-	assert.equal(imported.id, localThread.id,
-		'returned thread should be the same local thread');
+	assert.equal(
+		s.listThreads().length,
+		countBefore,
+		'importFromBackend should update in place, not add a new thread',
+	);
+	assert.equal(
+		imported.id,
+		localThread.id,
+		'returned thread should be the same local thread',
+	);
 
 	// submittedAt should be cleared so the user can edit and resubmit
-	assert.equal(imported.submittedAt, undefined,
-		'submittedAt should be cleared so thread is editable');
-	assert.equal(s.isCurrentThreadSubmitted(), false,
-		'thread should no longer appear submitted');
+	assert.equal(
+		imported.submittedAt,
+		undefined,
+		'submittedAt should be cleared so thread is editable',
+	);
+	assert.equal(
+		s.isCurrentThreadSubmitted(),
+		false,
+		'thread should no longer appear submitted',
+	);
 
 	// Admin notes should be populated
-	assert.deepEqual(imported.adminNotes, ['Please revise the opening'],
-		'admin notes should be set from the changes_requested event');
+	assert.deepEqual(
+		imported.adminNotes,
+		['Please revise the opening'],
+		'admin notes should be set from the changes_requested event',
+	);
 });
 
 test('importFromBackend() preserves undefined name when backend has no custom name', async () => {
@@ -869,7 +993,11 @@ test('importFromBackend() preserves undefined name when backend has no custom na
 	// Thread with no custom name — only a recipient name
 	const localThread = s.getCurrentThread();
 	s.updateRecipient({ name: 'Alice', location: 'Paris' });
-	assert.equal(localThread.name, undefined, 'local thread should have no custom name');
+	assert.equal(
+		localThread.name,
+		undefined,
+		'local thread should have no custom name',
+	);
 
 	s.setThreadBackendId(localThread.id, 55);
 	s.markThreadSubmitted(localThread.id);
@@ -879,13 +1007,19 @@ test('importFromBackend() preserves undefined name when backend has no custom na
 	const backendThread = {
 		id: 55,
 		name: null,
-		participants: [{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null }],
+		participants: [
+			{ id: 'p1', full_name: 'Alice', location: 'Paris', avatar_url: null },
+		],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
-			{ type: 'changes_requested', notes: 'Revise please', created_at: new Date().toISOString() },
+			{
+				type: 'changes_requested',
+				notes: 'Revise please',
+				created_at: new Date().toISOString(),
+			},
 		],
 	};
 
@@ -893,11 +1027,17 @@ test('importFromBackend() preserves undefined name when backend has no custom na
 	await flushTimers();
 
 	// name is null/falsy from backend, so importFromBackend leaves thread.name alone
-	assert.equal(imported.name, undefined,
-		'thread name should remain undefined when backend has no custom name');
+	assert.equal(
+		imported.name,
+		undefined,
+		'thread name should remain undefined when backend has no custom name',
+	);
 	// getThreadDisplayName still resolves correctly via recipient fallback
-	assert.equal(s.getThreadDisplayName(imported), 'Alice',
-		'display name should resolve to recipient name via fallback');
+	assert.equal(
+		s.getThreadDisplayName(imported),
+		'Alice',
+		'display name should resolve to recipient name via fallback',
+	);
 });
 
 test('importFromBackend() updates existing thread on second changes-requested cycle (backendId preserved after resubmit)', async () => {
@@ -911,13 +1051,19 @@ test('importFromBackend() updates existing thread on second changes-requested cy
 	const backendThread = {
 		id: 300,
 		name: 'Resubmit Thread',
-		participants: [{ id: 'p1', full_name: 'Carol', location: 'Berlin', avatar_url: null }],
+		participants: [
+			{ id: 'p1', full_name: 'Carol', location: 'Berlin', avatar_url: null },
+		],
 		status: 'changes_requested',
 		messages: [
 			{ sender: 'self', message: 'Hello', timestamp: new Date().toISOString() },
 		],
 		events: [
-			{ type: 'changes_requested', notes: 'Please fix', created_at: '2026-02-07T12:00:00Z' },
+			{
+				type: 'changes_requested',
+				notes: 'Please fix',
+				created_at: '2026-02-07T12:00:00Z',
+			},
 		],
 	};
 
@@ -925,7 +1071,11 @@ test('importFromBackend() updates existing thread on second changes-requested cy
 	const thread1 = s.importFromBackend(backendThread);
 	await flushTimers();
 	assert.equal(thread1.backendId, 300);
-	assert.equal(s.listThreads().length, countBefore + 1, 'first import creates a new thread');
+	assert.equal(
+		s.listThreads().length,
+		countBefore + 1,
+		'first import creates a new thread',
+	);
 
 	// User resubmits: backendId is NOW preserved (the real flow no longer deletes it)
 	s.markThreadSubmitted(thread1.id);
@@ -935,24 +1085,39 @@ test('importFromBackend() updates existing thread on second changes-requested cy
 	const backendThreadRound2 = {
 		...backendThread,
 		events: [
-			{ type: 'changes_requested', notes: 'Round 2: please also fix the ending', created_at: '2026-02-10T12:00:00Z' },
-			{ type: 'changes_requested', notes: 'Please fix', created_at: '2026-02-07T12:00:00Z' },
+			{
+				type: 'changes_requested',
+				notes: 'Round 2: please also fix the ending',
+				created_at: '2026-02-10T12:00:00Z',
+			},
+			{
+				type: 'changes_requested',
+				notes: 'Please fix',
+				created_at: '2026-02-07T12:00:00Z',
+			},
 		],
 	};
 
 	const thread2 = s.importFromBackend(backendThreadRound2);
 	await flushTimers();
 
-	assert.equal(s.listThreads().length, countBefore + 1,
-		'second import should update in place — no new thread created');
-	assert.equal(thread2.id, thread1.id,
-		'should return the same local thread');
-	assert.equal(thread2.backendId, 300,
-		'backendId should still be set');
-	assert.deepEqual(thread2.adminNotes, ['Round 2: please also fix the ending'],
-		'should reflect the most recent admin notes');
-	assert.equal(thread2.submittedAt, undefined,
-		'submittedAt should be cleared so user can edit again');
+	assert.equal(
+		s.listThreads().length,
+		countBefore + 1,
+		'second import should update in place — no new thread created',
+	);
+	assert.equal(thread2.id, thread1.id, 'should return the same local thread');
+	assert.equal(thread2.backendId, 300, 'backendId should still be set');
+	assert.deepEqual(
+		thread2.adminNotes,
+		['Round 2: please also fix the ending'],
+		'should reflect the most recent admin notes',
+	);
+	assert.equal(
+		thread2.submittedAt,
+		undefined,
+		'submittedAt should be cleared so user can edit again',
+	);
 });
 
 // ===== parseDuration() Tests =====
@@ -967,8 +1132,16 @@ test('parseDuration: basic units', () => {
 
 test('parseDuration: compound durations', () => {
 	assert.equal(parseDuration('PT1H30M'), 5_400_000, '1 hour 30 min');
-	assert.equal(parseDuration('P1DT2H'), 86_400_000 + 7_200_000, '1 day 2 hours');
-	assert.equal(parseDuration('P1DT1H1M1S'), 86_400_000 + 3_600_000 + 60_000 + 1_000, '1D1H1M1S');
+	assert.equal(
+		parseDuration('P1DT2H'),
+		86_400_000 + 7_200_000,
+		'1 day 2 hours',
+	);
+	assert.equal(
+		parseDuration('P1DT1H1M1S'),
+		86_400_000 + 3_600_000 + 60_000 + 1_000,
+		'1D1H1M1S',
+	);
 });
 
 test('parseDuration: years and months use approximate day counts', () => {
@@ -991,31 +1164,31 @@ test('parseDuration: invalid string falls back to 1 minute', () => {
 
 test('inferTimeSince: exactly 1 minute', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = '2024-01-01T00:01:00.000Z';
+	const cur = '2024-01-01T00:01:00.000Z';
 	assert.equal(inferTimeSince(prev, cur), 'PT1M');
 });
 
 test('inferTimeSince: exactly 1 hour', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = '2024-01-01T01:00:00.000Z';
+	const cur = '2024-01-01T01:00:00.000Z';
 	assert.equal(inferTimeSince(prev, cur), 'PT1H');
 });
 
 test('inferTimeSince: exactly 1 day', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = '2024-01-02T00:00:00.000Z';
+	const cur = '2024-01-02T00:00:00.000Z';
 	assert.equal(inferTimeSince(prev, cur), 'P1D');
 });
 
 test('inferTimeSince: mixed units', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = '2024-01-02T01:30:00.000Z';  // 1 day 1 hour 30 min
+	const cur = '2024-01-02T01:30:00.000Z'; // 1 day 1 hour 30 min
 	assert.equal(inferTimeSince(prev, cur), 'P1DT1H30M');
 });
 
 test('inferTimeSince: with leftover seconds', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = '2024-01-01T00:01:45.000Z';  // 1 min 45 sec
+	const cur = '2024-01-01T00:01:45.000Z'; // 1 min 45 sec
 	assert.equal(inferTimeSince(prev, cur), 'PT1M45S');
 });
 
@@ -1026,19 +1199,23 @@ test('inferTimeSince: zero diff falls back to PT1M', () => {
 
 test('inferTimeSince: negative diff clamps to PT1M', () => {
 	const prev = '2024-01-01T01:00:00.000Z';
-	const cur  = '2024-01-01T00:00:00.000Z';  // earlier than prev
+	const cur = '2024-01-01T00:00:00.000Z'; // earlier than prev
 	assert.equal(inferTimeSince(prev, cur), 'PT1M');
 });
 
 test('inferTimeSince: round-trips with parseDuration (1 min)', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = new Date(new Date(prev).getTime() + parseDuration('PT1M')).toISOString();
+	const cur = new Date(
+		new Date(prev).getTime() + parseDuration('PT1M'),
+	).toISOString();
 	assert.equal(inferTimeSince(prev, cur), 'PT1M');
 });
 
 test('inferTimeSince: round-trips with parseDuration (1 day 2 hours)', () => {
 	const prev = '2024-01-01T00:00:00.000Z';
-	const cur  = new Date(new Date(prev).getTime() + parseDuration('P1DT2H')).toISOString();
+	const cur = new Date(
+		new Date(prev).getTime() + parseDuration('P1DT2H'),
+	).toISOString();
 	assert.equal(inferTimeSince(prev, cur), 'P1DT2H');
 });
 
@@ -1059,9 +1236,14 @@ test('computeTimestamps: multiple messages offset by timeSincePrevious', () => {
 	const thread = {
 		initialMessageTime: base,
 		messages: [
-			{ id: 'a', sender: 'self',  message: 'first' },
-			{ id: 'b', sender: 'other', message: 'second', timeSincePrevious: 'PT1M' },
-			{ id: 'c', sender: 'self',  message: 'third',  timeSincePrevious: 'PT1H' },
+			{ id: 'a', sender: 'self', message: 'first' },
+			{
+				id: 'b',
+				sender: 'other',
+				message: 'second',
+				timeSincePrevious: 'PT1M',
+			},
+			{ id: 'c', sender: 'self', message: 'third', timeSincePrevious: 'PT1H' },
 		],
 	};
 	const stamps = computeTimestamps(thread);
@@ -1078,7 +1260,10 @@ test('computeTimestamps: falls back to now when initialMessageTime is missing', 
 	const stamps = computeTimestamps(thread);
 	const after = Date.now();
 	const ts = new Date(stamps[0]).getTime();
-	assert.ok(ts >= before && ts <= after, 'timestamp should be approximately now');
+	assert.ok(
+		ts >= before && ts <= after,
+		'timestamp should be approximately now',
+	);
 });
 
 test('computeTimestamps: invalid timeSincePrevious falls back to 1 min', () => {
@@ -1086,8 +1271,13 @@ test('computeTimestamps: invalid timeSincePrevious falls back to 1 min', () => {
 	const thread = {
 		initialMessageTime: base,
 		messages: [
-			{ id: 'a', sender: 'self',  message: 'first' },
-			{ id: 'b', sender: 'other', message: 'second', timeSincePrevious: 'BOGUS' },
+			{ id: 'a', sender: 'self', message: 'first' },
+			{
+				id: 'b',
+				sender: 'other',
+				message: 'second',
+				timeSincePrevious: 'BOGUS',
+			},
 		],
 	};
 	const stamps = computeTimestamps(thread);
@@ -1113,9 +1303,21 @@ test('getMessages() returns computed timestamps for each message', async () => {
 
 	const msgs = s.getMessages();
 	assert.equal(msgs[0].timestamp, base, 'first message = initialMessageTime');
-	assert.equal(msgs[1].timestamp, '2024-06-01T13:00:00.000Z', 'second = base + 1 hour');
+	assert.equal(
+		msgs[1].timestamp,
+		'2024-06-01T13:00:00.000Z',
+		'second = base + 1 hour',
+	);
 	// Raw stored messages should not have timestamps
 	const raw = s.getCurrentThread().messages;
-	assert.equal(raw[0].timestamp, undefined, 'raw first message has no timestamp');
-	assert.equal(raw[1].timestamp, undefined, 'raw second message has no timestamp');
+	assert.equal(
+		raw[0].timestamp,
+		undefined,
+		'raw first message has no timestamp',
+	);
+	assert.equal(
+		raw[1].timestamp,
+		undefined,
+		'raw second message has no timestamp',
+	);
 });

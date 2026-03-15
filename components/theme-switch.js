@@ -10,8 +10,7 @@ class ThemeSwitch extends HTMLElement {
 
 	connectedCallback() {
 		const saved = this.#getSaved();
-		const initial =
-			saved === 'light' || saved === 'dark' ? saved : 'auto';
+		const initial = saved === 'light' || saved === 'dark' ? saved : 'auto';
 
 		this.shadowRoot.innerHTML = `
 			<style>

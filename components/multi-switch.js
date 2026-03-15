@@ -172,18 +172,12 @@ class MultiSwitch extends HTMLElement {
 					case 'ArrowRight':
 					case 'ArrowDown':
 						e.preventDefault();
-						this.#select(
-							(this._selectedIndex + 1) % len,
-							true,
-						);
+						this.#select((this._selectedIndex + 1) % len, true);
 						break;
 					case 'ArrowLeft':
 					case 'ArrowUp':
 						e.preventDefault();
-						this.#select(
-							(this._selectedIndex - 1 + len) % len,
-							true,
-						);
+						this.#select((this._selectedIndex - 1 + len) % len, true);
 						break;
 				}
 			});
@@ -193,9 +187,7 @@ class MultiSwitch extends HTMLElement {
 		this.shadowRoot.querySelectorAll('input[type="radio"]').forEach((radio) => {
 			radio.addEventListener('change', () => {
 				if (radio.checked) {
-					const idx = this._options.findIndex(
-						(o) => o.value === radio.value,
-					);
+					const idx = this._options.findIndex((o) => o.value === radio.value);
 					if (idx !== -1) this.#select(idx);
 				}
 			});
@@ -245,17 +237,16 @@ class MultiSwitch extends HTMLElement {
 
 		let left = thumbPadding;
 		for (let i = 0; i < selectedIndex; i++) {
-			const w = parseFloat(
-				container.style.getPropertyValue(`--option-${i}-width`),
-			) || 0;
+			const w =
+				parseFloat(container.style.getPropertyValue(`--option-${i}-width`)) ||
+				0;
 			left += w + gap;
 		}
 
-		const selectedWidth = parseFloat(
-			container.style.getPropertyValue(
-				`--option-${selectedIndex}-width`,
-			),
-		) || 0;
+		const selectedWidth =
+			parseFloat(
+				container.style.getPropertyValue(`--option-${selectedIndex}-width`),
+			) || 0;
 
 		thumb.style.left = `${left}px`;
 		thumb.style.width = `${selectedWidth}px`;

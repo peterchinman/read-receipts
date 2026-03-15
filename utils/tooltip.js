@@ -43,13 +43,19 @@ const TOOLTIP_LAYER_ID = 'message-simulator-tooltip-layer';
 // since iOS fires synthetic mouseenter after a tap.
 let _touchActive = false;
 let _touchTimer = null;
-window.addEventListener('pointerdown', (e) => {
-	if (e.pointerType === 'touch') {
-		_touchActive = true;
-		clearTimeout(_touchTimer);
-		_touchTimer = setTimeout(() => { _touchActive = false; }, 600);
-	}
-}, { passive: true, capture: true });
+window.addEventListener(
+	'pointerdown',
+	(e) => {
+		if (e.pointerType === 'touch') {
+			_touchActive = true;
+			clearTimeout(_touchTimer);
+			_touchTimer = setTimeout(() => {
+				_touchActive = false;
+			}, 600);
+		}
+	},
+	{ passive: true, capture: true },
+);
 
 const TOOLTIP_CSS_TEXT = /* css */ `
 	.${TOOLTIP_LAYER_ID} {

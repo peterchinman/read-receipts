@@ -31,7 +31,10 @@ class LandingPage extends HTMLElement {
 		this.#renderShell();
 		this.#display = this.#shadow.querySelector('thread-list');
 		this.#display?.addEventListener('thread-list:select', this._onSelect);
-		this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+		this.#display?.refs?.newThreadBtn?.addEventListener(
+			'click',
+			this._onCompose,
+		);
 		this.#shadow.addEventListener('navigate', this._onNavigate);
 		this.#renderList();
 		this.#loadPieces();
@@ -96,7 +99,7 @@ class LandingPage extends HTMLElement {
 				show-header
 				show-unread
 				show-info-button
-			show-create
+				show-create
 			></thread-list>
 			${this.#infoOpen ? this.#renderInfoPane() : ''}
 		`;
@@ -118,7 +121,8 @@ class LandingPage extends HTMLElement {
 						href="https://github.com/peterchinman/message-simulator"
 						target="_blank"
 						>on Github</a
-					>. If you find any bugs, or have any feature requests, please report them there.
+					>. If you find any bugs, or have any feature requests, please report
+					them there.
 				</p>
 			</div>
 		`;
@@ -131,7 +135,10 @@ class LandingPage extends HTMLElement {
 			this.#renderShell();
 			this.#display = this.#shadow.querySelector('thread-list');
 			this.#display?.addEventListener('thread-list:select', this._onSelect);
-			this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+			this.#display?.refs?.newThreadBtn?.addEventListener(
+				'click',
+				this._onCompose,
+			);
 			this.#renderList();
 			this.#shadow
 				.getElementById('info-pane-close')
@@ -140,7 +147,10 @@ class LandingPage extends HTMLElement {
 					this.#renderShell();
 					this.#display = this.#shadow.querySelector('thread-list');
 					this.#display?.addEventListener('thread-list:select', this._onSelect);
-					this.#display?.refs?.newThreadBtn?.addEventListener('click', this._onCompose);
+					this.#display?.refs?.newThreadBtn?.addEventListener(
+						'click',
+						this._onCompose,
+					);
 					this.#renderList();
 				});
 		}

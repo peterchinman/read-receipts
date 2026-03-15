@@ -2,7 +2,9 @@
 
 import { config } from './config.js';
 
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocal =
+	window.location.hostname === 'localhost' ||
+	window.location.hostname === '127.0.0.1';
 const API_BASE_URL = isLocal ? 'http://localhost:8000/api' : '/api';
 const TOKEN_STORAGE_KEY = `${config.appName.toLowerCase().replace(/\s+/g, '-')}:auth-token`;
 
@@ -196,7 +198,9 @@ class ApiClient {
 
 	// User submission endpoints
 	async getSubmissionByEditToken(id, token) {
-		return this.#request(`/submissions/${id}/edit?token=${encodeURIComponent(token)}`);
+		return this.#request(
+			`/submissions/${id}/edit?token=${encodeURIComponent(token)}`,
+		);
 	}
 
 	async resubmitThread(id, data) {
@@ -208,14 +212,19 @@ class ApiClient {
 
 	// Author info endpoints (token-gated, no auth required)
 	async getAuthorInfoForm(threadId, token) {
-		return this.#request(`/author-info/${threadId}?token=${encodeURIComponent(token)}`);
+		return this.#request(
+			`/author-info/${threadId}?token=${encodeURIComponent(token)}`,
+		);
 	}
 
 	async submitAuthorInfo(threadId, token, data) {
-		return this.#request(`/author-info/${threadId}?token=${encodeURIComponent(token)}`, {
-			method: 'POST',
-			body: JSON.stringify(data),
-		});
+		return this.#request(
+			`/author-info/${threadId}?token=${encodeURIComponent(token)}`,
+			{
+				method: 'POST',
+				body: JSON.stringify(data),
+			},
+		);
 	}
 }
 

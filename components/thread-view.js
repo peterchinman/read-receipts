@@ -10,9 +10,15 @@ import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 const _ua = navigator.userAgent;
 const _vendor = navigator.vendor;
 const _isSafari =
-	!!_vendor && _vendor.includes('Apple') && !!_ua && !_ua.includes('CriOS') && !_ua.includes('FxiOS');
+	!!_vendor &&
+	_vendor.includes('Apple') &&
+	!!_ua &&
+	!_ua.includes('CriOS') &&
+	!_ua.includes('FxiOS');
 const _isIOS =
-	/iPhone|iPod/.test(_ua) || /iPad/.test(_ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+	/iPhone|iPod/.test(_ua) ||
+	/iPad/.test(_ua) ||
+	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isSafariOrIOS = _isSafari || _isIOS;
 
 class ThreadDisplay extends HTMLElement {
@@ -1377,7 +1383,10 @@ class ThreadDisplay extends HTMLElement {
 			if (dateKey && (!prevDateKey || dateKey !== prevDateKey)) {
 				const msgYear = new Date(row.dataset.timestamp).getFullYear();
 				list.insertBefore(
-					this.#createDateSeparator(row.dataset.timestamp, msgYear !== prevYear),
+					this.#createDateSeparator(
+						row.dataset.timestamp,
+						msgYear !== prevYear,
+					),
 					row,
 				);
 			}

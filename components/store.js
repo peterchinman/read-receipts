@@ -35,7 +35,8 @@ const WELCOME_MESSAGES = [
 	},
 	{ message: 'what do I do with it?', sender: 'self' },
 	{
-		message: 'You can compose messages to the left in the Edit panel. To the left of that is a list of all your Drafts.',
+		message:
+			'You can compose messages to the left in the Edit panel. To the left of that is a list of all your Drafts.',
 		sender: 'other',
 	},
 	{
@@ -67,12 +68,12 @@ export function parseDuration(isoDuration) {
 	if (!m) return 60000; // fallback: 1 min
 	// Use ?? 0 so unmatched optional groups (undefined) default to 0
 	// rather than NaN (which is what Number(undefined) produces)
-	const years  = Number(m[1] ?? 0);
+	const years = Number(m[1] ?? 0);
 	const months = Number(m[2] ?? 0);
-	const days   = Number(m[3] ?? 0);
-	const hours  = Number(m[4] ?? 0);
-	const mins   = Number(m[5] ?? 0);
-	const secs   = Number(m[6] ?? 0);
+	const days = Number(m[3] ?? 0);
+	const hours = Number(m[4] ?? 0);
+	const mins = Number(m[5] ?? 0);
+	const secs = Number(m[6] ?? 0);
 	return (
 		((years * 365 + months * 30 + days) * 86400 +
 			hours * 3600 +
@@ -108,7 +109,9 @@ export function inferTimeSince(prevIso, curIso) {
 	if (days) s += `${days}D`;
 	// Only add T designator when there are time components
 	const timePart =
-		(hours ? `${hours}H` : '') + (mins ? `${mins}M` : '') + (secs ? `${secs}S` : '');
+		(hours ? `${hours}H` : '') +
+		(mins ? `${mins}M` : '') +
+		(secs ? `${secs}S` : '');
 	if (timePart) s += `T${timePart}`;
 	// s can't be bare 'P' here since totalSecs > 0
 	return s;
@@ -276,7 +279,8 @@ class ThreadStore extends EventTarget {
 			name: `${this.getThreadDisplayName(original)} (Copy)`,
 			messages: JSON.parse(JSON.stringify(original.messages)), // Deep clone
 			participants: JSON.parse(JSON.stringify(original.participants || [])),
-			initialMessageTime: original.initialMessageTime || new Date().toISOString(),
+			initialMessageTime:
+				original.initialMessageTime || new Date().toISOString(),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			// Duplicated threads are always editable — never copy submittedAt or pendingAt
@@ -414,7 +418,8 @@ class ThreadStore extends EventTarget {
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		const reason =
-			patch.timeSincePrevious !== undefined || patch.exactTimestamp !== undefined
+			patch.timeSincePrevious !== undefined ||
+			patch.exactTimestamp !== undefined
 				? 'timesince-updated'
 				: 'update';
 		this.#emitChange(reason, thread.messages[idx]);
@@ -825,7 +830,10 @@ class ThreadStore extends EventTarget {
 				// EXACT mode requires a paired exactTimestamp — fall back gracefully
 				const prev = messages[i - 1];
 				if (prev?.timestamp && m.timestamp) {
-					m.timeSincePrevious = this.#inferTimeSince(prev.timestamp, m.timestamp);
+					m.timeSincePrevious = this.#inferTimeSince(
+						prev.timestamp,
+						m.timestamp,
+					);
 				} else {
 					m.timeSincePrevious = 'PT1M';
 				}

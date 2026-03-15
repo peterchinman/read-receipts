@@ -17,15 +17,15 @@ export function getCurrentThreadId() {
  */
 export function setCurrentThreadId(threadId) {
 	if (typeof window === 'undefined') return;
-	
+
 	const url = new URL(window.location.href);
-	
+
 	if (threadId) {
 		url.searchParams.set('thread', threadId);
 	} else {
 		url.searchParams.delete('thread');
 	}
-	
+
 	// Update URL without reload
 	window.history.pushState({}, '', url.toString());
 }
@@ -37,14 +37,14 @@ export function setCurrentThreadId(threadId) {
  */
 export function onThreadIdChange(callback) {
 	if (typeof window === 'undefined') return () => {};
-	
+
 	const handler = () => {
 		const threadId = getCurrentThreadId();
 		callback(threadId);
 	};
-	
+
 	window.addEventListener('popstate', handler);
-	
+
 	// Return cleanup function
 	return () => {
 		window.removeEventListener('popstate', handler);
@@ -58,16 +58,15 @@ export function onThreadIdChange(callback) {
  */
 export function replaceCurrentThreadId(threadId) {
 	if (typeof window === 'undefined') return;
-	
+
 	const url = new URL(window.location.href);
-	
+
 	if (threadId) {
 		url.searchParams.set('thread', threadId);
 	} else {
 		url.searchParams.delete('thread');
 	}
-	
+
 	// Replace current URL without adding to history
 	window.history.replaceState({}, '', url.toString());
 }
-

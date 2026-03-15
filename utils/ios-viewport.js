@@ -20,7 +20,9 @@ export function initIOSViewport() {
 			if (!keyboardVisible) {
 				keyboardVisible = true;
 				window.scrollTo(0, 0);
-				document.dispatchEvent(new CustomEvent('ios-viewport:keyboard-appearing'));
+				document.dispatchEvent(
+					new CustomEvent('ios-viewport:keyboard-appearing'),
+				);
 			}
 		} else {
 			keyboardVisible = false;

@@ -188,57 +188,74 @@ export function createDrawer({ closeOnOverlayClick = true, container } = {}) {
 
 	const DISMISS_TRANSITION = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
 
-	drawer.addEventListener('touchstart', (e) => {
-		startY = e.touches[0].clientY;
-		lastY = startY;
-		lastTime = Date.now();
-		currentDelta = 0;
-		velocity = 0;
-		dragging = false;
-	}, { passive: true });
+	drawer.addEventListener(
+		'touchstart',
+		(e) => {
+			startY = e.touches[0].clientY;
+			lastY = startY;
+			lastTime = Date.now();
+			currentDelta = 0;
+			velocity = 0;
+			dragging = false;
+		},
+		{ passive: true },
+	);
 
-	drawer.addEventListener('touchmove', (e) => {
-		const y = e.touches[0].clientY;
-		const now = Date.now();
-		const elapsed = now - lastTime || 1;
-		velocity = (y - lastY) / elapsed;
-		lastY = y;
-		lastTime = now;
+	drawer.addEventListener(
+		'touchmove',
+		(e) => {
+			const y = e.touches[0].clientY;
+			const now = Date.now();
+			const elapsed = now - lastTime || 1;
+			velocity = (y - lastY) / elapsed;
+			lastY = y;
+			lastTime = now;
 
-		const delta = y - startY;
+			const delta = y - startY;
 
-		// Only begin dragging when at scroll top and moving downward
-		if (!dragging) {
-			if (delta > 0 && drawer.scrollTop === 0) {
-				dragging = true;
-			} else {
-				return;
+			// Only begin dragging when at scroll top and moving downward
+			if (!dragging) {
+				if (delta > 0 && drawer.scrollTop === 0) {
+					dragging = true;
+				} else {
+					return;
+				}
 			}
-		}
 
-		currentDelta = Math.max(0, delta);
-		drawer.style.transition = 'none';
-		drawer.style.transform = `translateY(${currentDelta}px)`;
-	}, { passive: true });
+			currentDelta = Math.max(0, delta);
+			drawer.style.transition = 'none';
+			drawer.style.transform = `translateY(${currentDelta}px)`;
+		},
+		{ passive: true },
+	);
 
-	drawer.addEventListener('touchend', () => {
-		if (!dragging) return;
-		dragging = false;
+	drawer.addEventListener(
+		'touchend',
+		() => {
+			if (!dragging) return;
+			dragging = false;
 
-		const shouldDismiss = currentDelta > drawer.offsetHeight * 0.25 || velocity > 0.5;
+			const shouldDismiss =
+				currentDelta > drawer.offsetHeight * 0.25 || velocity > 0.5;
 
-		if (shouldDismiss) {
-			drawer.style.transition = DISMISS_TRANSITION;
-			drawer.style.transform = `translateY(100%)`;
-			drawer.addEventListener('transitionend', close, { once: true });
-		} else {
-			drawer.style.transition = DISMISS_TRANSITION;
-			drawer.style.transform = '';
-			drawer.addEventListener('transitionend', () => {
-				drawer.style.transition = '';
-			}, { once: true });
-		}
-	}, { passive: true });
+			if (shouldDismiss) {
+				drawer.style.transition = DISMISS_TRANSITION;
+				drawer.style.transform = `translateY(100%)`;
+				drawer.addEventListener('transitionend', close, { once: true });
+			} else {
+				drawer.style.transition = DISMISS_TRANSITION;
+				drawer.style.transform = '';
+				drawer.addEventListener(
+					'transitionend',
+					() => {
+						drawer.style.transition = '';
+					},
+					{ once: true },
+				);
+			}
+		},
+		{ passive: true },
+	);
 
 	(container ?? document.body).appendChild(overlay);
 	return { overlay, drawer, close };

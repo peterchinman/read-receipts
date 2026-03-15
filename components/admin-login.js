@@ -106,7 +106,7 @@ class AdminLogin extends HTMLElement {
 					gap: 16px;
 				}
 
-				input[type="email"] {
+				input[type='email'] {
 					all: unset;
 					font: 16px system-ui;
 					color: var(--color-ink, #000);
@@ -118,7 +118,7 @@ class AdminLogin extends HTMLElement {
 					width: 100%;
 				}
 
-				input[type="email"]::placeholder {
+				input[type='email']::placeholder {
 					color: var(--color-ink-subdued, #999);
 				}
 
@@ -186,9 +186,7 @@ class AdminLogin extends HTMLElement {
 				}
 			</style>
 
-			<div class="container">
-				${this.#renderContent()}
-			</div>
+			<div class="container">${this.#renderContent()}</div>
 		`;
 
 		// Attach form listener
@@ -235,7 +233,9 @@ class AdminLogin extends HTMLElement {
 						<button type="submit">Send Login Link</button>
 					</form>
 					<p class="dev-divider">dev</p>
-					<button class="dev-btn" id="dev-login-btn">Dev Login (admin@example.com)</button>
+					<button class="dev-btn" id="dev-login-btn">
+						Dev Login (admin@example.com)
+					</button>
 				`;
 
 			case 'sending':
@@ -257,7 +257,9 @@ class AdminLogin extends HTMLElement {
 				return html`
 					<div class="icon success">&#10003;</div>
 					<h1>Check Your Email</h1>
-					<p class="message">We've sent a login link to your email. Click it to sign in.</p>
+					<p class="message">
+						We've sent a login link to your email. Click it to sign in.
+					</p>
 				`;
 
 			case 'error':

@@ -8,10 +8,18 @@ export function dotsThreeCircleSvg() {
 			fill="currentColor"
 			aria-hidden="true"
 		>
-			<circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="16"/>
-			<circle cx="128" cy="128" r="12"/>
-			<circle cx="172" cy="128" r="12"/>
-			<circle cx="84" cy="128" r="12"/>
+			<circle
+				cx="128"
+				cy="128"
+				r="96"
+				fill="none"
+				stroke="currentColor"
+				stroke-miterlimit="10"
+				stroke-width="16"
+			/>
+			<circle cx="128" cy="128" r="12" />
+			<circle cx="172" cy="128" r="12" />
+			<circle cx="84" cy="128" r="12" />
 		</svg>
 	`;
 }

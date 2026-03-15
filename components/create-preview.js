@@ -63,7 +63,10 @@ class ChatPreview extends HTMLElement {
 		// iOS: scroll to bottom when virtual keyboard appears
 		if (isIOS && this.$.input) {
 			this._onIOSKeyboardShown = () => this._scrollToBottom();
-			document.addEventListener('ios-viewport:keyboard-appearing', this._onIOSKeyboardShown);
+			document.addEventListener(
+				'ios-viewport:keyboard-appearing',
+				this._onIOSKeyboardShown,
+			);
 			this.$.input.addEventListener('blur', () => {
 				document.documentElement.style.setProperty('--vh', '1dvh');
 			});
@@ -100,13 +103,19 @@ class ChatPreview extends HTMLElement {
 		this.$?.exportChat?.removeEventListener('click', this._onExportChatClick);
 		this.$?.importChat?.removeEventListener('click', this._onImportChatClick);
 		this.$?.importFile?.removeEventListener('change', this._onImportFileChange);
-		this._display?.shadowRoot?.removeEventListener('click', this._onShadowClick);
+		this._display?.shadowRoot?.removeEventListener(
+			'click',
+			this._onShadowClick,
+		);
 		document.removeEventListener(
 			'editor:focus-message',
 			this._onEditorFocusMessage,
 		);
 		if (this._onIOSKeyboardShown) {
-			document.removeEventListener('ios-viewport:keyboard-appearing', this._onIOSKeyboardShown);
+			document.removeEventListener(
+				'ios-viewport:keyboard-appearing',
+				this._onIOSKeyboardShown,
+			);
 		}
 		this._shrinkWrapResizeObserver.disconnect();
 		this._lastDisplayWidth = null;
@@ -114,7 +123,9 @@ class ChatPreview extends HTMLElement {
 
 	#syncReadOnlyState() {
 		if (!this._display) return;
-		const nonInteractive = store.isCurrentThreadSubmitted() || !!store.getCurrentThread()?.authorInfoMode;
+		const nonInteractive =
+			store.isCurrentThreadSubmitted() ||
+			!!store.getCurrentThread()?.authorInfoMode;
 		if (nonInteractive) {
 			this._display.removeAttribute('interactive');
 		} else {

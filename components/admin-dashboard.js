@@ -34,7 +34,9 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 			background: none;
 			color: var(--color-ink-subdued, #666);
 			border-bottom: 2px solid transparent;
-			transition: color 0.2s, border-color 0.2s;
+			transition:
+				color 0.2s,
+				border-color 0.2s;
 		}
 
 		.admin-tab:hover {
@@ -315,7 +317,11 @@ if (!document.getElementById(ADMIN_STYLE_ID)) {
 		}
 
 		.admin-event-item.active {
-			background: color-mix(in srgb, var(--color-primary, #007aff) 10%, transparent);
+			background: color-mix(
+				in srgb,
+				var(--color-primary, #007aff) 10%,
+				transparent
+			);
 		}
 
 		.admin-event-item::before {
@@ -583,9 +589,9 @@ class AdminDashboard extends HTMLElement {
 						? html`<span class="admin-badge-resubmitted">Resubmitted</span>`
 						: ''}
 					${isApprovedTab
-						? (sub.author_info_received
+						? sub.author_info_received
 							? html`<span class="admin-badge-info-received">Info ✓</span>`
-							: html`<span class="admin-badge-info-pending">Info pending</span>`)
+							: html`<span class="admin-badge-info-pending">Info pending</span>`
 						: ''}
 				</div>
 				<div class="admin-submission-item-meta">
@@ -602,7 +608,9 @@ class AdminDashboard extends HTMLElement {
 			<p class="admin-action-section-label">${label}</p>
 			<div class="admin-token-link-block">
 				<span class="admin-token-link-url">${url}</span>
-				<button class="admin-token-copy-btn" data-copy-url="${attrUrl}">Copy</button>
+				<button class="admin-token-copy-btn" data-copy-url="${attrUrl}">
+					Copy
+				</button>
 			</div>
 		`;
 	}
@@ -667,26 +675,38 @@ class AdminDashboard extends HTMLElement {
 									Publish
 								</button>
 								${sub.events?.some((e) => e.type === 'paid')
-									? html`<button class="admin-action-btn" disabled style="background: var(--color-edge, #ccc); color: var(--color-ink-subdued, #666);">Paid</button>`
+									? html`<button
+												class="admin-action-btn"
+												disabled
+												style="background: var(--color-edge, #ccc); color: var(--color-ink-subdued, #666);"
+											>
+												Paid
+											</button>`
 									: html`<button
-										class="admin-action-btn admin-btn-approve"
-										id="mark-paid-btn"
-										${this.#actionLoading ? 'disabled' : ''}
-									>
-										Mark as Paid
-									</button>`}
+												class="admin-action-btn admin-btn-approve"
+												id="mark-paid-btn"
+												${this.#actionLoading ? 'disabled' : ''}
+											>
+												Mark as Paid
+											</button>`}
 							</div>
-					${sub.author_info_token
-						? this.#renderTokenLinkBlock('Author Info Link', `${window.location.origin}/create?author-info=${sub.id}&token=${sub.author_info_token}`)
-						: ''}
-					${this.#renderAuthorInfoSection(sub)}
+							${sub.author_info_token
+								? this.#renderTokenLinkBlock(
+										'Author Info Link',
+										`${window.location.origin}/create?author-info=${sub.id}&token=${sub.author_info_token}`,
+									)
+								: ''}
+							${this.#renderAuthorInfoSection(sub)}
 				`
 					: ''}
 				${isChangesRequested
 					? html`
 					${sub.edit_token
-						? this.#renderTokenLinkBlock('Edit Link', `${window.location.origin}/create?edit=${sub.id}&token=${sub.edit_token}`)
-						: ''}
+								? this.#renderTokenLinkBlock(
+										'Edit Link',
+										`${window.location.origin}/create?edit=${sub.id}&token=${sub.edit_token}`,
+									)
+								: ''}
 				`
 					: ''}
 				${isPublished
@@ -715,7 +735,9 @@ class AdminDashboard extends HTMLElement {
 
 	#renderAuthorInfoSection(sub) {
 		if (!sub.author_info_received) {
-			return html`<p class="admin-action-section-label">Author info not yet received</p>`;
+			return html`<p class="admin-action-section-label">
+					Author info not yet received
+				</p>`;
 		}
 
 		const info = sub.author_info;
@@ -724,9 +746,22 @@ class AdminDashboard extends HTMLElement {
 			<dl class="admin-author-info-block">
 				<dt>Payment</dt>
 				<dd>${info.payment_platform} — ${info.payment_username}</dd>
-				${info.name ? html`<dt>Name</dt><dd>${info.name}</dd>` : ''}
-				${info.link ? html`<dt>Link</dt><dd><a href="${info.link}" target="_blank" rel="noopener noreferrer">${info.link}</a></dd>` : ''}
-				${info.bio ? html`<dt>Bio</dt><dd>${info.bio}</dd>` : ''}
+				${info.name
+					? html`<dt>Name</dt>
+							<dd>${info.name}</dd>`
+					: ''}
+				${info.link
+					? html`<dt>Link</dt>
+							<dd>
+								<a href="${info.link}" target="_blank" rel="noopener noreferrer"
+									>${info.link}</a
+								>
+							</dd>`
+					: ''}
+				${info.bio
+					? html`<dt>Bio</dt>
+							<dd>${info.bio}</dd>`
+					: ''}
 			</dl>
 		`;
 	}
@@ -890,7 +925,9 @@ class AdminDashboard extends HTMLElement {
 					await navigator.clipboard.writeText(url);
 					const orig = btn.textContent;
 					btn.textContent = 'Copied!';
-					setTimeout(() => { btn.textContent = orig; }, 1500);
+					setTimeout(() => {
+						btn.textContent = orig;
+					}, 1500);
 				} catch (_e) {}
 			});
 		});

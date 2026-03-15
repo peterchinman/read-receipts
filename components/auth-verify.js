@@ -123,9 +123,7 @@ class AuthVerify extends HTMLElement {
 				}
 			</style>
 
-			<div class="container">
-				${this.#renderContent()}
-			</div>
+			<div class="container">${this.#renderContent()}</div>
 		`;
 	}
 

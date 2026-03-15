@@ -60,7 +60,11 @@ test('listPendingThreads() returns all threads with pendingAt set and no submitt
 	const threadC = store.createThread();
 	await flushTimers();
 
-	assert.equal(store.listPendingThreads().length, 0, 'no pending threads initially');
+	assert.equal(
+		store.listPendingThreads().length,
+		0,
+		'no pending threads initially',
+	);
 
 	store.markThreadPending(threadA.id);
 	store.markThreadPending(threadB.id);
@@ -68,9 +72,18 @@ test('listPendingThreads() returns all threads with pendingAt set and no submitt
 
 	const pending = store.listPendingThreads();
 	assert.equal(pending.length, 2, 'should list both pending threads');
-	assert.ok(pending.some((t) => t.id === threadA.id), 'threadA should be pending');
-	assert.ok(pending.some((t) => t.id === threadB.id), 'threadB should be pending');
-	assert.ok(!pending.some((t) => t.id === threadC.id), 'threadC should not be pending');
+	assert.ok(
+		pending.some((t) => t.id === threadA.id),
+		'threadA should be pending',
+	);
+	assert.ok(
+		pending.some((t) => t.id === threadB.id),
+		'threadB should be pending',
+	);
+	assert.ok(
+		!pending.some((t) => t.id === threadC.id),
+		'threadC should not be pending',
+	);
 
 	// Submitted threads should not appear even if they somehow have pendingAt
 	store.markThreadPending(threadC.id);
@@ -78,7 +91,11 @@ test('listPendingThreads() returns all threads with pendingAt set and no submitt
 	await flushTimers();
 
 	const pendingAfterSubmit = store.listPendingThreads();
-	assert.equal(pendingAfterSubmit.length, 2, 'submitted thread should not appear in pending list');
+	assert.equal(
+		pendingAfterSubmit.length,
+		2,
+		'submitted thread should not appear in pending list',
+	);
 });
 
 test('all pending threads are submitted when magic link is clicked, not just the most recent', async () => {
@@ -102,7 +119,11 @@ test('all pending threads are submitted when magic link is clicked, not just the
 	store.markThreadPending(threadB.id);
 	await flushTimers();
 
-	assert.equal(store.listPendingThreads().length, 2, 'both threads should be pending');
+	assert.equal(
+		store.listPendingThreads().length,
+		2,
+		'both threads should be pending',
+	);
 
 	// Simulate: magic link clicked → authenticated → #checkPendingSubmission runs.
 	// It should find ALL pending threads from the store.
@@ -117,15 +138,31 @@ test('all pending threads are submitted when magic link is clicked, not just the
 	await flushTimers();
 
 	store.loadThread(threadA.id);
-	assert.equal(store.isCurrentThreadSubmitted(), true, 'threadA should be submitted');
+	assert.equal(
+		store.isCurrentThreadSubmitted(),
+		true,
+		'threadA should be submitted',
+	);
 
 	store.loadThread(threadB.id);
-	assert.equal(store.isCurrentThreadSubmitted(), true, 'threadB should be submitted');
+	assert.equal(
+		store.isCurrentThreadSubmitted(),
+		true,
+		'threadB should be submitted',
+	);
 
 	store.loadThread(threadC.id);
-	assert.equal(store.isCurrentThreadSubmitted(), false, 'threadC should not be submitted');
+	assert.equal(
+		store.isCurrentThreadSubmitted(),
+		false,
+		'threadC should not be submitted',
+	);
 
-	assert.equal(store.listPendingThreads().length, 0, 'no threads should remain pending');
+	assert.equal(
+		store.listPendingThreads().length,
+		0,
+		'no threads should remain pending',
+	);
 });
 
 test('magic link flow: markThreadPending then clearThreadPending allows submission', async () => {
@@ -140,8 +177,16 @@ test('magic link flow: markThreadPending then clearThreadPending allows submissi
 	store.markThreadPending(thread.id);
 	await flushTimers();
 
-	assert.equal(store.isCurrentThreadPending(), true, 'thread should be pending after markThreadPending');
-	assert.equal(store.isCurrentThreadSubmitted(), false, 'thread should not be submitted yet');
+	assert.equal(
+		store.isCurrentThreadPending(),
+		true,
+		'thread should be pending after markThreadPending',
+	);
+	assert.equal(
+		store.isCurrentThreadSubmitted(),
+		false,
+		'thread should not be submitted yet',
+	);
 
 	// Step 2: user clicks magic link → authenticated → #checkPendingSubmission runs.
 	// It must clear pending BEFORE loading the thread, otherwise the submit button
@@ -149,13 +194,29 @@ test('magic link flow: markThreadPending then clearThreadPending allows submissi
 	store.clearThreadPending(thread.id);
 	await flushTimers();
 
-	assert.equal(store.isCurrentThreadPending(), false, 'thread should no longer be pending after clearThreadPending');
+	assert.equal(
+		store.isCurrentThreadPending(),
+		false,
+		'thread should no longer be pending after clearThreadPending',
+	);
 
 	// Step 3: _onSubmit() calls markThreadSubmitted on success
 	store.markThreadSubmitted(thread.id);
 	await flushTimers();
 
-	assert.equal(store.isCurrentThreadSubmitted(), true, 'thread should be submitted');
-	assert.equal(store.isCurrentThreadPending(), false, 'thread should not be pending after submission');
-	assert.equal(store.getCurrentThread().pendingAt, undefined, 'pendingAt should be cleared by markThreadSubmitted');
+	assert.equal(
+		store.isCurrentThreadSubmitted(),
+		true,
+		'thread should be submitted',
+	);
+	assert.equal(
+		store.isCurrentThreadPending(),
+		false,
+		'thread should not be pending after submission',
+	);
+	assert.equal(
+		store.getCurrentThread().pendingAt,
+		undefined,
+		'pendingAt should be cleared by markThreadSubmitted',
+	);
 });

@@ -194,7 +194,10 @@ function navigateToThread(thread) {
 	const appContainer = document.getElementById('app');
 	if (!appContainer) return;
 	if (width < 900) {
-		appContainer.setAttribute('data-mode', thread?.authorInfoMode ? 'edit' : 'preview');
+		appContainer.setAttribute(
+			'data-mode',
+			thread?.authorInfoMode ? 'edit' : 'preview',
+		);
 	} else if (width < 1200) {
 		appContainer.setAttribute('data-mode', 'edit');
 	}

@@ -6,7 +6,11 @@ import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import './thread-view.js';
 import { authState } from './auth-state.js';
-import { createDrawer, dialogTitleStyle, dialogBodyStyle } from '../utils/dialog.js';
+import {
+	createDrawer,
+	dialogTitleStyle,
+	dialogBodyStyle,
+} from '../utils/dialog.js';
 
 class PieceView extends HTMLElement {
 	#shadow;
@@ -117,10 +121,18 @@ class PieceView extends HTMLElement {
 	#renderPiece() {
 		let navText = 'Back';
 		try {
-			const count = parseInt(sessionStorage.getItem('message-simulator:unread-count') || '0', 10);
+			const count = parseInt(
+				sessionStorage.getItem('message-simulator:unread-count') || '0',
+				10,
+			);
 			if (count > 0) navText = String(count);
 		} catch {}
-		return html`<thread-view show-back-button nav-text="${navText}" nav-action="back" show-right-info-button></thread-view>`;
+		return html`<thread-view
+				show-back-button
+				nav-text="${navText}"
+				nav-action="back"
+				show-right-info-button
+			></thread-view>`;
 	}
 
 	_onNavigate(e) {

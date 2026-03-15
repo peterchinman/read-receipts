@@ -40,18 +40,18 @@ class ChatThreadList extends HTMLElement {
 	connectedCallback() {
 		this.shadowRoot.innerHTML = html`
 			<style>
-				*,
-				    *::before,
-				    *::after {
-				      box-sizing: border-box;
-				    }
-				    :host {
-				      box-sizing: border-box;
-				      display: block;
-				      height: 100%;
-				    }
+							*,
+							    *::before,
+							    *::after {
+							      box-sizing: border-box;
+							    }
+							    :host {
+							      box-sizing: border-box;
+							      display: block;
+							      height: 100%;
+							    }
 
-	${FLOATING_MENU_CSS}
+				${FLOATING_MENU_CSS}
 			</style>
 			<thread-list
 				header-title="Drafts"
@@ -204,7 +204,10 @@ class ChatThreadList extends HTMLElement {
 				if (appContainer) {
 					if (width < BP.tablet) {
 						// Mobile: show editor for author-info mode, preview otherwise
-						appContainer.setAttribute('data-mode', thread?.authorInfoMode ? 'edit' : 'preview');
+						appContainer.setAttribute(
+							'data-mode',
+							thread?.authorInfoMode ? 'edit' : 'preview',
+						);
 					} else if (width < BP.desktop) {
 						// Tablet: show editor in left, preview in right
 						appContainer.setAttribute('data-mode', 'edit');
@@ -242,7 +245,9 @@ class ChatThreadList extends HTMLElement {
 				changesRequested: Boolean(
 					thread.adminNotes?.length && !thread.submittedAt,
 				),
-				infoNeeded: Boolean(thread.authorInfoMode && !thread.authorInfoSubmitted),
+				infoNeeded: Boolean(
+					thread.authorInfoMode && !thread.authorInfoSubmitted,
+				),
 			};
 		});
 
@@ -326,7 +331,11 @@ class ChatThreadList extends HTMLElement {
 			body: `Are you sure you want to delete "${displayName}"? This action cannot be undone.`,
 			buttons: [
 				{ label: 'Cancel', value: null, style: dialogCancelButtonStyle },
-				{ label: 'Delete', value: 'delete', style: dialogDestructiveButtonStyle },
+				{
+					label: 'Delete',
+					value: 'delete',
+					style: dialogDestructiveButtonStyle,
+				},
 			],
 		});
 

@@ -1,74 +1,26 @@
 import { html } from './template.js';
 
 export const FLOATING_MENU_CSS = html`
-	/* Floating Menu */
-	.floating-menu {
-		position: fixed;
-		z-index: 10000;
-		background: var(--color-header);
-		-webkit-backdrop-filter: var(--backdrop-filter);
-		backdrop-filter: var(--backdrop-filter);
-		border: 1px solid var(--color-edge);
-		border-radius: 10px;
-		padding: 4px;
-		box-shadow:
-			0 4px 24px rgba(0, 0, 0, 0.15),
-			0 1px 4px rgba(0, 0, 0, 0.08);
-	}
-	/* Standard item — subtle hover (used in dropdowns) */
-	.menu-item {
-		display: flex;
-		align-items: center;
-		width: 100%;
-		padding: 6px 10px;
-		border: none;
-		background: transparent;
-		border-radius: 6px;
-		font: 13px system-ui;
-		color: var(--color-ink);
-		cursor: pointer;
-		text-align: left;
-	}
-	.menu-item:hover {
-		background: var(--color-menu);
-	}
-	/* Action item — accent hover (used in context menus) */
-	.menu-action-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		width: 100%;
-		padding: 6px 10px;
-		border: none;
-		background: transparent;
-		border-radius: 6px;
-		font: 13px system-ui;
-		color: var(--color-ink);
-		cursor: pointer;
-		text-align: left;
-	}
-	.menu-action-item:hover {
-		background: var(--color-bubble-self);
-		color: white;
-	}
-	.menu-action-item.destructive {
-		color: var(--color-status-red);
-	}
-	.menu-action-item.destructive:hover {
-		background: var(--color-status-red);
-		color: white;
-	}
-	.menu-action-item svg {
-		width: 16px;
-		height: 16px;
-		fill: currentColor;
-		flex-shrink: 0;
-	}
-	.menu-separator {
-		height: 1px;
-		background: var(--color-edge);
-		margin: 4px 0;
-	}
+	/* Floating Menu */ .floating-menu {
+	position: fixed; z-index: 10000; background: var(--color-header);
+	-webkit-backdrop-filter: var(--backdrop-filter); backdrop-filter:
+	var(--backdrop-filter); border: 1px solid var(--color-edge); border-radius:
+	10px; padding: 4px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 1px 4px
+	rgba(0, 0, 0, 0.08); } /* Standard item — subtle hover (used in dropdowns) */
+	.menu-item { display: flex; align-items: center; width: 100%; padding: 6px
+	10px; border: none; background: transparent; border-radius: 6px; font: 13px
+	system-ui; color: var(--color-ink); cursor: pointer; text-align: left; }
+	.menu-item:hover { background: var(--color-menu); } /* Action item — accent
+	hover (used in context menus) */ .menu-action-item { display: flex;
+	align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: none;
+	background: transparent; border-radius: 6px; font: 13px system-ui; color:
+	var(--color-ink); cursor: pointer; text-align: left; } .menu-action-item:hover
+	{ background: var(--color-bubble-self); color: white; }
+	.menu-action-item.destructive { color: var(--color-status-red); }
+	.menu-action-item.destructive:hover { background: var(--color-status-red);
+	color: white; } .menu-action-item svg { width: 16px; height: 16px; fill:
+	currentColor; flex-shrink: 0; } .menu-separator { height: 1px; background:
+	var(--color-edge); margin: 4px 0; }
 `;
 
 export class FloatingMenu {
