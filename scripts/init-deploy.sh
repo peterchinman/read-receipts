@@ -42,6 +42,12 @@ php $BACKEND/artisan key:generate
 echo "=== Running migrations ==="
 php $BACKEND/artisan migrate --force
 
+echo "=== Setting database permissions ==="
+sudo chown www-data:www-data $BACKEND/database/database.sqlite
+sudo chown www-data:www-data $BACKEND/database/
+sudo chmod 664 $BACKEND/database/database.sqlite
+sudo chmod 775 $BACKEND/database/
+
 echo "=== Caching config / routes / views ==="
 php $BACKEND/artisan config:cache
 php $BACKEND/artisan route:cache
@@ -64,7 +70,7 @@ echo 'Admin user created.';" | php $BACKEND/artisan tinker
 # Start queue worker
 # ============================================================
 echo "=== Starting queue worker ==="
-sudo supervisorctl start laravel-worker
+sudo supervisorctl restart laravel-worker
 
 echo ""
 echo "================================================================"
