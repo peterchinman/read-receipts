@@ -6,7 +6,7 @@
     <title>Changes requested for your submission</title>
 </head>
 <body>
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.4; color: #000; max-width: 600px; margin: 0 auto;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.4; color: #000; max-width: 600px;">
         <h2>Changes requested</h2>
 
         <p>Thank you for submitting "<strong>{{ $threadName }}</strong>" to {{ $appName }}.</p>

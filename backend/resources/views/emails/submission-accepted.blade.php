@@ -6,7 +6,7 @@
     <title>Your submission has been accepted!</title>
 </head>
 <body>
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.4; color: #000; max-width: 600px; margin: 0 auto;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.4; color: #000; max-width: 600px;">
         <h2>Congratulations!</h2>
 
         <p>Your submission "<strong>{{ $threadName }}</strong>" has been accepted for publication!</p>

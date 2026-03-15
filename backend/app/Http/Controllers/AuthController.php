@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AdminMagicLinkMail;
 use App\Mail\MagicLinkMail;
 use App\Models\AuthToken;
 use App\Models\User;
@@ -23,7 +24,8 @@ class AuthController extends Controller
 
         $authToken = AuthToken::generateFor($user);
 
-        Mail::to($user->email)->send(new MagicLinkMail($authToken));
+        $mail = $user->is_admin ? new AdminMagicLinkMail($authToken) : new MagicLinkMail($authToken);
+        Mail::to($user->email)->send($mail);
 
         return response()->json([
             'message' => 'Magic link sent to your email',
