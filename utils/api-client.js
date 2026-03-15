@@ -2,7 +2,8 @@
 
 import { config } from './config.js';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = isLocal ? 'http://localhost:8000/api' : '/api';
 const TOKEN_STORAGE_KEY = `${config.appName.toLowerCase().replace(/\s+/g, '-')}:auth-token`;
 
 class ApiClient {
