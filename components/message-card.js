@@ -483,7 +483,6 @@ class MessageCard extends HTMLElement {
 	}
 
 	scrollCardToTopOnIOS() {
-
 		if (isIOS && !this.classList.contains('focused')) {
 			const cardsList = this.closest('.cards-list');
 			if (cardsList) {

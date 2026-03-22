@@ -97,12 +97,16 @@ class SenderSwitch extends HTMLElement {
 					this._touchStartY = e.touches[0]?.clientY ?? 0;
 				};
 				this._onTouchEnd = (e) => {
-					const deltaY = Math.abs((e.changedTouches[0]?.clientY ?? 0) - this._touchStartY);
+					const deltaY = Math.abs(
+						(e.changedTouches[0]?.clientY ?? 0) - this._touchStartY,
+					);
 					if (deltaY > 10) return;
 					e.preventDefault();
 					checkbox?.click();
 				};
-				label.addEventListener('touchstart', this._onTouchStart, { passive: true });
+				label.addEventListener('touchstart', this._onTouchStart, {
+					passive: true,
+				});
 				label.addEventListener('touchend', this._onTouchEnd);
 			}
 		}

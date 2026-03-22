@@ -21,8 +21,7 @@
 	};
 
 	const mql =
-		window.matchMedia &&
-		window.matchMedia('(prefers-color-scheme: dark)');
+		window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 
 	const syncToSystemIfNoOverride = () => {
 		const saved = getSavedTheme();
