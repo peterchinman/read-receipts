@@ -5,6 +5,15 @@ export const isIOS =
 if (isIOS) document.documentElement.classList.add('ios');
 
 let initialized = false;
+let paused = false;
+
+export function pauseIOSViewport() {
+	paused = true;
+}
+
+export function resumeIOSViewport() {
+	paused = false;
+}
 
 export function initIOSViewport() {
 	if (initialized || !isIOS || !window.visualViewport) return;
@@ -12,22 +21,27 @@ export function initIOSViewport() {
 
 	let previousViewportHeight = visualViewport.height;
 	let keyboardVisible = false;
+
 	visualViewport.addEventListener('resize', () => {
 		const newViewportHeight = window.visualViewport.height;
 		if (newViewportHeight < previousViewportHeight) {
-			const vh = newViewportHeight * 0.01;
-			document.documentElement.style.setProperty('--vh', `${vh}px`);
 			if (!keyboardVisible) {
 				keyboardVisible = true;
-				window.scrollTo(0, 0);
+				if (!paused) {
+					const vh = newViewportHeight * 0.01;
+					document.documentElement.style.setProperty('--vh', `${vh}px`);
+					window.scrollTo(0, 0);
+				}
 				document.dispatchEvent(
 					new CustomEvent('ios-viewport:keyboard-appearing'),
 				);
 			}
 		} else {
 			keyboardVisible = false;
-			document.documentElement.style.setProperty('--vh', '1dvh');
 			document.dispatchEvent(new CustomEvent('ios-viewport:keyboard-hidden'));
+			if (!paused) {
+				document.documentElement.style.setProperty('--vh', '1dvh');
+			}
 		}
 		previousViewportHeight = newViewportHeight;
 	});

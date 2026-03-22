@@ -7,7 +7,7 @@ import { MQ } from '../utils/breakpoints.js';
 import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 import { authState } from './auth-state.js';
 import { apiClient } from '../utils/api-client.js';
-import { isIOS } from '../utils/ios-viewport.js';
+import { isIOS, pauseIOSViewport, resumeIOSViewport } from '../utils/ios-viewport.js';
 import {
 	createDialog,
 	showDialog,
@@ -110,9 +110,10 @@ class ChatEditor extends HTMLElement {
 					overflow: auto;
 					padding: 12px;
 					padding-top: calc(12px + var(--editor-header-height, 0px));
+					/*scroll-behavior: smooth;*/
 				}
 				:host(.ios) .cards-list {
-					padding-bottom: 100dvh;
+					padding-bottom: 80dvh;
 				}
 				.info-editor {
 					border: 1px solid var(--color-edge);
@@ -304,6 +305,28 @@ class ChatEditor extends HTMLElement {
 				}
 			});
 			this._headerObserver.observe(headerEl);
+
+			// Re-run resize on all cards and pause the iOS viewport squish behavior when the pane becomes visible.
+			let prevWidth = 0;
+			this._cardsListVisibilityObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const width = entry.contentRect.width;
+					if (prevWidth === 0 && width > 0) {
+						pauseIOSViewport();
+						for (const card of this.shadowRoot.querySelectorAll('.editor-card')) {
+							const textarea = card.shadowRoot?.querySelector('textarea');
+							if (textarea) {
+								textarea.style.height = 'auto';
+								textarea.style.height = `${textarea.scrollHeight}px`;
+							}
+						}
+					} else if (prevWidth > 0 && width === 0) {
+						resumeIOSViewport();
+					}
+					prevWidth = width;
+				}
+			});
+			this._cardsListVisibilityObserver.observe(cardsListEl);
 		}
 
 		const onThreadNameInput = () => {
@@ -332,6 +355,13 @@ class ChatEditor extends HTMLElement {
 			recipientNameInput.addEventListener('input', onRecipientInput);
 		if (recipientLocationInput)
 			recipientLocationInput.addEventListener('input', onRecipientInput);
+
+		if (isIOS) {
+			this._onKeyboardHidden = () => {
+				window.scrollTo(0, 0);
+			};
+			document.addEventListener('ios-viewport:keyboard-hidden', this._onKeyboardHidden);
+		}
 
 		this.shadowRoot.addEventListener('editor:update', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:delete', this._onDelegated);
@@ -381,6 +411,12 @@ class ChatEditor extends HTMLElement {
 	}
 
 	disconnectedCallback() {
+		resumeIOSViewport();
+		if (this._onKeyboardHidden) {
+			document.removeEventListener('ios-viewport:keyboard-hidden', this._onKeyboardHidden);
+			this._onKeyboardHidden = null;
+		}
+
 		this.shadowRoot.removeEventListener('editor:update', this._onDelegated);
 		this.shadowRoot.removeEventListener('editor:delete', this._onDelegated);
 		this.shadowRoot.removeEventListener('editor:add-below', this._onDelegated);
@@ -412,6 +448,10 @@ class ChatEditor extends HTMLElement {
 		if (this._headerObserver) {
 			this._headerObserver.disconnect();
 			this._headerObserver = null;
+		}
+		if (this._cardsListVisibilityObserver) {
+			this._cardsListVisibilityObserver.disconnect();
+			this._cardsListVisibilityObserver = null;
 		}
 	}
 

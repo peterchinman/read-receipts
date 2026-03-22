@@ -1,5 +1,6 @@
 import { html } from '../utils/template.js';
 import { initTooltips } from '../utils/tooltip.js';
+import { isIOS } from '../utils/ios-viewport.js';
 
 class SenderSwitch extends HTMLElement {
 	static get observedAttributes() {
@@ -84,10 +85,38 @@ class SenderSwitch extends HTMLElement {
 			checkbox.addEventListener('change', this._onChange);
 			this.#syncFromAttr();
 		}
+
+		// On iOS, the first tap on a checkbox inside a shadow DOM label doesn't
+		// reliably fire a change event. Handle touchend directly to ensure the
+		// toggle always works on first touch.
+		if (isIOS) {
+			const label = this.shadowRoot.querySelector('label');
+			if (label) {
+				this._touchStartY = 0;
+				this._onTouchStart = (e) => {
+					this._touchStartY = e.touches[0]?.clientY ?? 0;
+				};
+				this._onTouchEnd = (e) => {
+					const deltaY = Math.abs((e.changedTouches[0]?.clientY ?? 0) - this._touchStartY);
+					if (deltaY > 10) return;
+					e.preventDefault();
+					checkbox?.click();
+				};
+				label.addEventListener('touchstart', this._onTouchStart, { passive: true });
+				label.addEventListener('touchend', this._onTouchEnd);
+			}
+		}
 		this._cleanupTooltips = initTooltips(this.shadowRoot, this);
 	}
 
 	disconnectedCallback() {
+		if (this._onTouchEnd) {
+			const label = this.shadowRoot.querySelector('label');
+			label?.removeEventListener('touchstart', this._onTouchStart);
+			label?.removeEventListener('touchend', this._onTouchEnd);
+			this._onTouchStart = null;
+			this._onTouchEnd = null;
+		}
 		this._cleanupTooltips?.();
 	}
 

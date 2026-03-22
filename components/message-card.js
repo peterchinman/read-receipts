@@ -22,6 +22,9 @@ class MessageCard extends HTMLElement {
 		super();
 		this.attachShadow({ mode: 'open' });
 		this._onClick = this._onClick.bind(this);
+		this._onTouchStart = this._onTouchStart.bind(this);
+		this._onTouchEnd = this._onTouchEnd.bind(this);
+		this._touchStartY = 0;
 		this._onInput = this._onInput.bind(this);
 		this._onChange = this._onChange.bind(this);
 		this._onKeyDown = this._onKeyDown.bind(this);
@@ -47,7 +50,7 @@ class MessageCard extends HTMLElement {
 					border: 1px solid var(--color-edge);
 					border-radius: var(--border-radius);
 					padding: calc(12rem / 14);
-					font-size: 14px;
+					font-size: var(--font-size, 14px);
 					line-height: var(--line-height);
 					background: var(--color-page);
 				}
@@ -69,8 +72,9 @@ class MessageCard extends HTMLElement {
 				}
 				.input-container {
 					position: relative;
+					align-items: flex-start;
 
-					.click-receiver {
+					.touch-receiver {
 						display: none;
 						position: absolute;
 						top: 0;
@@ -79,8 +83,11 @@ class MessageCard extends HTMLElement {
 						height: 100%;
 					}
 				}
-				:host(.ios) .click-receiver {
+				:host(.ios) .touch-receiver {
 					display: block;
+				}
+				:host(.focused) .touch-receiver {
+					display: none;
 				}
 				.row textarea {
 					all: unset;
@@ -221,7 +228,8 @@ class MessageCard extends HTMLElement {
 					}
 				}
 				:host(:hover) .actions,
-				:host(.focused) .actions {
+				:host(.focused) .actions,
+				:host(.ios) .actions {
 					display: flex;
 				}
 				.delete-button {
@@ -239,7 +247,8 @@ class MessageCard extends HTMLElement {
 					}
 				}
 				:host(:hover) .delete-button,
-				:host(.focused) .delete-button {
+				:host(.focused) .delete-button,
+				:host(.ios) .delete-button {
 					display: flex;
 				}
 				.insert-image-button {
@@ -345,8 +354,8 @@ class MessageCard extends HTMLElement {
 						placeholder="Message..."
 						rows="1"
 					></textarea>
-					<!-- On iOS, clicking directly on the textarea causes scroll issues b/c of the virtual keyboard appearing and the os attempting to keep the textarea in view. So, instead we place this click-receiver above the textarea. -->
-					<div class="click-receiver"></div>
+					<!-- On iOS, clicking directly on the textarea causes scroll issues b/c of the virtual keyboard appearing and the os attempting to keep the textarea in view. So, instead we place this touch-receiver above the textarea. -->
+					<div class="touch-receiver"></div>
 				</div>
 				<div class="row actions">
 					<div class="left"></div>
@@ -354,6 +363,12 @@ class MessageCard extends HTMLElement {
 			</div>
 		`;
 		this.shadowRoot.addEventListener('click', this._onClick);
+		if (isIOS) {
+			this.shadowRoot.addEventListener('touchstart', this._onTouchStart, {
+				passive: true,
+			});
+			this.shadowRoot.addEventListener('touchend', this._onTouchEnd);
+		}
 		this.shadowRoot.addEventListener('input', this._onInput);
 		this.shadowRoot.addEventListener('change', this._onChange);
 		this.shadowRoot.addEventListener('keydown', this._onKeyDown);
@@ -383,6 +398,10 @@ class MessageCard extends HTMLElement {
 
 	disconnectedCallback() {
 		this.shadowRoot.removeEventListener('click', this._onClick);
+		if (isIOS) {
+			this.shadowRoot.removeEventListener('touchstart', this._onTouchStart);
+			this.shadowRoot.removeEventListener('touchend', this._onTouchEnd);
+		}
 		this.shadowRoot.removeEventListener('input', this._onInput);
 		this.shadowRoot.removeEventListener('change', this._onChange);
 		this.shadowRoot.removeEventListener('keydown', this._onKeyDown);
@@ -464,7 +483,8 @@ class MessageCard extends HTMLElement {
 	}
 
 	scrollCardToTopOnIOS() {
-		if (isIOS) {
+
+		if (isIOS && !this.classList.contains('focused')) {
 			const cardsList = this.closest('.cards-list');
 			if (cardsList) {
 				const cardsListRect = cardsList.getBoundingClientRect();
@@ -472,7 +492,7 @@ class MessageCard extends HTMLElement {
 				const headerHeight = parseFloat(
 					getComputedStyle(this).getPropertyValue('--editor-header-height'),
 				);
-				const BUFFER = 16;
+				const BUFFER = 32;
 				cardsList.scrollTop +=
 					cardRect.top - cardsListRect.top - headerHeight - BUFFER;
 			}
@@ -711,6 +731,38 @@ class MessageCard extends HTMLElement {
 		}
 	}
 
+	_onTouchStart(e) {
+		this._touchStartY = e.touches[0]?.clientY ?? 0;
+	}
+
+	// Need to handle focusing the textarea onTouchEnd for reliable iOS handling, does not work onClick. We also perform the scroll for the message card here.
+	_onTouchEnd(e) {
+		if (this.hasAttribute('readonly')) return;
+
+		// Ignore scroll gestures — only act on taps
+		const deltaY = Math.abs(
+			(e.changedTouches[0]?.clientY ?? 0) - this._touchStartY,
+		);
+		if (deltaY > 10) return;
+
+		const path = e.composedPath();
+		const target = path[0] ?? e.target;
+		// Check the full composed path for sender-switch — closest() can't
+		// traverse back out through a shadow boundary so we must scan the path.
+		if (
+			path.some(
+				(el) => el instanceof HTMLElement && el.tagName === 'SENDER-SWITCH',
+			) ||
+			target.closest?.('button') ||
+			target.matches?.('select') ||
+			target.closest?.('select')
+		)
+			return;
+
+		this.scrollCardToTopOnIOS();
+		this.focusTextarea();
+	}
+
 	_onClick(e) {
 		if (this.hasAttribute('readonly')) return;
 		const target = e.composedPath()[0] ?? e.target;
@@ -744,13 +796,13 @@ class MessageCard extends HTMLElement {
 			target.matches?.('select') ||
 			target.matches?.('sender-switch') ||
 			target.closest?.('select') ||
-			target.closest?.('sender-switch')
+			target.closest?.('sender-switch') ||
+			target.closest?.('input')
 		) {
 			return;
 		}
 
 		// Clicking anywhere else in the card should focus the textarea
-		this.scrollCardToTopOnIOS();
 		this.focusTextarea();
 	}
 
