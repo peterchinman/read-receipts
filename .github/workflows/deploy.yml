@@ -42,7 +42,7 @@ jobs:
 
       - name: Sync files to server
         run: |
-          rsync -az --delete \
+          rsync -az --delete --omit-dir-times \
             -e "ssh -i ~/.ssh/deploy_key" \
             --exclude='.git' \
             --exclude='node_modules' \
