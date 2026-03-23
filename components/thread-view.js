@@ -81,14 +81,10 @@ class ThreadDisplay extends HTMLElement {
 			this._inputObserver = new ResizeObserver((entries) => {
 				for (const entry of entries) {
 					const height = entry.target.getBoundingClientRect().height;
-					const isNearBottom = this.#isNearBottom();
 					this.$.messageList.style.setProperty(
 						'--bottom-area-height',
 						`${height}px`,
 					);
-					if (inputObserverReady && isNearBottom) {
-						this.scrollToBottom();
-					}
 				}
 				inputObserverReady = true;
 			});
