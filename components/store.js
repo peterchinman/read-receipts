@@ -35,22 +35,12 @@ const WELCOME_MESSAGES = [
 	},
 	{ message: 'what do I do with it?', sender: 'self' },
 	{
-		message:
-			'You can compose messages to the left in the Edit panel. To the left of that is a list of all your Drafts.',
+		message: 'You can compose pieces, and see a list of all your drafts',
 		sender: 'other',
 	},
 	{
 		message:
-			"You can also submit a piece from the Edit panel. I'm always looking for work that give me goosebumps. If it gets accepted, I'll send you $20.",
-		sender: 'other',
-	},
-	{
-		message:
-			'Important note: your drafts are only stored locally! They are not saved anywhere except in your browser. I can not see them unless you submit!',
-		sender: 'other',
-	},
-	{
-		message: '(Which also means that you can use this off-line.)',
+			"You can also submit pieces. If it gets accepted, I'll send you $20.",
 		sender: 'other',
 	},
 	{ message: 'no like, what is this for?', sender: 'self' },
