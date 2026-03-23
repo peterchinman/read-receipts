@@ -121,7 +121,7 @@ class ThreadStore extends EventTarget {
 			const raw = localStorage.getItem(THREADS_STORAGE_KEY);
 			if (!raw) {
 				// No threads exist, create default thread
-				const thread = this.#createDefaultThread();
+				const thread = this.#createWelcomeThread();
 				this.#threads = [thread];
 				this.#currentThreadId = thread.id;
 				this.save();
@@ -140,7 +140,7 @@ class ThreadStore extends EventTarget {
 
 				// If no valid threads, create default
 				if (this.#threads.length === 0) {
-					const thread = this.#createDefaultThread();
+					const thread = this.#createWelcomeThread();
 					this.#threads = [thread];
 					this.#currentThreadId = thread.id;
 					this.save();
@@ -152,7 +152,7 @@ class ThreadStore extends EventTarget {
 				this.#emitChange('load');
 			} else {
 				// Invalid format or old schema version, create default thread
-				const thread = this.#createDefaultThread();
+				const thread = this.#createWelcomeThread();
 				this.#threads = [thread];
 				this.#currentThreadId = thread.id;
 				this.save();
@@ -160,7 +160,7 @@ class ThreadStore extends EventTarget {
 			}
 		} catch (_err) {
 			// Error loading, create default thread
-			const thread = this.#createDefaultThread();
+			const thread = this.#createWelcomeThread();
 			this.#threads = [thread];
 			this.#currentThreadId = thread.id;
 			this.save();
@@ -291,7 +291,7 @@ class ThreadStore extends EventTarget {
 
 		// If no threads remain, create a new default thread
 		if (this.#threads.length === 0) {
-			const newThread = this.#createDefaultThread();
+			const newThread = this.#createWelcomeThread();
 			this.#threads.push(newThread);
 			this.#currentThreadId = newThread.id;
 		} else if (this.#currentThreadId === threadId) {
@@ -692,14 +692,14 @@ class ThreadStore extends EventTarget {
 		return inferTimeSince(prevIso, curIso);
 	}
 
-	#createDefaultThread() {
+	#createWelcomeThread() {
 		const now = new Date();
 		return {
 			id: this.#generateId(),
 			name: undefined,
 			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
 			participants: JSON.parse(JSON.stringify(WELCOME_PARTICIPANTS)),
-			initialMessageTime: '2025-01-15T09:00:00.000Z',
+			initialMessageTime: '1990-07-22T09:00:00.000Z',
 			createdAt: now.toISOString(),
 			updatedAt: now.toISOString(),
 		};
