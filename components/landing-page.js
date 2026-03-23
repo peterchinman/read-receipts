@@ -6,6 +6,7 @@ import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import { config } from '../utils/config.js';
 import './thread-list.js';
+import { createDrawer, dialogTitleStyle } from '../utils/dialog.js';
 
 const READ_PIECES_KEY = 'message-simulator:read-pieces';
 
@@ -16,7 +17,6 @@ class LandingPage extends HTMLElement {
 	#error = null;
 	#display = null;
 	#readIds = new Set();
-	#infoOpen = false;
 
 	constructor() {
 		super();
@@ -56,43 +56,6 @@ class LandingPage extends HTMLElement {
 					overflow: hidden;
 					position: relative;
 				}
-
-				.info-pane {
-					position: absolute;
-					inset: 0;
-					z-index: 10;
-					background: var(--color-page);
-					display: flex;
-					flex-direction: column;
-					padding: 2rem 1.5rem;
-					gap: 1rem;
-					overflow-y: auto;
-				}
-
-				.info-pane-close {
-					align-self: flex-end;
-					background: none;
-					border: none;
-					cursor: pointer;
-					font-size: 1.2rem;
-					color: var(--color-ink-subdued);
-					padding: 4px 8px;
-				}
-
-				.info-pane h2 {
-					font-size: 1.4rem;
-					margin: 0;
-				}
-
-				.info-pane p {
-					margin: 0;
-					line-height: 1.6;
-					color: var(--color-ink-subdued);
-				}
-
-				.info-pane a {
-					color: var(--color-bubble-self);
-				}
 			</style>
 			<thread-list
 				header-title="Read Receipts"
@@ -101,58 +64,61 @@ class LandingPage extends HTMLElement {
 				show-info-button
 				show-create
 			></thread-list>
-			${this.#infoOpen ? this.#renderInfoPane() : ''}
 		`;
 	}
 
-	#renderInfoPane() {
-		return html`
-			<div class="info-pane">
-				<button class="info-pane-close" id="info-pane-close">✕</button>
-				<h2>Read Receipts</h2>
-				<p>A distance simulator.</p>
-				<p>
-					Made by
-					<a href="https://peterchinman.com" target="_blank">Peter Chinman</a>.
-				</p>
-				<p>
-					View this project
-					<a
-						href="https://github.com/peterchinman/message-simulator"
-						target="_blank"
-						>on Github</a
-					>. If you find any bugs, or have any feature requests, please report
-					them there.
-				</p>
-			</div>
-		`;
+	#showInfoDrawer() {
+		const { drawer } = createDrawer({ container: this.#shadow });
+
+		const titleEl = document.createElement('div');
+		titleEl.style.cssText = dialogTitleStyle;
+		titleEl.textContent = 'Read Receipts';
+		drawer.appendChild(titleEl);
+
+		const linkStyle = 'color: var(--color-primary, #007aff);';
+		const paraStyle =
+			'font: 0.9rem system-ui; color: var(--color-ink); line-height: 1.6; margin: 8px 0;';
+
+		const desc = document.createElement('p');
+		desc.style.cssText = paraStyle;
+		desc.textContent = 'A distance simulator.';
+		drawer.appendChild(desc);
+
+		const byLine = document.createElement('p');
+		byLine.style.cssText = paraStyle;
+		byLine.appendChild(document.createTextNode('Made by '));
+		const authorLink = document.createElement('a');
+		authorLink.href = 'https://peterchinman.com';
+		authorLink.target = '_blank';
+		authorLink.rel = 'noopener noreferrer';
+		authorLink.style.cssText = linkStyle;
+		authorLink.textContent = 'Peter Chinman';
+		byLine.appendChild(authorLink);
+		byLine.appendChild(document.createTextNode('.'));
+		drawer.appendChild(byLine);
+
+		const githubLine = document.createElement('p');
+		githubLine.style.cssText = paraStyle;
+		githubLine.appendChild(document.createTextNode('View this project '));
+		const githubLink = document.createElement('a');
+		githubLink.href = 'https://github.com/peterchinman/message-simulator';
+		githubLink.target = '_blank';
+		githubLink.rel = 'noopener noreferrer';
+		githubLink.style.cssText = linkStyle;
+		githubLink.textContent = 'on Github';
+		githubLine.appendChild(githubLink);
+		githubLine.appendChild(
+			document.createTextNode(
+				'. If you find any bugs, or have any feature requests, please report them there.',
+			),
+		);
+		drawer.appendChild(githubLine);
 	}
 
 	_onNavigate(e) {
 		const { action } = e.detail || {};
 		if (action === 'info') {
-			this.#infoOpen = true;
-			this.#renderShell();
-			this.#display = this.#shadow.querySelector('thread-list');
-			this.#display?.addEventListener('thread-list:select', this._onSelect);
-			this.#display?.refs?.newThreadBtn?.addEventListener(
-				'click',
-				this._onCompose,
-			);
-			this.#renderList();
-			this.#shadow
-				.getElementById('info-pane-close')
-				?.addEventListener('click', () => {
-					this.#infoOpen = false;
-					this.#renderShell();
-					this.#display = this.#shadow.querySelector('thread-list');
-					this.#display?.addEventListener('thread-list:select', this._onSelect);
-					this.#display?.refs?.newThreadBtn?.addEventListener(
-						'click',
-						this._onCompose,
-					);
-					this.#renderList();
-				});
+			this.#showInfoDrawer();
 		}
 	}
 

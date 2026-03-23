@@ -58,6 +58,7 @@ class ChatThreadList extends HTMLElement {
 				show-actions
 				show-create
 				show-header
+				show-menu-button
 				nav-text="Read"
 				nav-action="back"
 			></thread-list>

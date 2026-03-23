@@ -40,6 +40,7 @@ class ThreadListDisplay extends HTMLElement {
 			'show-header',
 			'show-unread',
 			'show-info-button',
+			'show-menu-button',
 			'nav-text',
 			'nav-action',
 		];
@@ -239,7 +240,7 @@ class ThreadListDisplay extends HTMLElement {
 					background: transparent;
 					color: var(--color-bubble-self);
 					cursor: pointer;
-					display: flex;
+					display: none;
 					align-items: center;
 					justify-content: center;
 					border-radius: 50%;
@@ -255,6 +256,9 @@ class ThreadListDisplay extends HTMLElement {
 				.menu-btn:active {
 					opacity: 0.6;
 				}
+				:host([show-menu-button]) .menu-btn {
+					display: flex;
+				}
 				.threads-list {
 					flex: 1;
 					overflow-y: auto;
@@ -262,22 +266,19 @@ class ThreadListDisplay extends HTMLElement {
 					min-height: 0;
 				}
 				.thread-row {
-					--row-padding-block: 12px;
-					--name-row-height: 18px;
+					--row-padding-block: calc(12rem / 14);
+					--name-row-height: calc(18rem / 14);
 					--preview-line-height: 1.3;
-					--preview-font-size: 12px;
+					--preview-font-size: calc(12rem / 14);
 					--preview-lines: 2;
 					--gap-between-rows: 4px;
 
 					display: grid;
-					grid-template-columns: 48px 1fr;
-					gap: 12px;
-					padding: var(--row-padding-block) var(--padding-inline);
-					border-bottom: 1px solid var(--color-edge);
-					cursor: pointer;
+					grid-template-columns: 44px 1fr;
 					user-select: none;
 					transition: background 0.15s;
 					outline: none;
+					padding-left: var(--padding-inline);
 					height: calc(
 						var(--row-padding-block) * 2 + var(--name-row-height) +
 							var(--gap-between-rows) + var(--preview-font-size) *
@@ -302,12 +303,13 @@ class ThreadListDisplay extends HTMLElement {
 				}
 
 				:host([show-unread]) .thread-row {
-					grid-template-columns: 10px 48px 1fr;
+				  padding-left: 0;
+					grid-template-columns: calc(26rem / 14) calc(44rem / 14) 1fr;
 				}
 				.unread-indicator {
 					display: none;
-					width: 8px;
-					height: 8px;
+					width: 10px;
+					height: 10px;
 					border-radius: 50%;
 					background: var(--color-bubble-self);
 					align-self: center;
@@ -319,9 +321,16 @@ class ThreadListDisplay extends HTMLElement {
 				:host([show-unread]) .unread-indicator.read {
 					visibility: hidden;
 				}
+				.avatar-slot {
+					padding-block: var(--row-padding-block);
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+				}
 				.avatar {
-					width: 48px;
-					height: 48px;
+					width: calc(44rem / 14);
+					height: calc(44rem / 14);
 					border-radius: 50%;
 					background: linear-gradient(
 						135deg,
@@ -336,11 +345,15 @@ class ThreadListDisplay extends HTMLElement {
 					flex-shrink: 0;
 				}
 				.thread-content {
+					padding-block: var(--row-padding-block);
+					padding-right: var(--padding-inline);
+				  margin-left: calc(12rem / 14);
 					min-width: 0;
 					display: flex;
 					flex-direction: column;
 					gap: var(--gap-between-rows);
-					justify-content: center;
+					border-bottom: 1px solid var(--color-edge);
+
 				}
 				.thread-header {
 					display: flex;
@@ -350,7 +363,7 @@ class ThreadListDisplay extends HTMLElement {
 					height: var(--name-row-height);
 				}
 				.thread-name {
-					font: 600 14px system-ui;
+					font: 600 var(--font-size) system-ui;
 					color: var(--color-ink);
 					white-space: nowrap;
 					overflow: hidden;
@@ -543,7 +556,9 @@ class ThreadListDisplay extends HTMLElement {
 				class="unread-indicator ${unread ? '' : 'read'}"
 				aria-hidden="true"
 			></div>
-			<div class="avatar" aria-hidden="true">${initials}</div>
+			<div class="avatar-slot">
+				<div class="avatar" aria-hidden="true">${initials}</div>
+			</div>
 			<div class="thread-content">
 				<div class="thread-header">
 					<div class="thread-name">${this.#escapeHtml(name)}</div>
