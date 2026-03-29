@@ -104,7 +104,7 @@ function handleRouteChange() {
 function renderLandingPage(container: HTMLElement) {
 	container.innerHTML = `
 		<section class="pane pane--landing">
-			<landing-page></landing-page>
+			<piece-list></piece-list>
 		</section>
 	`;
 }
