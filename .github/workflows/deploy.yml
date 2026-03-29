@@ -33,6 +33,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
@@ -65,5 +77,7 @@ jobs:
           php artisan view:cache
           php artisan event:cache
           sudo supervisorctl restart laravel-worker
+          sudo cp /var/www/readreceipts/scripts/nginx.conf /etc/nginx/sites-available/readreceipts
+          sudo nginx -t && sudo systemctl reload nginx
           echo "Deploy complete"
           EOF
