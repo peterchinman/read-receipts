@@ -1,18 +1,20 @@
-import './multi-switch.js';
+import { MultiSwitch } from './multi-switch.js';
 
 const STORAGE_KEY = 'message-simulator:theme';
 
 class ThemeSwitch extends HTMLElement {
+	#shadow: ShadowRoot;
+
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.#shadow = this.attachShadow({ mode: 'open' });
 	}
 
 	connectedCallback() {
 		const saved = this.#getSaved();
 		const initial = saved === 'light' || saved === 'dark' ? saved : 'auto';
 
-		this.shadowRoot!.innerHTML = `
+		this.#shadow.innerHTML = `
 			<style>
 				:host {
 					display: flex;
@@ -29,10 +31,10 @@ class ThemeSwitch extends HTMLElement {
 			></multi-switch>
 		`;
 
-		this.shadowRoot!
-			.querySelector('multi-switch')!
+		this.#shadow
+			.querySelector<MultiSwitch>('multi-switch')!
 			.addEventListener('change', (e) => {
-				this.#applyTheme((e as CustomEvent).detail.value);
+				this.#applyTheme(e.detail.value);
 			});
 	}
 

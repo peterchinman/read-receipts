@@ -1,9 +1,15 @@
 import { html } from '../utils/template.js';
 import { initTooltips } from '../utils/tooltip.js';
-import './sender-switch.js';
+import { SenderSwitch } from './sender-switch.js';
 import { isIOS } from '../utils/ios-viewport.js';
+import type {
+	EditorUpdateDetail,
+	EditorIdDetail,
+	MessagePatch,
+} from '../types/events.js';
 
-class MessageCard extends HTMLElement {
+export class MessageCard extends HTMLElement {
+	#shadow: ShadowRoot;
 	declare _touchStartY: number;
 	declare _consecutiveEnters: number;
 	declare _lastEnterTime: number;
@@ -25,7 +31,7 @@ class MessageCard extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.#shadow = this.attachShadow({ mode: 'open' });
 		this._onClick = this._onClick.bind(this);
 		this._onTouchStart = this._onTouchStart.bind(this);
 		this._onTouchEnd = this._onTouchEnd.bind(this);
@@ -46,7 +52,7 @@ class MessageCard extends HTMLElement {
 
 		if (isIOS) this.classList.add('ios');
 
-		this.shadowRoot!.innerHTML = html`
+		this.#shadow.innerHTML = html`
 			<style>
 				:host {
 					display: block;
@@ -367,24 +373,25 @@ class MessageCard extends HTMLElement {
 				</div>
 			</div>
 		`;
-		this.shadowRoot!.addEventListener('click', this._onClick);
+		this.#shadow.addEventListener('click', this._onClick);
 		if (isIOS) {
-			this.shadowRoot!.addEventListener('touchstart', this._onTouchStart, {
+			this.#shadow.addEventListener('touchstart', this._onTouchStart, {
 				passive: true,
 			});
-			this.shadowRoot!.addEventListener('touchend', this._onTouchEnd);
+			this.#shadow.addEventListener('touchend', this._onTouchEnd);
 		}
-		this.shadowRoot!.addEventListener('input', this._onInput);
-		this.shadowRoot!.addEventListener('change', this._onChange);
-		this.shadowRoot!.addEventListener('keydown', this._onKeyDown);
+		this.#shadow.addEventListener('input', this._onInput);
+		this.#shadow.addEventListener('change', this._onChange);
+		this.#shadow.addEventListener('keydown', this._onKeyDown);
 
 		// Listen for changes on the sender switch
-		const senderSwitch = this.shadowRoot!.querySelector('sender-switch');
+		const senderSwitch =
+			this.#shadow.querySelector<SenderSwitch>('sender-switch');
 		if (senderSwitch) {
 			senderSwitch.addEventListener('change', (e) => {
 				this.#emit('editor:update', {
 					id: this.messageId,
-					patch: { sender: (e as CustomEvent).detail.checked ? 'self' : 'other' },
+					patch: { sender: e.detail.checked ? 'self' : 'other' },
 				});
 			});
 		}
@@ -393,23 +400,23 @@ class MessageCard extends HTMLElement {
 		this.#syncReadOnly();
 		// Ensure textarea is resized after initial render
 		requestAnimationFrame(() => {
-			const textarea = this.shadowRoot!.querySelector('textarea');
+			const textarea = this.#shadow.querySelector('textarea');
 			this.#resizeTextarea(textarea);
 		});
 
 		// Setup tooltip positioning for action buttons
-		this._cleanupTooltips = initTooltips(this.shadowRoot!, this);
+		this._cleanupTooltips = initTooltips(this.#shadow, this);
 	}
 
 	disconnectedCallback() {
-		this.shadowRoot!.removeEventListener('click', this._onClick);
+		this.#shadow.removeEventListener('click', this._onClick);
 		if (isIOS) {
-			this.shadowRoot!.removeEventListener('touchstart', this._onTouchStart);
-			this.shadowRoot!.removeEventListener('touchend', this._onTouchEnd);
+			this.#shadow.removeEventListener('touchstart', this._onTouchStart);
+			this.#shadow.removeEventListener('touchend', this._onTouchEnd);
 		}
-		this.shadowRoot!.removeEventListener('input', this._onInput);
-		this.shadowRoot!.removeEventListener('change', this._onChange);
-		this.shadowRoot!.removeEventListener('keydown', this._onKeyDown);
+		this.#shadow.removeEventListener('input', this._onInput);
+		this.#shadow.removeEventListener('change', this._onChange);
+		this.#shadow.removeEventListener('keydown', this._onKeyDown);
 		this._cleanupTooltips?.();
 	}
 
@@ -481,7 +488,7 @@ class MessageCard extends HTMLElement {
 	}
 
 	focusTextarea() {
-		const textarea = this.shadowRoot!.querySelector('textarea');
+		const textarea = this.#shadow.querySelector('textarea');
 		if (textarea) {
 			textarea.focus();
 		}
@@ -504,15 +511,25 @@ class MessageCard extends HTMLElement {
 	}
 
 	#syncFromAttrs() {
-		const textarea = this.shadowRoot!.querySelector('textarea');
-		const senderSwitch = this.shadowRoot!.querySelector('sender-switch') as (HTMLElement & { checked: boolean }) | null;
-		const dateInput = this.shadowRoot!.querySelector('.initial-time-input') as HTMLInputElement | null;
-		const dateText = this.shadowRoot!.querySelector('.date-text') as HTMLElement | null;
-		const timeSinceSelect = this.shadowRoot!.querySelector('.time-since-select') as HTMLSelectElement | null;
-		const exactTimeContainer = this.shadowRoot!.querySelector(
+		const textarea = this.#shadow.querySelector('textarea');
+		const senderSwitch = this.#shadow.querySelector('sender-switch') as
+			| (HTMLElement & { checked: boolean })
+			| null;
+		const dateInput = this.#shadow.querySelector(
+			'.initial-time-input',
+		) as HTMLInputElement | null;
+		const dateText = this.#shadow.querySelector(
+			'.date-text',
+		) as HTMLElement | null;
+		const timeSinceSelect = this.#shadow.querySelector(
+			'.time-since-select',
+		) as HTMLSelectElement | null;
+		const exactTimeContainer = this.#shadow.querySelector(
 			'.exact-time-container',
 		) as HTMLElement | null;
-		const exactTimeInput = this.shadowRoot!.querySelector('.exact-time-input') as HTMLInputElement | null;
+		const exactTimeInput = this.#shadow.querySelector(
+			'.exact-time-input',
+		) as HTMLInputElement | null;
 
 		if (textarea && textarea.value !== this.text) {
 			textarea.value = this.text;
@@ -600,19 +617,30 @@ class MessageCard extends HTMLElement {
 
 	#syncReadOnly() {
 		const isReadOnly = this.hasAttribute('readonly');
-		const textarea = this.shadowRoot?.querySelector('textarea');
-		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
-		const dateInput = this.shadowRoot?.querySelector('.initial-time-input') as HTMLInputElement | null | undefined;
-		const timeSinceSelect =
-			this.shadowRoot?.querySelector('.time-since-select') as HTMLSelectElement | null | undefined;
-		const deleteBtn = this.shadowRoot?.querySelector('[part="delete"]') as HTMLElement | null | undefined;
-		const addBelowBtn = this.shadowRoot?.querySelector('[part="add-below"]') as HTMLElement | null | undefined;
-		const insertImageBtn = this.shadowRoot?.querySelector(
+		const textarea = this.#shadow.querySelector('textarea');
+		const senderSwitch = this.#shadow.querySelector('sender-switch');
+		const dateInput = this.#shadow.querySelector(
+			'.initial-time-input',
+		) as HTMLInputElement | null;
+		const timeSinceSelect = this.#shadow.querySelector(
+			'.time-since-select',
+		) as HTMLSelectElement | null;
+		const deleteBtn = this.#shadow.querySelector(
+			'[part="delete"]',
+		) as HTMLElement | null;
+		const addBelowBtn = this.#shadow.querySelector(
+			'[part="add-below"]',
+		) as HTMLElement | null;
+		const insertImageBtn = this.#shadow.querySelector(
 			'[part="insert-image"]',
-		) as HTMLElement | null | undefined;
+		) as HTMLElement | null;
 
-		const exactTimeInput = this.shadowRoot?.querySelector('.exact-time-input') as HTMLInputElement | null | undefined;
-		const exactTimeReset = this.shadowRoot?.querySelector('.exact-time-reset') as HTMLButtonElement | null | undefined;
+		const exactTimeInput = this.#shadow.querySelector(
+			'.exact-time-input',
+		) as HTMLInputElement | null;
+		const exactTimeReset = this.#shadow.querySelector(
+			'.exact-time-reset',
+		) as HTMLButtonElement | null;
 		if (textarea) textarea.readOnly = isReadOnly;
 		if (senderSwitch) {
 			if (isReadOnly) senderSwitch.setAttribute('disabled', '');
@@ -700,7 +728,7 @@ class MessageCard extends HTMLElement {
 			});
 		} else if (target.matches('.initial-time-input')) {
 			const value = (target as HTMLInputElement).value;
-			const iso = value ? new Date(value).toISOString() : null;
+			const iso = value ? new Date(value).toISOString() : undefined;
 			this.#emit('editor:update', {
 				id: this.messageId,
 				patch: { initialTime: iso },
@@ -708,7 +736,7 @@ class MessageCard extends HTMLElement {
 			this.#updateDateDisplay(target as HTMLInputElement);
 		} else if (target.matches('.exact-time-input')) {
 			const value = (target as HTMLInputElement).value;
-			const iso = value ? new Date(value).toISOString() : null;
+			const iso = value ? new Date(value).toISOString() : undefined;
 			this.#emit('editor:update', {
 				id: this.messageId,
 				patch: { exactTimestamp: iso },
@@ -758,7 +786,8 @@ class MessageCard extends HTMLElement {
 		// traverse back out through a shadow boundary so we must scan the path.
 		if (
 			path.some(
-				(el: EventTarget) => el instanceof HTMLElement && el.tagName === 'SENDER-SWITCH',
+				(el: EventTarget) =>
+					el instanceof HTMLElement && el.tagName === 'SENDER-SWITCH',
 			) ||
 			target.closest?.('button') ||
 			target.matches?.('select') ||
@@ -813,7 +842,12 @@ class MessageCard extends HTMLElement {
 		this.focusTextarea();
 	}
 
-	#emit(type: string, detail: unknown) {
+	#emit(type: 'editor:update', detail: EditorUpdateDetail): void;
+	#emit(
+		type: 'editor:delete' | 'editor:add-below' | 'editor:insert-image',
+		detail: EditorIdDetail,
+	): void;
+	#emit(type: string, detail: EditorUpdateDetail | EditorIdDetail) {
 		this.dispatchEvent(
 			new CustomEvent(type, { detail, bubbles: true, composed: true }),
 		);

@@ -11,6 +11,7 @@ import {
 	dialogTitleStyle,
 	dialogBodyStyle,
 } from '../utils/dialog.js';
+import type { NavigateDetail } from '../types/events.js';
 
 interface ThreadViewElement extends HTMLElement {
 	setRecipient(recipient: { name: string; location: string }): void;
@@ -53,7 +54,10 @@ class PieceView extends HTMLElement {
 
 	connectedCallback() {
 		this.#pieceId = this.getAttribute('piece-id');
-		this.#shadow.addEventListener('navigate', this._onNavigate);
+		this.#shadow.addEventListener(
+			'navigate',
+			this._onNavigate as EventListener,
+		);
 		this.#render();
 		if (this.#pieceId) {
 			this.#loadPiece();
@@ -61,7 +65,10 @@ class PieceView extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		this.#shadow.removeEventListener('navigate', this._onNavigate);
+		this.#shadow.removeEventListener(
+			'navigate',
+			this._onNavigate as EventListener,
+		);
 	}
 
 	async #loadPiece() {
@@ -72,7 +79,9 @@ class PieceView extends HTMLElement {
 		this.#render();
 
 		try {
-			this.#piece = await apiClient.getPublishedPiece(this.#pieceId) as PieceData;
+			this.#piece = (await apiClient.getPublishedPiece(
+				this.#pieceId,
+			)) as PieceData;
 			this.#loading = false;
 			this.#render();
 		} catch (error) {
@@ -114,7 +123,9 @@ class PieceView extends HTMLElement {
 		`;
 
 		if (!this.#loading && !this.#error && this.#piece) {
-			const display = this.#shadow.querySelector('thread-view') as ThreadViewElement | null;
+			const display = this.#shadow.querySelector(
+				'thread-view',
+			) as ThreadViewElement | null;
 			if (display) {
 				display.setRecipient({
 					name: this.#piece.participants?.[0]?.full_name || '',
@@ -150,8 +161,8 @@ class PieceView extends HTMLElement {
 			></thread-view>`;
 	}
 
-	_onNavigate(e: Event) {
-		const { action } = (e as CustomEvent).detail || {};
+	_onNavigate(e: CustomEvent<NavigateDetail>) {
+		const { action } = e.detail;
 		if (action === 'back') {
 			router.navigate('/');
 		} else if (action === 'create') {

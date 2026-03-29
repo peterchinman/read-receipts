@@ -21,7 +21,11 @@ class AuthVerify extends HTMLElement {
 		return ['token'];
 	}
 
-	attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+	attributeChangedCallback(
+		name: string,
+		oldValue: string | null,
+		newValue: string | null,
+	) {
 		if (name === 'token' && oldValue !== newValue) {
 			this.#token = newValue;
 			if (this.#connected) {

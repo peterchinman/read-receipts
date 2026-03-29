@@ -1,23 +1,53 @@
 import './sender-switch.js';
 import './icon-arrow.js';
 import { html } from '../utils/template.js';
+import type { NavigateDetail } from '../types/events.js';
+import type { NavigateAction } from '../types/index.js';
 import { MQ } from '../utils/breakpoints.js';
 import { arrowSvg } from './icons/arrow-svg.js';
 import { infoSvg } from './icons/info-svg.js';
 import { composeSvg } from './icons/compose-svg.js';
 import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 
-interface MessageLike {
+export interface MessageLike {
 	id?: string;
 	sender?: string;
 	message?: string;
 	timestamp?: string;
-	images?: Array<{ src?: string; url?: string; alt?: string; alt_text?: string }>;
+	images?: Array<{
+		src?: string;
+		url?: string;
+		alt?: string;
+		alt_text?: string;
+	}>;
 }
 
-interface RecipientLike {
+export interface RecipientLike {
 	name?: string;
 	location?: string;
+}
+
+export interface ThreadViewRefs {
+	header: HTMLElement | null;
+	messageList: HTMLElement | null;
+	messageListSpacer: HTMLElement | null;
+	bottom: HTMLElement | null;
+	input: HTMLTextAreaElement | null;
+	send: HTMLButtonElement | null;
+	optionsButton: HTMLInputElement | null;
+	optionsContainer: HTMLElement | null;
+	clearChat: HTMLElement | null;
+	exportChat: HTMLElement | null;
+	importChat: HTMLElement | null;
+	senderSwitch: HTMLElement | null;
+	importFile: HTMLElement | null;
+	recipientAvatar: HTMLElement | null;
+	recipientName: HTMLElement | null;
+	recipientLocation: HTMLElement | null;
+	navArrow: HTMLElement | null;
+	infoBtn: HTMLElement | null;
+	rightInfoBtn: HTMLElement | null;
+	composeBtn: HTMLElement | null;
 }
 
 const _ua = navigator.userAgent;
@@ -34,11 +64,33 @@ const _isIOS =
 	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isSafariOrIOS = _isSafari || _isIOS;
 
-class ThreadDisplay extends HTMLElement {
+export class ThreadDisplay extends HTMLElement {
 	static FLASH_DURATION_MS = 1500;
 
+	private readonly shadow: ShadowRoot;
 	private _messages: MessageLike[] = [];
-	private $: Record<string, HTMLElement | null> = {};
+	private $: ThreadViewRefs = {
+		header: null,
+		messageList: null,
+		messageListSpacer: null,
+		bottom: null,
+		input: null,
+		send: null,
+		optionsButton: null,
+		optionsContainer: null,
+		clearChat: null,
+		exportChat: null,
+		importChat: null,
+		senderSwitch: null,
+		importFile: null,
+		recipientAvatar: null,
+		recipientName: null,
+		recipientLocation: null,
+		navArrow: null,
+		infoBtn: null,
+		rightInfoBtn: null,
+		composeBtn: null,
+	};
 	private _shrinkWrapAllRafId: number | null = null;
 	private _shrinkWrapForRafId: number | null = null;
 	private _scrollRafId: number | null = null;
@@ -50,11 +102,10 @@ class ThreadDisplay extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.shadow = this.attachShadow({ mode: 'open' });
 		this._onMessageListScroll = this._onMessageListScroll.bind(this);
 
 		this._messages = [];
-		this.$ = {};
 		this._shrinkWrapAllRafId = null;
 		this._shrinkWrapForRafId = null;
 		this._scrollRafId = null;
@@ -150,7 +201,11 @@ class ThreadDisplay extends HTMLElement {
 		}
 	}
 
-	attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+	attributeChangedCallback(
+		name: string,
+		oldValue: string | null,
+		newValue: string | null,
+	) {
 		if (oldValue === newValue) return;
 		switch (name) {
 			case 'recipient-name':
@@ -278,7 +333,7 @@ class ThreadDisplay extends HTMLElement {
 	}
 
 	#renderShell() {
-		this.shadowRoot!.innerHTML = html`
+		this.shadow.innerHTML = html`
       <style>
 				*,
 				*::before,
@@ -969,31 +1024,38 @@ class ThreadDisplay extends HTMLElement {
     `;
 
 		this.$ = {
-			header: this.shadowRoot!.querySelector<HTMLElement>('.preview-header'),
-			messageList: this.shadowRoot!.querySelector<HTMLElement>('.message-list'),
-			messageListSpacer: this.shadowRoot!.querySelector<HTMLElement>('.message-list-spacer'),
-			bottom: this.shadowRoot!.querySelector<HTMLElement>('.bottom-area'),
-			input: this.shadowRoot!.querySelector<HTMLElement>('.input'),
-			send: this.shadowRoot!.querySelector<HTMLElement>('.send-button'),
-			optionsButton: this.shadowRoot!.querySelector<HTMLElement>('#options-button'),
-			optionsContainer: this.shadowRoot!.querySelector<HTMLElement>('.options-container'),
-			clearChat: this.shadowRoot!.querySelector<HTMLElement>('#clearChat'),
-			exportChat: this.shadowRoot!.querySelector<HTMLElement>('#exportChat'),
-			importChat: this.shadowRoot!.querySelector<HTMLElement>('#importChat'),
-			senderSwitch: this.shadowRoot!.querySelector<HTMLElement>('#senderSwitch'),
-			importFile: this.shadowRoot!.querySelector<HTMLElement>('#import-file'),
-			recipientAvatar: this.shadowRoot!.querySelector<HTMLElement>('.recipient-avatar-text'),
-			recipientName: this.shadowRoot!.querySelector<HTMLElement>('#recipientName'),
-			recipientLocation: this.shadowRoot!.querySelector<HTMLElement>('#recipientLocation'),
-			navArrow: this.shadowRoot!.querySelector<HTMLElement>('.nav-arrow'),
-			infoBtn: this.shadowRoot!.querySelector<HTMLElement>('.info-btn'),
-			rightInfoBtn: this.shadowRoot!.querySelector<HTMLElement>('.right-info-btn'),
-			composeBtn: this.shadowRoot!.querySelector<HTMLElement>('.compose-btn'),
+			header: this.shadow.querySelector<HTMLElement>('.preview-header'),
+			messageList: this.shadow.querySelector<HTMLElement>('.message-list'),
+			messageListSpacer: this.shadow.querySelector<HTMLElement>(
+				'.message-list-spacer',
+			),
+			bottom: this.shadow.querySelector<HTMLElement>('.bottom-area'),
+			input: this.shadow.querySelector<HTMLTextAreaElement>('.input'),
+			send: this.shadow.querySelector<HTMLButtonElement>('.send-button'),
+			optionsButton:
+				this.shadow.querySelector<HTMLInputElement>('#options-button'),
+			optionsContainer:
+				this.shadow.querySelector<HTMLElement>('.options-container'),
+			clearChat: this.shadow.querySelector<HTMLElement>('#clearChat'),
+			exportChat: this.shadow.querySelector<HTMLElement>('#exportChat'),
+			importChat: this.shadow.querySelector<HTMLElement>('#importChat'),
+			senderSwitch: this.shadow.querySelector<HTMLElement>('#senderSwitch'),
+			importFile: this.shadow.querySelector<HTMLElement>('#import-file'),
+			recipientAvatar: this.shadow.querySelector<HTMLElement>(
+				'.recipient-avatar-text',
+			),
+			recipientName: this.shadow.querySelector<HTMLElement>('#recipientName'),
+			recipientLocation:
+				this.shadow.querySelector<HTMLElement>('#recipientLocation'),
+			navArrow: this.shadow.querySelector<HTMLElement>('.nav-arrow'),
+			infoBtn: this.shadow.querySelector<HTMLElement>('.info-btn'),
+			rightInfoBtn: this.shadow.querySelector<HTMLElement>('.right-info-btn'),
+			composeBtn: this.shadow.querySelector<HTMLElement>('.compose-btn'),
 		};
 
 		this.$.infoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', {
+				new CustomEvent<NavigateDetail>('navigate', {
 					detail: { action: 'info' },
 					bubbles: true,
 					composed: true,
@@ -1003,7 +1065,7 @@ class ThreadDisplay extends HTMLElement {
 
 		this.$.rightInfoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', {
+				new CustomEvent<NavigateDetail>('navigate', {
 					detail: { action: 'info' },
 					bubbles: true,
 					composed: true,
@@ -1013,7 +1075,7 @@ class ThreadDisplay extends HTMLElement {
 
 		this.$.composeBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', {
+				new CustomEvent<NavigateDetail>('navigate', {
 					detail: { action: 'create' },
 					bubbles: true,
 					composed: true,
@@ -1028,13 +1090,13 @@ class ThreadDisplay extends HTMLElement {
 		if (navTextAttr || navActionAttr) {
 			return {
 				text: navTextAttr || '',
-				action: navActionAttr || '',
+				action: (navActionAttr || 'back') as NavigateAction,
 			};
 		}
 		if (this.hasAttribute('show-back-button')) {
-			return { text: 'Back', action: 'back' };
+			return { text: 'Back', action: 'back' as NavigateAction };
 		}
-		return { text: 'Edit', action: 'show-editor' };
+		return { text: 'Edit', action: 'show-editor' as NavigateAction };
 	}
 
 	#applyNavConfig() {
@@ -1053,13 +1115,13 @@ class ThreadDisplay extends HTMLElement {
 			this.$.bottom.style.pointerEvents = isInteractive ? '' : 'none';
 		}
 		if (this.$?.input) {
-			(this.$.input as HTMLTextAreaElement).readOnly = !isInteractive;
+			this.$.input.readOnly = !isInteractive;
 			this.$.input.tabIndex = isInteractive ? 0 : -1;
 		}
-		if (this.$?.send) (this.$.send as HTMLButtonElement).disabled = !isInteractive;
+		if (this.$?.send) this.$.send.disabled = !isInteractive;
 		if (this.$?.optionsButton) {
-			(this.$.optionsButton as HTMLInputElement).disabled = !isInteractive;
-			if (!isInteractive) (this.$.optionsButton as HTMLInputElement).checked = false;
+			this.$.optionsButton.disabled = !isInteractive;
+			if (!isInteractive) this.$.optionsButton.checked = false;
 		}
 	}
 
@@ -1165,7 +1227,11 @@ class ThreadDisplay extends HTMLElement {
 		return row;
 	}
 
-	#createImage(img: { src?: string; url?: string; alt?: string; alt_text?: string } | null, sender: string, id: string) {
+	#createImage(
+		img: { src?: string; url?: string; alt?: string; alt_text?: string } | null,
+		sender: string,
+		id: string,
+	) {
 		const src = img?.src || img?.url || '';
 		if (!src) return null;
 		const row = document.createElement('div');
@@ -1259,7 +1325,8 @@ class ThreadDisplay extends HTMLElement {
 
 		let spacer = this.$.messageListSpacer;
 		if (!(spacer instanceof HTMLElement)) {
-			spacer = this.shadowRoot?.querySelector<HTMLElement>('.message-list-spacer') ?? null;
+			spacer =
+				this.shadow.querySelector<HTMLElement>('.message-list-spacer') ?? null;
 		}
 		if (!(spacer instanceof HTMLElement)) {
 			spacer = document.createElement('div');
@@ -1471,7 +1538,7 @@ class ThreadDisplay extends HTMLElement {
 	}
 
 	_shrinkWrapAll() {
-		this.shadowRoot?.querySelectorAll<HTMLElement>('.bubble').forEach((el) => {
+		this.shadow.querySelectorAll<HTMLElement>('.bubble').forEach((el) => {
 			this.#applyShrinkWrapToBubble(el);
 		});
 		this._scheduleIOSGradientSync();
@@ -1495,7 +1562,7 @@ class ThreadDisplay extends HTMLElement {
 	}
 
 	_shrinkWrapUnwrapAll() {
-		this.shadowRoot?.querySelectorAll<HTMLElement>('.bubble').forEach((el) => {
+		this.shadow.querySelectorAll<HTMLElement>('.bubble').forEach((el) => {
 			this.#unwrapShrinkWrapForBubble(el);
 		});
 	}
@@ -1547,4 +1614,3 @@ class ThreadDisplay extends HTMLElement {
 }
 
 customElements.define('thread-view', ThreadDisplay);
-export { ThreadDisplay };

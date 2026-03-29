@@ -1,5 +1,3 @@
-import type { Thread } from '../types/index.js';
-
 /**
  * Returns the display name for a thread or submission object.
  * Falls back to the first participant's name, then 'Untitled'.
@@ -10,6 +8,11 @@ import type { Thread } from '../types/index.js';
  * @param {Object|null} thread
  * @returns {string}
  */
-export function getThreadDisplayName(thread: Thread | null) {
+export type ThreadDisplayable = {
+	name?: string;
+	participants?: Array<{ full_name: string }>;
+} | null;
+
+export function getThreadDisplayName(thread: ThreadDisplayable): string {
 	return thread?.name || thread?.participants?.[0]?.full_name || 'Untitled';
 }

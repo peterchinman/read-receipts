@@ -35,7 +35,14 @@ function installBrowserPolyfills() {
 		(globalThis as any).CustomEvent = class CustomEvent extends Event {
 			detail: unknown;
 			constructor(type: string, params?: Record<string, unknown>) {
-				super(type, params as unknown as { bubbles?: boolean; cancelable?: boolean; composed?: boolean });
+				super(
+					type,
+					params as unknown as {
+						bubbles?: boolean;
+						cancelable?: boolean;
+						composed?: boolean;
+					},
+				);
 				this.detail = params && 'detail' in params ? params.detail : undefined;
 			}
 		} as unknown as typeof CustomEvent;
@@ -83,7 +90,11 @@ test('importFromBackend sets backendId, messages, participants, name, and adminN
 
 	const thread = store.importFromBackend(makeBackendThread() as any);
 
-	assert.equal(thread.backendId, '42', 'backendId should be set from backend id');
+	assert.equal(
+		thread.backendId,
+		'42',
+		'backendId should be set from backend id',
+	);
 	assert.equal(thread.name, 'Test Piece', 'name should be populated');
 	assert.equal(thread.messages.length, 1, 'messages should be populated');
 	assert.equal(
@@ -120,7 +131,9 @@ test('importFromBackend with no changes_requested events sets no adminNotes', as
 	store.load();
 	await flushTimers();
 
-	const thread = store.importFromBackend(makeBackendThread({ events: [] }) as any);
+	const thread = store.importFromBackend(
+		makeBackendThread({ events: [] }) as any,
+	);
 
 	assert.equal(
 		thread.adminNotes,

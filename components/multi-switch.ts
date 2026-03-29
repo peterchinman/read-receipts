@@ -1,15 +1,18 @@
+import type { MultiSwitchChangeDetail } from '../types/events.js';
+
 interface SwitchOption {
 	label: string;
 	value: string;
 }
 
-class MultiSwitch extends HTMLElement {
+export class MultiSwitch extends HTMLElement {
+	#shadow: ShadowRoot;
 	declare _options: SwitchOption[];
 	declare _selectedIndex: number;
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.#shadow = this.attachShadow({ mode: 'open' });
 		this._options = [];
 		this._selectedIndex = 0;
 	}
@@ -18,7 +21,11 @@ class MultiSwitch extends HTMLElement {
 		return ['options', 'value'];
 	}
 
-	attributeChangedCallback(name: string, oldVal: string | null, newVal: string | null) {
+	attributeChangedCallback(
+		name: string,
+		oldVal: string | null,
+		newVal: string | null,
+	) {
 		if (oldVal === newVal) return;
 		if (name === 'options') {
 			try {
@@ -29,7 +36,9 @@ class MultiSwitch extends HTMLElement {
 			if (this.isConnected) this.#render();
 		}
 		if (name === 'value') {
-			const idx = this._options.findIndex((o: SwitchOption) => o.value === newVal);
+			const idx = this._options.findIndex(
+				(o: SwitchOption) => o.value === newVal,
+			);
 			if (idx !== -1 && idx !== this._selectedIndex) {
 				this._selectedIndex = idx;
 				if (this.isConnected) this.#updateThumb(idx);
@@ -61,7 +70,7 @@ class MultiSwitch extends HTMLElement {
 		const name = this.getAttribute('name') || 'switch';
 		const options = this._options;
 
-		this.shadowRoot!.innerHTML = `
+		this.#shadow.innerHTML = `
 			<style>
 				:host {
 					display: inline-block;
@@ -145,8 +154,10 @@ class MultiSwitch extends HTMLElement {
 
 		// Measure option widths after render
 		requestAnimationFrame(() => {
-			const labels = this.shadowRoot!.querySelectorAll('.option');
-			const container = this.shadowRoot!.querySelector('.multi-switch') as HTMLElement | null;
+			const labels = this.#shadow.querySelectorAll('.option');
+			const container = this.#shadow.querySelector(
+				'.multi-switch',
+			) as HTMLElement | null;
 			if (!container) return;
 			labels.forEach((label, i) => {
 				const w = label.getBoundingClientRect().width;
@@ -156,7 +167,7 @@ class MultiSwitch extends HTMLElement {
 		});
 
 		// Event listeners
-		const labels = this.shadowRoot!.querySelectorAll('.option');
+		const labels = this.#shadow.querySelectorAll('.option');
 		labels.forEach((label) => {
 			label.addEventListener('click', (e) => {
 				e.preventDefault();
@@ -175,7 +186,9 @@ class MultiSwitch extends HTMLElement {
 					case 'Enter':
 					case ' ':
 						e.preventDefault();
-						this.#select(parseInt((label as HTMLElement).dataset.index ?? '0', 10));
+						this.#select(
+							parseInt((label as HTMLElement).dataset.index ?? '0', 10),
+						);
 						break;
 					case 'ArrowRight':
 					case 'ArrowDown':
@@ -192,11 +205,13 @@ class MultiSwitch extends HTMLElement {
 		});
 
 		// Radio change fallback
-		this.shadowRoot!.querySelectorAll('input[type="radio"]').forEach((radio) => {
+		this.#shadow.querySelectorAll('input[type="radio"]').forEach((radio) => {
 			radio.addEventListener('change', () => {
 				const r = radio as HTMLInputElement;
 				if (r.checked) {
-					const idx = this._options.findIndex((o: SwitchOption) => o.value === r.value);
+					const idx = this._options.findIndex(
+						(o: SwitchOption) => o.value === r.value,
+					);
 					if (idx !== -1) this.#select(idx);
 				}
 			});
@@ -210,7 +225,9 @@ class MultiSwitch extends HTMLElement {
 		if (!opt) return;
 
 		// Update radio
-		const radio = this.shadowRoot!.querySelector(`#opt-${index}`) as HTMLInputElement | null;
+		const radio = this.#shadow.querySelector(
+			`#opt-${index}`,
+		) as HTMLInputElement | null;
 		if (radio) radio.checked = true;
 
 		this.#updateThumb(index);
@@ -219,14 +236,14 @@ class MultiSwitch extends HTMLElement {
 		this.setAttribute('value', opt.value);
 
 		if (moveFocus) {
-			const label = this.shadowRoot!.querySelector(
+			const label = this.#shadow.querySelector(
 				`.option[data-index="${index}"]`,
 			) as HTMLElement | null;
 			if (label) label.focus();
 		}
 
 		this.dispatchEvent(
-			new CustomEvent('change', {
+			new CustomEvent<MultiSwitchChangeDetail>('change', {
 				detail: { value: opt.value },
 				bubbles: true,
 			}),
@@ -234,8 +251,12 @@ class MultiSwitch extends HTMLElement {
 	}
 
 	#updateThumb(selectedIndex: number) {
-		const thumb = this.shadowRoot!.querySelector('.switch-thumb') as HTMLElement | null;
-		const container = this.shadowRoot!.querySelector('.multi-switch') as HTMLElement | null;
+		const thumb = this.#shadow.querySelector(
+			'.switch-thumb',
+		) as HTMLElement | null;
+		const container = this.#shadow.querySelector(
+			'.multi-switch',
+		) as HTMLElement | null;
 		if (!thumb || !container) return;
 
 		const containerStyles = getComputedStyle(container);
@@ -261,7 +282,7 @@ class MultiSwitch extends HTMLElement {
 		thumb.style.width = `${selectedWidth}px`;
 
 		// Update aria-checked on all labels
-		this.shadowRoot!.querySelectorAll('.option').forEach((label, i) => {
+		this.#shadow.querySelectorAll('.option').forEach((label, i) => {
 			label.setAttribute(
 				'aria-checked',
 				i === selectedIndex ? 'true' : 'false',
@@ -271,3 +292,17 @@ class MultiSwitch extends HTMLElement {
 }
 
 customElements.define('multi-switch', MultiSwitch);
+
+// Typed addEventListener overloads for MultiSwitch's custom change event
+export interface MultiSwitch {
+	addEventListener(
+		type: 'change',
+		listener: (e: CustomEvent<MultiSwitchChangeDetail>) => void,
+		options?: boolean | AddEventListenerOptions,
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions,
+	): void;
+}

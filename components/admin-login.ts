@@ -49,7 +49,9 @@ class AdminLogin extends HTMLElement {
 
 	async #handleSubmit(e: Event) {
 		e.preventDefault();
-		const emailInput = this.#shadow.querySelector('#email') as HTMLInputElement | null;
+		const emailInput = this.#shadow.querySelector(
+			'#email',
+		) as HTMLInputElement | null;
 		const email = emailInput?.value?.trim();
 		if (!email) return;
 
@@ -211,7 +213,8 @@ class AdminLogin extends HTMLElement {
 			router.navigate('/admin');
 		} catch (error) {
 			this.#status = 'error';
-			this.#error = (error as Error).message || 'Dev login failed — is APP_ENV=local?';
+			this.#error =
+				(error as Error).message || 'Dev login failed — is APP_ENV=local?';
 			this.#render();
 		}
 	}

@@ -3,6 +3,12 @@
 
 import { apiClient } from '../utils/api-client.js';
 import { config } from '../utils/config.js';
+import type { AuthStateChangeDetail } from '../types/events.js';
+import { TypedEventTarget } from '../utils/typed-event-target.js';
+
+type AuthStateEvents = {
+	change: CustomEvent<AuthStateChangeDetail>;
+};
 
 const AUTH_STATE_KEY = `${config.appName.toLowerCase().replace(/\s+/g, '-')}:user`;
 
@@ -14,7 +20,7 @@ interface User {
 	[key: string]: unknown;
 }
 
-class AuthState extends EventTarget {
+export class AuthState extends TypedEventTarget<AuthStateEvents> {
 	#user: User | null = null;
 	#loading = true;
 	#initialized = false;
@@ -41,7 +47,7 @@ class AuthState extends EventTarget {
 			}
 		} else {
 			this.#loading = false;
-			this.#emit('change');
+			this.#emitChange();
 		}
 
 		// Listen for unauthorized events
@@ -77,7 +83,7 @@ class AuthState extends EventTarget {
 		this.#user = user;
 		this.#loading = false;
 		this.#saveUserToStorage();
-		this.#emit('change');
+		this.#emitChange();
 	}
 
 	#clearUser() {
@@ -85,20 +91,16 @@ class AuthState extends EventTarget {
 		this.#loading = false;
 		apiClient.clearToken();
 		this.#saveUserToStorage();
-		this.#emit('change');
+		this.#emitChange();
 	}
 
-	#emit(eventName: string) {
-		this.dispatchEvent(
-			new CustomEvent(eventName, {
-				detail: {
-					user: this.#user,
-					isAuthenticated: this.isAuthenticated,
-					isAdmin: this.isAdmin,
-					loading: this.#loading,
-				},
-			}),
-		);
+	#emitChange() {
+		this.emit('change', {
+			user: this.#user,
+			isAuthenticated: this.isAuthenticated,
+			isAdmin: this.isAdmin,
+			loading: this.#loading,
+		});
 	}
 
 	get user() {
@@ -119,7 +121,7 @@ class AuthState extends EventTarget {
 
 	async login(token: string) {
 		this.#loading = true;
-		this.#emit('change');
+		this.#emitChange();
 
 		try {
 			const data = await apiClient.verifyToken(token);
@@ -127,14 +129,14 @@ class AuthState extends EventTarget {
 			return data.user;
 		} catch (error) {
 			this.#loading = false;
-			this.#emit('change');
+			this.#emitChange();
 			throw error;
 		}
 	}
 
 	async devLogin(email: string) {
 		this.#loading = true;
-		this.#emit('change');
+		this.#emitChange();
 
 		try {
 			const data = await apiClient.devLogin(email);
@@ -142,7 +144,7 @@ class AuthState extends EventTarget {
 			return data.user;
 		} catch (error) {
 			this.#loading = false;
-			this.#emit('change');
+			this.#emitChange();
 			throw error;
 		}
 	}
@@ -161,4 +163,4 @@ class AuthState extends EventTarget {
 }
 
 const authState = new AuthState();
-export { authState, AuthState };
+export { authState };

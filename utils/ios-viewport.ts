@@ -19,11 +19,12 @@ export function initIOSViewport() {
 	if (initialized || !isIOS || !window.visualViewport) return;
 	initialized = true;
 
-	let previousViewportHeight = window.visualViewport!.height;
+	const viewport = window.visualViewport;
+	let previousViewportHeight = viewport.height;
 	let keyboardVisible = false;
 
-	window.visualViewport!.addEventListener('resize', () => {
-		const newViewportHeight = window.visualViewport!.height;
+	viewport.addEventListener('resize', () => {
+		const newViewportHeight = viewport.height;
 		if (newViewportHeight < previousViewportHeight) {
 			if (!keyboardVisible) {
 				keyboardVisible = true;

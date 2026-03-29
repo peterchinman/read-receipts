@@ -6,8 +6,9 @@
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"strict": true,
 		"noEmit": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"types": ["node"]
 	},
 	"include": ["**/*.ts"],
-	"exclude": ["node_modules", "dist", "backend", "tests"]
+	"exclude": ["node_modules", "dist", "backend"]
 }

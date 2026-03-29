@@ -1,5 +1,11 @@
 import { store } from './store.js';
 import './message-card.js';
+import { MessageCard } from './message-card.js';
+import type {
+	MessagesChangedDetail,
+	EditorUpdateDetail,
+	EditorIdDetail,
+} from '../types/events.js';
 import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
@@ -34,6 +40,7 @@ const SUBMITTED_TOOLTIP = 'Thread submitted';
 const PENDING_TOOLTIP = 'Check your email';
 
 class ChatEditor extends HTMLElement {
+	private readonly shadow: ShadowRoot;
 	private _lastFocusedCard: HTMLElement | null = null;
 	private _headerObserver: ResizeObserver | null = null;
 	private _cardsListVisibilityObserver: ResizeObserver | null = null;
@@ -45,14 +52,17 @@ class ChatEditor extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.shadow = this.attachShadow({ mode: 'open' });
 		this._onStoreChange = this._onStoreChange.bind(this);
-		this._onDelegated = this._onDelegated.bind(this);
+		this._onEditorUpdate = this._onEditorUpdate.bind(this);
+		this._onEditorDelete = this._onEditorDelete.bind(this);
+		this._onEditorAddBelow = this._onEditorAddBelow.bind(this);
+		this._onEditorInsertImage = this._onEditorInsertImage.bind(this);
 		this._onFocusIn = this._onFocusIn.bind(this);
 	}
 
 	connectedCallback() {
-		this.shadowRoot!.innerHTML = html`
+		this.shadow.innerHTML = html`
 			<style>
 				*,
 				*::before,
@@ -289,11 +299,13 @@ class ChatEditor extends HTMLElement {
 
 		if (isIOS) this.classList.add('ios');
 
-		const headerEl = this.shadowRoot!.querySelector<HTMLElement>('.editor-header');
-		const cardsListEl = this.shadowRoot!.querySelector<HTMLElement>('.cards-list');
-		const threadNameInput = this.shadowRoot!.querySelector<HTMLInputElement>('#thread-name');
-		const recipientNameInput = this.shadowRoot!.querySelector<HTMLInputElement>('#recipient-name');
-		const recipientLocationInput = this.shadowRoot!.querySelector<HTMLInputElement>(
+		const headerEl = this.shadow.querySelector<HTMLElement>('.editor-header');
+		const cardsListEl = this.shadow.querySelector<HTMLElement>('.cards-list');
+		const threadNameInput =
+			this.shadow.querySelector<HTMLInputElement>('#thread-name');
+		const recipientNameInput =
+			this.shadow.querySelector<HTMLInputElement>('#recipient-name');
+		const recipientLocationInput = this.shadow.querySelector<HTMLInputElement>(
 			'#recipient-location',
 		);
 
@@ -324,9 +336,7 @@ class ChatEditor extends HTMLElement {
 					const width = entry.contentRect.width;
 					if (prevWidth === 0 && width > 0) {
 						pauseIOSViewport();
-						for (const card of this.shadowRoot!.querySelectorAll(
-							'.editor-card',
-						)) {
+						for (const card of this.shadow.querySelectorAll('.editor-card')) {
 							const textarea = card.shadowRoot?.querySelector('textarea');
 							if (textarea) {
 								textarea.style.height = 'auto';
@@ -379,13 +389,25 @@ class ChatEditor extends HTMLElement {
 			);
 		}
 
-		this.shadowRoot!.addEventListener('editor:update', this._onDelegated);
-		this.shadowRoot!.addEventListener('editor:delete', this._onDelegated);
-		this.shadowRoot!.addEventListener('editor:add-below', this._onDelegated);
-		this.shadowRoot!.addEventListener('editor:insert-image', this._onDelegated);
-		this.shadowRoot!.addEventListener('focusin', this._onFocusIn, true);
-		this.shadowRoot!
-			.getElementById('export-json')
+		this.shadow.addEventListener(
+			'editor:update',
+			this._onEditorUpdate as EventListener,
+		);
+		this.shadow.addEventListener(
+			'editor:delete',
+			this._onEditorDelete as EventListener,
+		);
+		this.shadow.addEventListener(
+			'editor:add-below',
+			this._onEditorAddBelow as EventListener,
+		);
+		this.shadow.addEventListener(
+			'editor:insert-image',
+			this._onEditorInsertImage as EventListener,
+		);
+		this.shadow.addEventListener('focusin', this._onFocusIn, true);
+		this.shadow
+			.querySelector<HTMLElement>('#export-json')
 			?.addEventListener('click', () => {
 				const dataStr = store.exportJson(true);
 				const blob = new Blob([dataStr], { type: 'application/json' });
@@ -396,16 +418,16 @@ class ChatEditor extends HTMLElement {
 				a.click();
 				URL.revokeObjectURL(url);
 			});
-		this.shadowRoot!
-			.getElementById('clear-chat')
+		this.shadow
+			.querySelector<HTMLElement>('#clear-chat')
 			?.addEventListener('click', () => {
 				if (confirm('Are you sure you want to clear all messages?')) {
 					store.clear();
 				}
 			});
 
-		this.shadowRoot!
-			.getElementById('submit-btn')
+		this.shadow
+			.querySelector<HTMLElement>('#submit-btn')
 			?.addEventListener('click', this._onSubmit.bind(this));
 
 		store.addEventListener('messages:changed', this._onStoreChange);
@@ -416,7 +438,7 @@ class ChatEditor extends HTMLElement {
 		this.#syncSubmitButton(currentThread);
 		this.#syncAdminNotes(currentThread);
 		this.#render(store.getMessages());
-		this._cleanupTooltips = initTooltips(this.shadowRoot!, this);
+		this._cleanupTooltips = initTooltips(this.shadow, this);
 
 		this.#syncReadOnlyState();
 		this.#syncAuthorInfoMode(currentThread);
@@ -436,14 +458,23 @@ class ChatEditor extends HTMLElement {
 			this._onKeyboardHidden = null;
 		}
 
-		this.shadowRoot!.removeEventListener('editor:update', this._onDelegated);
-		this.shadowRoot!.removeEventListener('editor:delete', this._onDelegated);
-		this.shadowRoot!.removeEventListener('editor:add-below', this._onDelegated);
-		this.shadowRoot!.removeEventListener(
-			'editor:insert-image',
-			this._onDelegated,
+		this.shadow.removeEventListener(
+			'editor:update',
+			this._onEditorUpdate as EventListener,
 		);
-		this.shadowRoot!.removeEventListener('focusin', this._onFocusIn, true);
+		this.shadow.removeEventListener(
+			'editor:delete',
+			this._onEditorDelete as EventListener,
+		);
+		this.shadow.removeEventListener(
+			'editor:add-below',
+			this._onEditorAddBelow as EventListener,
+		);
+		this.shadow.removeEventListener(
+			'editor:insert-image',
+			this._onEditorInsertImage as EventListener,
+		);
+		this.shadow.removeEventListener('focusin', this._onFocusIn, true);
 		store.removeEventListener('messages:changed', this._onStoreChange);
 		if (this.$?.threadNameInput && this._onThreadNameInput) {
 			this.$.threadNameInput.removeEventListener(
@@ -548,7 +579,8 @@ class ChatEditor extends HTMLElement {
 						store.markThreadPending(pendingThread.id);
 					}
 
-					const btn = this.shadowRoot!.getElementById('submit-btn') as HTMLButtonElement | null;
+					const btn =
+						this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 					if (btn) {
 						btn.disabled = true;
 						btn.textContent = PENDING_LABEL;
@@ -592,7 +624,8 @@ class ChatEditor extends HTMLElement {
 					submitting = false;
 					alert(
 						'Failed to send verification email: ' +
-							((error as Error).message || 'Unknown error'),
+							((error instanceof Error ? error.message : String(error)) ||
+								'Unknown error'),
 					);
 					confirmBtn.disabled = false;
 					confirmBtn.textContent = 'Submit';
@@ -617,7 +650,7 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
-		const btn = this.shadowRoot!.getElementById('submit-btn') as HTMLButtonElement | null;
+		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		if (!btn || btn.disabled) return;
 
 		const currentThread = store.getCurrentThread();
@@ -714,7 +747,11 @@ class ChatEditor extends HTMLElement {
 						: 'Your piece has been submitted for review! You will receive an email when it is reviewed.',
 				});
 			} catch (error) {
-				alert('Failed to submit: ' + ((error as Error).message || 'Unknown error'));
+				alert(
+					'Failed to submit: ' +
+						((error instanceof Error ? error.message : String(error)) ||
+							'Unknown error'),
+				);
 				btn.disabled = false;
 				btn.textContent = SUBMIT_LABEL;
 				btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
@@ -736,7 +773,7 @@ class ChatEditor extends HTMLElement {
 			store.clearThreadPending(thread.id);
 		}
 
-		const btn = this.shadowRoot?.getElementById('submit-btn') as HTMLButtonElement | null;
+		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		if (btn) {
 			btn.disabled = true;
 			btn.textContent = SUBMITTING_LABEL;
@@ -781,13 +818,13 @@ class ChatEditor extends HTMLElement {
 
 		for (const { thread, error } of failed) {
 			alert(
-				`Failed to submit "${store.getThreadDisplayName(thread)}": ${(error as Error).message || 'Unknown error'}`,
+				`Failed to submit "${store.getThreadDisplayName(thread)}": ${(error instanceof Error ? error.message : String(error)) || 'Unknown error'}`,
 			);
 		}
 	}
 
-	_onStoreChange(e: Event) {
-		const { reason, message, messages, recipient } = (e as CustomEvent).detail || {};
+	_onStoreChange(e: CustomEvent<MessagesChangedDetail>) {
+		const { reason, message, messages, recipient } = e.detail;
 		if (recipient) this.#syncRecipientInputs(recipient);
 
 		// Handle thread changes - reload everything
@@ -871,7 +908,7 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncSubmitButton(thread: any) {
-		const btn = this.shadowRoot?.getElementById('submit-btn') as HTMLButtonElement | null;
+		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		if (!btn) return;
 		if (thread?.authorInfoMode) {
 			if (thread.authorInfoSubmitted) {
@@ -902,7 +939,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncAdminNotes(thread: any) {
-		const container = this.shadowRoot?.getElementById('admin-notes-container');
+		const container = this.shadow.querySelector<HTMLElement>(
+			'#admin-notes-container',
+		);
 		if (!container) return;
 		const notes = thread?.adminNotes;
 		if (notes && notes.length > 0) {
@@ -932,8 +971,10 @@ class ChatEditor extends HTMLElement {
 		const threadNameInput = this.$?.threadNameInput;
 		const recipientNameInput = this.$?.recipientNameInput;
 		const recipientLocationInput = this.$?.recipientLocationInput;
-		const clearBtn = this.shadowRoot?.getElementById('clear-chat') as HTMLButtonElement | null;
-		const submitBtn = this.shadowRoot?.getElementById('submit-btn') as HTMLButtonElement | null;
+		const clearBtn =
+			this.shadow.querySelector<HTMLButtonElement>('#clear-chat');
+		const submitBtn =
+			this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 
 		if (threadNameInput) threadNameInput.disabled = submitted;
 		if (recipientNameInput) recipientNameInput.disabled = submitted;
@@ -943,12 +984,12 @@ class ChatEditor extends HTMLElement {
 			submitBtn.disabled = submitted || pending;
 		}
 
-		const cardsList = this.shadowRoot?.querySelector('.cards-list');
+		const cardsList = this.shadow.querySelector('.cards-list');
 		if (cardsList) {
 			cardsList.classList.toggle('readonly', submitted);
 		}
 
-		const cards = this.shadowRoot?.querySelectorAll('.editor-card') || [];
+		const cards = this.shadow.querySelectorAll('.editor-card') || [];
 		for (const card of cards) {
 			if (submitted) card.setAttribute('readonly', '');
 			else card.removeAttribute('readonly');
@@ -960,7 +1001,9 @@ class ChatEditor extends HTMLElement {
 		// Use composedPath to traverse shadow boundaries
 		const path = e.composedPath();
 		const card = path.find(
-			(el) => el instanceof HTMLElement && (el as HTMLElement).tagName === 'MESSAGE-CARD',
+			(el) =>
+				el instanceof HTMLElement &&
+				(el as HTMLElement).tagName === 'MESSAGE-CARD',
 		) as HTMLElement | undefined;
 		if (!card) return;
 
@@ -986,38 +1029,51 @@ class ChatEditor extends HTMLElement {
 		}
 	}
 
-	_onDelegated(e: Event) {
+	_onEditorUpdate(e: CustomEvent<EditorUpdateDetail>) {
 		if (store.isCurrentThreadSubmitted()) return;
-		const { id, patch } = (e as CustomEvent).detail || {};
-		if (e.type === 'editor:update' && id && patch) {
-			if (patch.initialTime !== undefined) {
-				store.updateInitialMessageTime(patch.initialTime);
-			} else {
-				store.updateMessage(id, patch);
-			}
-		} else if (e.type === 'editor:delete' && id) {
-			store.deleteMessage(id);
-		} else if (e.type === 'editor:add-below' && id) {
-			store.addMessage(id);
-		} else if (e.type === 'editor:insert-image' && id) {
-			const fileInput = this.shadowRoot!.getElementById('file-input') as HTMLInputElement | null;
-			if (!fileInput) return;
-			fileInput.onchange = async () => {
-				const file = fileInput.files && fileInput.files[0];
-				if (!file) return;
-				const dataUrl = await this.#fileToDataUrl(file);
-				store.updateMessage(
-					id,
-					((m: any) => {
-						const images = Array.isArray(m.images) ? m.images.slice() : [];
-						images.push({ id: this.#generateId(), src: dataUrl as string });
-						return { images };
-					})(store.getMessages().find((m) => m.id === id) || { images: [] }),
-				);
-				fileInput.value = '';
-			};
-			fileInput.click();
+		const { id, patch } = e.detail;
+		if (!id || !patch) return;
+		if (patch.initialTime !== undefined) {
+			store.updateInitialMessageTime(patch.initialTime);
+		} else {
+			store.updateMessage(id, patch);
 		}
+	}
+
+	_onEditorDelete(e: CustomEvent<EditorIdDetail>) {
+		if (store.isCurrentThreadSubmitted()) return;
+		const { id } = e.detail;
+		if (id) store.deleteMessage(id);
+	}
+
+	_onEditorAddBelow(e: CustomEvent<EditorIdDetail>) {
+		if (store.isCurrentThreadSubmitted()) return;
+		const { id } = e.detail;
+		if (id) store.addMessage(id);
+	}
+
+	_onEditorInsertImage(e: CustomEvent<EditorIdDetail>) {
+		if (store.isCurrentThreadSubmitted()) return;
+		const { id } = e.detail;
+		if (!id) return;
+		const fileInput =
+			this.shadow.querySelector<HTMLInputElement>('#file-input');
+		if (!fileInput) return;
+		fileInput.onchange = async () => {
+			const file = fileInput.files && fileInput.files[0];
+			if (!file) return;
+			const dataUrl = await this.#fileToDataUrl(file);
+			store.updateMessage(
+				id,
+				((m: any) => {
+					const images = Array.isArray(m.images) ? m.images.slice() : [];
+					images.push({ id: this.#generateId(), src: dataUrl as string });
+					return { images };
+				})(store.getMessages().find((m) => m.id === id) || { images: [] }),
+			);
+			fileInput.value = '';
+		};
+		fileInput.click();
 	}
 
 	async #fileToDataUrl(file: File) {
@@ -1048,7 +1104,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#queryCardById(id: string) {
-		return this.shadowRoot!.querySelector<HTMLElement>(`.editor-card[message-id="${id}"]`);
+		return this.shadow.querySelector<HTMLElement>(
+			`.editor-card[message-id="${id}"]`,
+		);
 	}
 
 	#ensureCardForMessage(m: any) {
@@ -1062,7 +1120,11 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#updateCardAttrs(card: HTMLElement, m: any, isFirst = false) {
-		const ensureAttr = (el: HTMLElement, name: string, value: string | null | undefined) => {
+		const ensureAttr = (
+			el: HTMLElement,
+			name: string,
+			value: string | null | undefined,
+		) => {
 			if (value == null || value === '') {
 				if (el.hasAttribute(name)) el.removeAttribute(name);
 				return;
@@ -1086,9 +1148,7 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncFirstCardAttr() {
-		const cards = [
-			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
-		];
+		const cards = [...(this.shadow.querySelectorAll('.editor-card') || [])];
 		cards.forEach((card, i) => {
 			if (i === 0) card.setAttribute('is-first', '');
 			else card.removeAttribute('is-first');
@@ -1123,9 +1183,12 @@ class ChatEditor extends HTMLElement {
 		this.#syncDeleteButtons();
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
-			if (card && typeof (card as any).focus === 'function') {
-				(card as any).scrollCardToTopOnIOS();
-				(card as any).focusTextarea();
+			const focusCard = this.shadow.querySelector<MessageCard>(
+				`.editor-card[message-id="${message.id}"]`,
+			);
+			if (focusCard) {
+				focusCard.scrollCardToTopOnIOS();
+				focusCard.focusTextarea();
 			}
 		});
 	}
@@ -1134,7 +1197,7 @@ class ChatEditor extends HTMLElement {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (!card) return;
-		const cards = this.shadowRoot?.querySelectorAll('.editor-card');
+		const cards = this.shadow.querySelectorAll('.editor-card');
 		const isFirst = cards && cards.length > 0 && cards[0] === card;
 		this.#updateCardAttrs(card, message, isFirst);
 	}
@@ -1160,7 +1223,7 @@ class ChatEditor extends HTMLElement {
 			(!messages || messages.length === 0) &&
 			!store.isCurrentThreadSubmitted()
 		) {
-			for (const card of this.shadowRoot!.querySelectorAll('.editor-card')) {
+			for (const card of this.shadow.querySelectorAll('.editor-card')) {
 				card.remove();
 			}
 			store.addMessage(null);
@@ -1168,12 +1231,16 @@ class ChatEditor extends HTMLElement {
 		}
 
 		const existing = new Map(
-			Array.from(this.shadowRoot!.querySelectorAll('.editor-card'))
+			Array.from(this.shadow.querySelectorAll('.editor-card'))
 				.filter((node) => node instanceof HTMLElement)
 				.map((node) => [node.getAttribute('message-id'), node]),
 		);
 
-		const ensureAttr = (el: HTMLElement, name: string, value: string | null | undefined) => {
+		const ensureAttr = (
+			el: HTMLElement,
+			name: string,
+			value: string | null | undefined,
+		) => {
 			if (value == null || value === '') {
 				if (el.hasAttribute(name)) el.removeAttribute(name);
 				return;
@@ -1191,7 +1258,7 @@ class ChatEditor extends HTMLElement {
 				card.setAttribute('message-id', m.id);
 			}
 			const referenceNode =
-				this.shadowRoot!.querySelectorAll('.editor-card')[index] || null;
+				this.shadow.querySelectorAll('.editor-card')[index] || null;
 			if (card !== referenceNode) {
 				cardsList.insertBefore(card, referenceNode);
 			}
@@ -1219,9 +1286,7 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncDeleteButtons() {
-		const cards = [
-			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
-		];
+		const cards = [...(this.shadow.querySelectorAll('.editor-card') || [])];
 		const isOnly = cards.length === 1;
 		for (const card of cards) {
 			if (isOnly) card.setAttribute('only', '');
@@ -1238,16 +1303,17 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#syncAuthorInfoMode(thread: any) {
-		const clearBtn = this.shadowRoot?.getElementById('clear-chat');
-		const exportBtn = this.shadowRoot?.getElementById('export-json');
+		const clearBtn = this.shadow.querySelector<HTMLElement>('#clear-chat');
+		const exportBtn = this.shadow.querySelector<HTMLElement>('#export-json');
 		const threadNameInput = this.$?.threadNameInput;
 		const recipientNameInput = this.$?.recipientNameInput;
 		const recipientLocationInput = this.$?.recipientLocationInput;
 
-		const threadInfoEditor =
-			this.shadowRoot?.getElementById('thread-info-editor');
-		const recipientInfoEditor = this.shadowRoot?.getElementById(
-			'recipient-info-editor',
+		const threadInfoEditor = this.shadow.querySelector<HTMLElement>(
+			'#thread-info-editor',
+		);
+		const recipientInfoEditor = this.shadow.querySelector<HTMLElement>(
+			'#recipient-info-editor',
 		);
 
 		if (!thread?.authorInfoMode) {
@@ -1257,7 +1323,7 @@ class ChatEditor extends HTMLElement {
 			if (threadInfoEditor) threadInfoEditor.style.display = '';
 			if (recipientInfoEditor) recipientInfoEditor.style.display = '';
 			// Remove injected form if present
-			this.shadowRoot?.getElementById('author-info-section')?.remove();
+			this.shadow.querySelector<HTMLElement>('#author-info-section')?.remove();
 			return;
 		}
 
@@ -1268,7 +1334,7 @@ class ChatEditor extends HTMLElement {
 		if (recipientInfoEditor) recipientInfoEditor.style.display = 'none';
 
 		// Ensure cards-list readonly class is cleared (may be set from a previously submitted thread)
-		this.shadowRoot?.querySelector('.cards-list')?.classList.remove('readonly');
+		this.shadow.querySelector('.cards-list')?.classList.remove('readonly');
 
 		// Disable thread name and recipient inputs
 		if (threadNameInput) threadNameInput.disabled = true;
@@ -1276,12 +1342,12 @@ class ChatEditor extends HTMLElement {
 		if (recipientLocationInput) recipientLocationInput.disabled = true;
 
 		// Remove existing cards
-		for (const card of this.shadowRoot!.querySelectorAll('.editor-card')) {
+		for (const card of this.shadow.querySelectorAll('.editor-card')) {
 			card.remove();
 		}
 
 		// Remove existing author-info-section (to re-render)
-		this.shadowRoot?.getElementById('author-info-section')?.remove();
+		this.shadow.querySelector<HTMLElement>('#author-info-section')?.remove();
 
 		const ex = thread.existingAuthorInfo;
 		const section = document.createElement('div');
@@ -1323,24 +1389,27 @@ class ChatEditor extends HTMLElement {
 		}
 
 		// Insert after admin-notes-container
-		const adminNotes = this.shadowRoot?.getElementById('admin-notes-container');
+		const adminNotes = this.shadow.querySelector<HTMLElement>(
+			'#admin-notes-container',
+		);
 		if (adminNotes) {
 			adminNotes.after(section);
 		} else {
-			this.shadowRoot?.querySelector('.cards-list')?.appendChild(section);
+			this.shadow.querySelector('.cards-list')?.appendChild(section);
 		}
 	}
 
 	async #submitAuthorInfo() {
-		const btn = this.shadowRoot!.getElementById('submit-btn') as HTMLButtonElement | null;
+		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		const thread = store.getCurrentThread();
-		if (!thread?.authorInfoToken || btn?.disabled) return;
+		if (!thread?.authorInfoToken) return;
+		if (!btn || btn.disabled) return;
 
-		const platform = (this.shadowRoot!
-			.getElementById('ai-platform') as HTMLInputElement | null)
+		const platform = this.shadow
+			.querySelector<HTMLInputElement>('#ai-platform')
 			?.value?.trim();
-		const username = (this.shadowRoot!
-			.getElementById('ai-username') as HTMLInputElement | null)
+		const username = this.shadow
+			.querySelector<HTMLInputElement>('#ai-username')
 			?.value?.trim();
 		if (!platform || !username) {
 			await showDialog({
@@ -1350,15 +1419,24 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 
-		btn!.disabled = true;
-		btn!.textContent = 'Submitting...';
+		btn.disabled = true;
+		btn.textContent = 'Submitting...';
 
 		const data = {
 			payment_platform: platform,
 			payment_username: username,
-			name: (this.shadowRoot!.getElementById('ai-name') as HTMLInputElement | null)?.value?.trim() || null,
-			link: (this.shadowRoot!.getElementById('ai-link') as HTMLInputElement | null)?.value?.trim() || null,
-			bio: (this.shadowRoot!.getElementById('ai-bio') as HTMLTextAreaElement | null)?.value?.trim() || null,
+			name:
+				this.shadow
+					.querySelector<HTMLInputElement>('#ai-name')
+					?.value?.trim() || null,
+			link:
+				this.shadow
+					.querySelector<HTMLInputElement>('#ai-link')
+					?.value?.trim() || null,
+			bio:
+				this.shadow
+					.querySelector<HTMLTextAreaElement>('#ai-bio')
+					?.value?.trim() || null,
 		};
 
 		try {
@@ -1367,19 +1445,23 @@ class ChatEditor extends HTMLElement {
 				thread.authorInfoToken,
 				data,
 			);
-			(thread as any).authorInfoSubmitted = true;
+			thread.authorInfoSubmitted = true;
 			store.save();
 			this.#syncAuthorInfoMode(thread);
-			btn!.textContent = 'Submitted';
-			btn!.disabled = true;
+			btn.textContent = 'Submitted';
+			btn.disabled = true;
 			await showDialog({
 				title: 'Thank you!',
 				body: "Your info has been received. We'll be in touch when your piece is published.",
 			});
 		} catch (err) {
-			btn!.disabled = false;
-			btn!.textContent = 'Submit Info';
-			alert('Failed to submit: ' + ((err as Error).message || 'Unknown error'));
+			btn.disabled = false;
+			btn.textContent = 'Submit Info';
+			alert(
+				'Failed to submit: ' +
+					((err instanceof Error ? err.message : String(err)) ||
+						'Unknown error'),
+			);
 		}
 	}
 }

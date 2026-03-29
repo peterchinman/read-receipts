@@ -39,7 +39,23 @@ export class FloatingMenu {
 	 * @param {number} [opts.minWidth]        - optional min-width in px
 	 * @param {number} [opts.xRight]          - right anchor (viewport px); used as right-edge when menu flips left
 	 */
-	constructor({ root, x, y, innerHTML, onItemClick, minWidth, xRight }: { root: ShadowRoot | Element; x: number; y: number; innerHTML: string; onItemClick?: ((e: Event) => void) | null; minWidth?: number; xRight?: number }) {
+	constructor({
+		root,
+		x,
+		y,
+		innerHTML,
+		onItemClick,
+		minWidth,
+		xRight,
+	}: {
+		root: ShadowRoot | Element;
+		x: number;
+		y: number;
+		innerHTML: string;
+		onItemClick?: ((e: Event) => void) | null;
+		minWidth?: number;
+		xRight?: number;
+	}) {
 		this.#root = root;
 
 		const el = document.createElement('div');

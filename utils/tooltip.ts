@@ -194,7 +194,10 @@ function getOrCreateTooltipLayer() {
  * @param {HTMLElement|ShadowRoot} root - Root element or shadow root to search within (default: document)
  * @param {HTMLElement} hostElement - Host element for getting computed styles (for shadow DOM, default: null)
  */
-export function initTooltips(root: Document | ShadowRoot = document, hostElement: HTMLElement | null = null) {
+export function initTooltips(
+	root: Document | ShadowRoot = document,
+	hostElement: HTMLElement | null = null,
+) {
 	ensureGlobalTooltipStyles();
 	const layer = getOrCreateTooltipLayer();
 	const bubble = layer.querySelector<HTMLElement>('.tooltip-bubble');

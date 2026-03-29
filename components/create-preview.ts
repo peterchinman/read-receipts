@@ -1,18 +1,44 @@
 import { store } from './store.js';
-import './thread-view.js';
+import { ThreadDisplay, ThreadViewRefs } from './thread-view.js';
 import { setCurrentThreadId } from '../utils/url-state.js';
 import { isIOS } from '../utils/ios-viewport.js';
+import type {
+	MessagesChangedDetail,
+	EditorFocusMessageDetail,
+} from '../types/events.js';
 
 class ChatPreview extends HTMLElement {
-	private _display: any = null;
-	private $: Record<string, any> = {};
+	private readonly shadow: ShadowRoot;
+	private _display: ThreadDisplay | null = null;
+	private $: ThreadViewRefs = {
+		header: null,
+		messageList: null,
+		messageListSpacer: null,
+		bottom: null,
+		input: null,
+		send: null,
+		optionsButton: null,
+		optionsContainer: null,
+		clearChat: null,
+		exportChat: null,
+		importChat: null,
+		senderSwitch: null,
+		importFile: null,
+		recipientAvatar: null,
+		recipientName: null,
+		recipientLocation: null,
+		navArrow: null,
+		infoBtn: null,
+		rightInfoBtn: null,
+		composeBtn: null,
+	};
 	private _lastDisplayWidth: number | null = null;
-	private _shrinkWrapResizeObserver!: ResizeObserver;
+	private _shrinkWrapResizeObserver: ResizeObserver;
 	private _onIOSKeyboardShown?: () => void;
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.shadow = this.attachShadow({ mode: 'open' });
 		this._onStoreChange = this._onStoreChange.bind(this);
 		this._onKeyDown = this._onKeyDown.bind(this);
 		this._onInput = this._onInput.bind(this);
@@ -36,7 +62,7 @@ class ChatPreview extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot!.innerHTML = `
+		this.shadow.innerHTML = `
 		<style>
 			:host {
 				display: block;
@@ -46,8 +72,8 @@ class ChatPreview extends HTMLElement {
 		<thread-view interactive nav-text="Edit" nav-action="show-editor"></thread-view>
 	`;
 
-		this._display = this.shadowRoot!.querySelector<HTMLElement>('thread-view');
-		this.$ = (this._display as any)?.refs || {};
+		this._display = this.shadow.querySelector<ThreadDisplay>('thread-view');
+		this.$ = this._display?.refs ?? this.$;
 
 		if (this.$.input) {
 			this.$.input.addEventListener('keydown', this._onKeyDown);
@@ -136,9 +162,9 @@ class ChatPreview extends HTMLElement {
 		}
 	}
 
-	_onStoreChange(e: Event) {
+	_onStoreChange(e: CustomEvent<MessagesChangedDetail>) {
 		if (!this._display) return;
-		const { reason, message, messages, recipient } = (e as CustomEvent).detail || {};
+		const { reason, message, messages, recipient } = e.detail;
 		if (recipient) this._display.setRecipient(recipient);
 
 		if (
@@ -155,14 +181,14 @@ class ChatPreview extends HTMLElement {
 
 		switch (reason) {
 			case 'add':
-				this._display.renderAdd(message, messages);
+				if (message) this._display.renderAdd(message, messages);
 				this._scrollToBottom('smooth');
 				break;
 			case 'update':
-				this._display.renderUpdate(message, messages);
+				if (message) this._display.renderUpdate(message, messages);
 				break;
 			case 'delete':
-				this._display.renderDelete(message);
+				if (message) this._display.renderDelete(message);
 				break;
 			case 'clear':
 				this._display.renderReset(messages);
@@ -197,7 +223,9 @@ class ChatPreview extends HTMLElement {
 		event.preventDefault();
 		if (store.isCurrentThreadSubmitted()) return;
 		const text = this.$?.input?.value;
-		const isSender = this.$?.senderSwitch?.checked;
+		const isSender = (
+			this.$?.senderSwitch as (HTMLElement & { checked?: boolean }) | null
+		)?.checked;
 		if (!text || !text.trim()) return;
 		const created = store.addMessage(null);
 		if (!created) return;
@@ -205,8 +233,10 @@ class ChatPreview extends HTMLElement {
 			message: text,
 			sender: isSender ? 'self' : 'other',
 		});
-		this.$.input.value = '';
-		this.$.input.style.height = 'auto';
+		if (this.$.input) {
+			this.$.input.value = '';
+			this.$.input.style.height = 'auto';
+		}
 	}
 
 	_onClearChatClick() {
@@ -250,7 +280,9 @@ class ChatPreview extends HTMLElement {
 		const reader = new FileReader();
 		reader.onload = (ev) => {
 			try {
-				const newThread = store.importJson(String((ev.target as FileReader).result));
+				const newThread = store.importJson(
+					String((ev.target as FileReader).result),
+				);
 				if (newThread) {
 					setCurrentThreadId(newThread.id);
 				}
@@ -273,13 +305,13 @@ class ChatPreview extends HTMLElement {
 		}
 	}
 
-	_onEditorFocusMessage(e: Event) {
-		const { id } = (e as CustomEvent).detail || {};
+	_onEditorFocusMessage(e: CustomEvent<EditorFocusMessageDetail>) {
+		const { id } = e.detail;
 		if (!id) return;
 		this._display?.focusMessage(id);
 	}
 
-	_scrollToBottom(behavior = 'auto') {
+	_scrollToBottom(behavior: ScrollBehavior = 'auto') {
 		this._display?.scrollToBottom(behavior);
 	}
 }

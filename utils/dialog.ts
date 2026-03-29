@@ -125,7 +125,10 @@ const drawerKeyframeCSS = `
  *                                                 When provided the overlay uses position:absolute.
  * @returns {{ overlay: HTMLElement, drawer: HTMLElement, close: () => void }}
  */
-export function createDrawer({ closeOnOverlayClick = true, container }: { closeOnOverlayClick?: boolean; container?: Node | ShadowRoot } = {}) {
+export function createDrawer({
+	closeOnOverlayClick = true,
+	container,
+}: { closeOnOverlayClick?: boolean; container?: Node | ShadowRoot } = {}) {
 	const scoped = !!container;
 
 	const overlay = document.createElement('div');
@@ -306,7 +309,15 @@ export function createDialog({ closeOnOverlayClick = true } = {}) {
  *        Defaults to a single "OK" button styled as the primary action.
  * @returns {Promise<*>} Resolves with the clicked button's `value`.
  */
-export function showDialog({ title, body, buttons }: { title?: string; body?: string; buttons?: Array<{ label: string; value: unknown; style?: string }> } = {}) {
+export function showDialog({
+	title,
+	body,
+	buttons,
+}: {
+	title?: string;
+	body?: string;
+	buttons?: Array<{ label: string; value: unknown; style?: string }>;
+} = {}) {
 	buttons = buttons ?? [
 		{ label: 'OK', value: 'ok', style: dialogConfirmButtonStyle },
 	];

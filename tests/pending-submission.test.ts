@@ -35,7 +35,14 @@ function installBrowserPolyfills() {
 		(globalThis as any).CustomEvent = class CustomEvent extends Event {
 			detail: unknown;
 			constructor(type: string, params?: Record<string, unknown>) {
-				super(type, params as unknown as { bubbles?: boolean; cancelable?: boolean; composed?: boolean });
+				super(
+					type,
+					params as unknown as {
+						bubbles?: boolean;
+						cancelable?: boolean;
+						composed?: boolean;
+					},
+				);
 				this.detail = params && 'detail' in params ? params.detail : undefined;
 			}
 		} as unknown as typeof CustomEvent;

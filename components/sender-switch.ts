@@ -1,8 +1,10 @@
 import { html } from '../utils/template.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { isIOS } from '../utils/ios-viewport.js';
+import type { SenderSwitchChangeDetail } from '../types/events.js';
 
-class SenderSwitch extends HTMLElement {
+export class SenderSwitch extends HTMLElement {
+	#shadow: ShadowRoot;
 	declare _touchStartY: number;
 	declare _onTouchStart: ((e: TouchEvent) => void) | null;
 	declare _onTouchEnd: ((e: TouchEvent) => void) | null;
@@ -14,12 +16,12 @@ class SenderSwitch extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.#shadow = this.attachShadow({ mode: 'open' });
 		this._onChange = this._onChange.bind(this);
 	}
 
 	connectedCallback() {
-		this.shadowRoot!.innerHTML = html`
+		this.#shadow.innerHTML = html`
 			<style>
 				:host {
 					--thumb-padding: calc(2rem / 14);
@@ -85,7 +87,9 @@ class SenderSwitch extends HTMLElement {
 			</label>
 		`;
 
-		const checkbox = this.shadowRoot!.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+		const checkbox = this.#shadow.querySelector(
+			'input[type="checkbox"]',
+		) as HTMLInputElement | null;
 		if (checkbox) {
 			checkbox.addEventListener('change', this._onChange);
 			this.#syncFromAttr();
@@ -95,7 +99,7 @@ class SenderSwitch extends HTMLElement {
 		// reliably fire a change event. Handle touchend directly to ensure the
 		// toggle always works on first touch.
 		if (isIOS) {
-			const label = this.shadowRoot!.querySelector('label');
+			const label = this.#shadow.querySelector('label');
 			if (label) {
 				this._touchStartY = 0;
 				this._onTouchStart = (e: TouchEvent) => {
@@ -115,12 +119,12 @@ class SenderSwitch extends HTMLElement {
 				label.addEventListener('touchend', this._onTouchEnd);
 			}
 		}
-		this._cleanupTooltips = initTooltips(this.shadowRoot!, this);
+		this._cleanupTooltips = initTooltips(this.#shadow, this);
 	}
 
 	disconnectedCallback() {
 		if (this._onTouchEnd) {
-			const label = this.shadowRoot!.querySelector('label');
+			const label = this.#shadow.querySelector('label');
 			label?.removeEventListener('touchstart', this._onTouchStart!);
 			label?.removeEventListener('touchend', this._onTouchEnd!);
 			this._onTouchStart = null;
@@ -134,7 +138,9 @@ class SenderSwitch extends HTMLElement {
 			this.#syncFromAttr();
 		}
 		if (name === 'disabled') {
-			const checkbox = this.shadowRoot!.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+			const checkbox = this.#shadow.querySelector(
+				'input[type="checkbox"]',
+			) as HTMLInputElement | null;
 			if (checkbox) {
 				checkbox.disabled = this.hasAttribute('disabled');
 			}
@@ -154,7 +160,9 @@ class SenderSwitch extends HTMLElement {
 	}
 
 	#syncFromAttr() {
-		const checkbox = this.shadowRoot!.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+		const checkbox = this.#shadow.querySelector(
+			'input[type="checkbox"]',
+		) as HTMLInputElement | null;
 		if (checkbox) {
 			checkbox.checked = this.checked;
 		}
@@ -163,7 +171,7 @@ class SenderSwitch extends HTMLElement {
 	_onChange(e: Event) {
 		this.checked = (e.target as HTMLInputElement).checked;
 		this.dispatchEvent(
-			new CustomEvent('change', {
+			new CustomEvent<SenderSwitchChangeDetail>('change', {
 				detail: { checked: (e.target as HTMLInputElement).checked },
 				bubbles: true,
 				composed: true,
@@ -173,3 +181,17 @@ class SenderSwitch extends HTMLElement {
 }
 
 customElements.define('sender-switch', SenderSwitch);
+
+// Typed addEventListener overloads for SenderSwitch's custom change event
+export interface SenderSwitch {
+	addEventListener(
+		type: 'change',
+		listener: (e: CustomEvent<SenderSwitchChangeDetail>) => void,
+		options?: boolean | AddEventListenerOptions,
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions,
+	): void;
+}

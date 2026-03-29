@@ -1,26 +1,30 @@
 import { html } from '../utils/template.js';
 import { arrowSvg } from './icons/arrow-svg.js';
+import type { NavigateDetail } from '../types/events.js';
+import type { NavigateAction } from '../types/index.js';
 
 class IconArrow extends HTMLElement {
+	#shadow: ShadowRoot;
+
 	static get observedAttributes() {
 		return ['text', 'action', 'arrow-right'];
 	}
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.#shadow = this.attachShadow({ mode: 'open' });
 		this._onClick = this._onClick.bind(this);
 	}
 
 	connectedCallback() {
 		this.render();
-		this.shadowRoot!
+		this.#shadow
 			.querySelector('button')
 			?.addEventListener('click', this._onClick);
 	}
 
 	disconnectedCallback() {
-		this.shadowRoot!
+		this.#shadow
 			.querySelector('button')
 			?.removeEventListener('click', this._onClick);
 	}
@@ -28,7 +32,7 @@ class IconArrow extends HTMLElement {
 	attributeChangedCallback() {
 		if (this.isConnected) {
 			this.render();
-			this.shadowRoot!
+			this.#shadow
 				.querySelector('button')
 				?.addEventListener('click', this._onClick);
 		}
@@ -38,7 +42,7 @@ class IconArrow extends HTMLElement {
 		const text = this.getAttribute('text') || '';
 		const arrowRight = this.hasAttribute('arrow-right');
 
-		this.shadowRoot!.innerHTML = html`
+		this.#shadow.innerHTML = html`
       <style>
 				:host {
 					display: flex;
@@ -101,11 +105,11 @@ class IconArrow extends HTMLElement {
 	}
 
 	_onClick() {
-		const action = this.getAttribute('action');
+		const action = (this.getAttribute('action') ?? 'back') as NavigateAction;
 
 		// Emit navigation event for app to handle based on viewport
 		this.dispatchEvent(
-			new CustomEvent('navigate', {
+			new CustomEvent<NavigateDetail>('navigate', {
 				detail: { action },
 				bubbles: true,
 				composed: true, // allows event to cross shadow DOM boundary

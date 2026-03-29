@@ -11,14 +11,11 @@ import {
 	onThreadIdChange,
 	replaceCurrentThreadId,
 } from './utils/url-state.js';
-import type { Thread } from './types/index.js';
+import type { Thread, NavigateAction, AppMode } from './types/index.js';
+import type { MessagesChangedDetail, NavigateDetail } from './types/events.js';
 
 const LAST_THREAD_KEY = 'message-simulator:last-thread';
 
-/**
- * Get the last active thread ID from local storage
- * @returns {string|null}
- */
 function getLastActiveThreadId() {
 	try {
 		return localStorage.getItem(LAST_THREAD_KEY);
@@ -27,10 +24,6 @@ function getLastActiveThreadId() {
 	}
 }
 
-/**
- * Save the last active thread ID to local storage
- * @param {string} threadId
- */
 function setLastActiveThreadId(threadId: string) {
 	try {
 		if (threadId) {
@@ -214,7 +207,7 @@ async function handleEditParam(editId: string, editToken: string | null) {
 		if (data.status !== 'changes_requested') {
 			return;
 		}
-		const thread = store.importFromBackend(data) as Thread | null;
+		const thread = store.importFromBackend(data);
 		if (thread) {
 			thread.editToken = editToken ?? undefined;
 			// importFromBackend only schedules a debounced save; flush synchronously
@@ -238,11 +231,14 @@ async function handleEditParam(editId: string, editToken: string | null) {
 /**
  * Handle ?author-info=ID&token=TOKEN param for accepted submission flow
  */
-async function handleAuthorInfoParam(authorInfoId: string, token: string | null) {
+async function handleAuthorInfoParam(
+	authorInfoId: string,
+	token: string | null,
+) {
 	try {
 		if (!token) return;
 		const data = await apiClient.getAuthorInfoForm(authorInfoId, token);
-		const thread = store.importFromBackend(data) as Thread | null;
+		const thread = store.importFromBackend(data);
 		if (thread) {
 			thread.authorInfoToken = token ?? undefined;
 			thread.authorInfoMode = true;
@@ -275,10 +271,10 @@ function setupUrlThreadManagement() {
 
 	if (urlThreadId) {
 		// Priority 1: Load thread from URL (if it exists)
-		const threads = store.listThreads() as Thread[];
+		const threads = store.listThreads();
 		if (threads.some((t) => t.id === urlThreadId)) {
 			// Valid thread in URL — navigate to preview/editor
-			const thread = store.loadThread(urlThreadId) as Thread | null;
+			const thread = store.loadThread(urlThreadId);
 			setLastActiveThreadId(urlThreadId);
 			navigateToThread(thread);
 		} else {
@@ -290,7 +286,7 @@ function setupUrlThreadManagement() {
 				store.loadThread(lastThreadId);
 			} else {
 				// Fall back to first available thread
-				const currentThread = store.getCurrentThread() as Thread | null;
+				const currentThread = store.getCurrentThread();
 				if (currentThread) {
 					replaceCurrentThreadId(currentThread.id);
 					store.loadThread(currentThread.id);
@@ -301,7 +297,7 @@ function setupUrlThreadManagement() {
 	} else {
 		// Priority 2: Try last active thread from local storage
 		const lastThreadId = getLastActiveThreadId();
-		const threads = store.listThreads() as Thread[];
+		const threads = store.listThreads();
 
 		if (lastThreadId && threads.some((t) => t.id === lastThreadId)) {
 			// Last active thread still exists, use it
@@ -309,7 +305,7 @@ function setupUrlThreadManagement() {
 			store.loadThread(lastThreadId);
 		} else {
 			// Priority 3: Fall back to current thread (first in list)
-			const currentThread = store.getCurrentThread() as Thread | null;
+			const currentThread = store.getCurrentThread();
 			if (currentThread) {
 				replaceCurrentThreadId(currentThread.id);
 				setLastActiveThreadId(currentThread.id);
@@ -319,7 +315,7 @@ function setupUrlThreadManagement() {
 
 	// Listen for thread changes to save last active
 	store.addEventListener('messages:changed', (e) => {
-		const { reason, threadId } = (e as CustomEvent).detail || {};
+		const { reason, threadId } = e.detail;
 		if (reason === 'thread-changed' && threadId) {
 			setLastActiveThreadId(threadId);
 		}
@@ -329,10 +325,10 @@ function setupUrlThreadManagement() {
 	onThreadIdChange((threadId) => {
 		if (threadId) {
 			// Check if thread exists
-			const threads = store.listThreads() as Thread[];
+			const threads = store.listThreads();
 			if (threads.some((t) => t.id === threadId)) {
 				// Valid thread — navigate to preview/editor
-				const thread = store.loadThread(threadId) as Thread | null;
+				const thread = store.loadThread(threadId);
 				setLastActiveThreadId(threadId);
 				navigateToThread(thread);
 			} else {
@@ -350,7 +346,7 @@ function setupUrlThreadManagement() {
 		} else {
 			// No thread ID in URL, try last active or default to first thread
 			const lastThreadId = getLastActiveThreadId();
-			const threads = store.listThreads() as Thread[];
+			const threads = store.listThreads();
 
 			if (lastThreadId && threads.some((t) => t.id === lastThreadId)) {
 				replaceCurrentThreadId(lastThreadId);
@@ -371,16 +367,16 @@ function setupUrlThreadManagement() {
  * - Desktop (>=1200px): shows all panes simultaneously, no data-mode needed
  */
 function setupModeSwitching(appContainer: HTMLElement) {
-	const ACTION_MAP = {
+	const ACTION_MAP: Partial<Record<NavigateAction, AppMode>> = {
 		'show-threads': 'list',
 		'show-editor': 'edit',
 		'show-preview': 'preview',
 	};
 
 	// Handle navigation events from icon-arrow components
-	const handleNavigate = (e: Event) => {
-		const { action } = (e as CustomEvent).detail;
-		const mode = ACTION_MAP[action as keyof typeof ACTION_MAP];
+	const handleNavigate = (e: CustomEvent<NavigateDetail>) => {
+		const { action } = e.detail;
+		const mode = ACTION_MAP[action];
 
 		if (!mode) return;
 

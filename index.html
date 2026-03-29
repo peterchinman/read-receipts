@@ -26,7 +26,11 @@
 				const STORAGE_KEY = 'message-simulator:theme';
 				const root = document.documentElement;
 				const getSavedTheme = () => {
-					try { return localStorage.getItem(STORAGE_KEY); } catch (_e) { return null; }
+					try {
+						return localStorage.getItem(STORAGE_KEY);
+					} catch (_e) {
+						return null;
+					}
 				};
 				const applyTheme = (theme) => {
 					if (theme === 'dark' || theme === 'light') {
@@ -37,7 +41,9 @@
 						root.style.colorScheme = '';
 					}
 				};
-				const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+				const mql =
+					window.matchMedia &&
+					window.matchMedia('(prefers-color-scheme: dark)');
 				const syncToSystem = () => {
 					const saved = getSavedTheme();
 					if (saved === 'dark' || saved === 'light') return;
@@ -48,8 +54,10 @@
 				else syncToSystem();
 				if (mql) {
 					const onChange = () => syncToSystem();
-					if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onChange);
-					else if (typeof mql.addListener === 'function') mql.addListener(onChange);
+					if (typeof mql.addEventListener === 'function')
+						mql.addEventListener('change', onChange);
+					else if (typeof mql.addListener === 'function')
+						mql.addListener(onChange);
 				}
 			})();
 		</script>

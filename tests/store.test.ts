@@ -49,7 +49,14 @@ function installBrowserPolyfills() {
 		(globalThis as any).CustomEvent = class CustomEvent extends Event {
 			detail: unknown;
 			constructor(type: string, params?: Record<string, unknown>) {
-				super(type, params as unknown as { bubbles?: boolean; cancelable?: boolean; composed?: boolean });
+				super(
+					type,
+					params as unknown as {
+						bubbles?: boolean;
+						cancelable?: boolean;
+						composed?: boolean;
+					},
+				);
 				this.detail = params && 'detail' in params ? params.detail : undefined;
 			}
 		} as unknown as typeof CustomEvent;
@@ -380,7 +387,9 @@ test('add/update/delete message modifies current thread and emits events', async
 	s.load();
 
 	const events: string[] = [];
-	s.addEventListener('messages:changed', (e) => events.push((e as CustomEvent).detail.reason));
+	s.addEventListener('messages:changed', (e) =>
+		events.push((e as CustomEvent).detail.reason),
+	);
 
 	const created = s.addMessage(null);
 	assert.ok(created, 'addMessage should return a message');
@@ -775,7 +784,11 @@ test('duplicateThread() does NOT copy submittedAt', async () => {
 
 	const copy = s.duplicateThread(thread.id);
 	assert.ok(copy, 'should return duplicated thread');
-	assert.equal(copy!.submittedAt, undefined, 'copy should not have submittedAt');
+	assert.equal(
+		copy!.submittedAt,
+		undefined,
+		'copy should not have submittedAt',
+	);
 
 	// Switch to the copy and verify it's editable
 	s.loadThread(copy!.id);

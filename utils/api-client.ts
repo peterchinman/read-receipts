@@ -53,7 +53,12 @@ class ApiClient {
 		return !!this.#token;
 	}
 
-	async #request(endpoint: string, options: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> } = {}) {
+	async #request(
+		endpoint: string,
+		options: Omit<RequestInit, 'headers'> & {
+			headers?: Record<string, string>;
+		} = {},
+	) {
 		const url = `${API_BASE_URL}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
@@ -78,7 +83,9 @@ class ApiClient {
 		const data = await response.json();
 
 		if (!response.ok) {
-			const error = new ApiError(data.error || data.message || 'Request failed');
+			const error = new ApiError(
+				data.error || data.message || 'Request failed',
+			);
 			error.status = response.status;
 			error.data = data;
 			throw error;
@@ -222,7 +229,11 @@ class ApiClient {
 		);
 	}
 
-	async submitAuthorInfo(threadId: string | number, token: string, data: unknown) {
+	async submitAuthorInfo(
+		threadId: string | number,
+		token: string,
+		data: unknown,
+	) {
 		return this.#request(
 			`/author-info/${threadId}?token=${encodeURIComponent(token)}`,
 			{

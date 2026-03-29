@@ -1,4 +1,8 @@
 import { html } from '../utils/template.js';
+import type {
+	NavigateDetail,
+	ThreadListSelectDetail,
+} from '../types/events.js';
 import { MQ } from '../utils/breakpoints.js';
 import { SWIPE_CSS } from '../utils/swipe-gesture.js';
 import { composeSvg } from './icons/compose-svg.js';
@@ -9,7 +13,7 @@ import { infoSvg } from './icons/info-svg.js';
 import './icon-arrow.js';
 import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
 
-interface ThreadListItem {
+export interface ThreadListItem {
 	id: string;
 	name?: string;
 	recipientName?: string;
@@ -23,6 +27,7 @@ interface ThreadListItem {
 }
 
 class ThreadListDisplay extends HTMLElement {
+	private readonly shadow: ShadowRoot;
 	private _threads: ThreadListItem[] = [];
 	private _activeId: string | null = null;
 	private _headerTitle: string = 'Messages';
@@ -30,7 +35,7 @@ class ThreadListDisplay extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.shadow = this.attachShadow({ mode: 'open' });
 		this._threads = [];
 		this._activeId = null;
 		this._headerTitle = 'Messages';
@@ -69,7 +74,11 @@ class ThreadListDisplay extends HTMLElement {
 		this.$.threadsContainer?.removeEventListener('keydown', this._onRowKeyDown);
 	}
 
-	attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+	attributeChangedCallback(
+		name: string,
+		oldValue: string | null,
+		newValue: string | null,
+	) {
 		if (oldValue === newValue) return;
 		switch (name) {
 			case 'header-title':
@@ -129,7 +138,7 @@ class ThreadListDisplay extends HTMLElement {
 	}
 
 	#renderShell() {
-		this.shadowRoot!.innerHTML = html`
+		this.shadow.innerHTML = html`
 			<style>
 				*,
 				*::before,
@@ -475,17 +484,17 @@ class ThreadListDisplay extends HTMLElement {
 		`;
 
 		this.$ = {
-			headerTitle: this.shadowRoot!.getElementById('header-title'),
-			threadsContainer: this.shadowRoot!.getElementById('threads-container'),
-			newThreadBtn: this.shadowRoot!.getElementById('new-thread'),
-			menuBtn: this.shadowRoot!.getElementById('menu-btn'),
-			infoBtn: this.shadowRoot!.getElementById('info-btn'),
-			navArrow: this.shadowRoot!.querySelector<HTMLElement>('.nav-arrow'),
+			headerTitle: this.shadow.getElementById('header-title'),
+			threadsContainer: this.shadow.getElementById('threads-container'),
+			newThreadBtn: this.shadow.getElementById('new-thread'),
+			menuBtn: this.shadow.getElementById('menu-btn'),
+			infoBtn: this.shadow.getElementById('info-btn'),
+			navArrow: this.shadow.querySelector<HTMLElement>('.nav-arrow'),
 		};
 
 		this.$.infoBtn?.addEventListener('click', () => {
 			this.dispatchEvent(
-				new CustomEvent('navigate', {
+				new CustomEvent<NavigateDetail>('navigate', {
 					detail: { action: 'info' },
 					bubbles: true,
 					composed: true,
@@ -635,7 +644,7 @@ class ThreadListDisplay extends HTMLElement {
 
 	#emitSelect(id: string) {
 		this.dispatchEvent(
-			new CustomEvent('thread-list:select', {
+			new CustomEvent<ThreadListSelectDetail>('thread-list:select', {
 				detail: { id },
 				bubbles: true,
 				composed: true,

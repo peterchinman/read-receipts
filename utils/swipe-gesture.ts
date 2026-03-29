@@ -188,7 +188,9 @@ export class SwipeGestureHandler {
 	_onTouchStart(e: TouchEvent) {
 		if ((e.target as HTMLElement).closest('.action-button')) return;
 
-		const swipeContent = (e.target as HTMLElement).closest<HTMLElement>('.swipe-content');
+		const swipeContent = (e.target as HTMLElement).closest<HTMLElement>(
+			'.swipe-content',
+		);
 		if (!swipeContent) {
 			if (this.activatedWrapper) {
 				this.deactivateRow(this.activatedWrapper);
@@ -229,7 +231,8 @@ export class SwipeGestureHandler {
 	}
 
 	_onTouchMove(e: TouchEvent) {
-		if (!this.touchState.element) return;
+		const element = this.touchState.element;
+		if (!element) return;
 
 		const touch = e.touches[0];
 		const dx = touch.clientX - this.touchState.startX;
@@ -249,12 +252,14 @@ export class SwipeGestureHandler {
 
 		// On first drag tick from activated state, strip the CSS class so the
 		// !important rule no longer overrides the JS-driven transform.
+		const wrapper = this.touchState.wrapper;
 		if (!this.touchState.isDragging && this.touchState.startingOffset > 0) {
-			this.touchState.wrapper!.classList.remove('activated');
-			if (this.activatedWrapper === this.touchState.wrapper)
-				this.activatedWrapper = null;
-			this.touchState.element!.style.transition = 'none';
-			this.touchState.element!.style.transform = `translateX(${this.REVEAL_WIDTH}px)`;
+			if (wrapper) {
+				wrapper.classList.remove('activated');
+				if (this.activatedWrapper === wrapper) this.activatedWrapper = null;
+			}
+			element.style.transition = 'none';
+			element.style.transform = `translateX(${this.REVEAL_WIDTH}px)`;
 		}
 
 		this.touchState.isDragging = true;
@@ -274,7 +279,7 @@ export class SwipeGestureHandler {
 
 		if (this.rafId) cancelAnimationFrame(this.rafId);
 		this.rafId = requestAnimationFrame(() => {
-			this.touchState.element!.style.transform = `translateX(${constrainedOffset}px)`;
+			element.style.transform = `translateX(${constrainedOffset}px)`;
 			this.rafId = null;
 		});
 	}
@@ -285,7 +290,9 @@ export class SwipeGestureHandler {
 			this.rafId = null;
 		}
 
-		if (!this.touchState.element || !this.touchState.isDragging) {
+		const element = this.touchState.element;
+		const wrapper = this.touchState.wrapper;
+		if (!element || !this.touchState.isDragging) {
 			this._resetTouchState();
 			return;
 		}
@@ -295,25 +302,25 @@ export class SwipeGestureHandler {
 		if (this.touchState.startingOffset > 0) {
 			// Was activated: deactivate if dragged left past threshold, otherwise snap back
 			if (deltaX < -this.DEACTIVATION_THRESHOLD) {
-				this.deactivateRow(this.touchState.wrapper!);
+				if (wrapper) this.deactivateRow(wrapper);
 			} else {
-				const content = this.touchState.element!;
-				this.touchState.wrapper!.classList.add('activated');
-				this.activatedWrapper = this.touchState.wrapper;
+				if (wrapper) {
+					wrapper.classList.add('activated');
+					this.activatedWrapper = wrapper;
+				}
 				setTimeout(() => {
-					content.style.transform = '';
-					content.style.transition = '';
+					element.style.transform = '';
+					element.style.transition = '';
 				}, this.SNAP_SPEED);
 			}
 		} else {
 			// Was at base state
 			if (deltaX > this.SWIPE_ACTIVATION_DISTANCE) {
 				// Partial swipe past threshold — snap open to reveal buttons
-				const content = this.touchState.element!;
-				this.activateRow(this.touchState.wrapper!);
+				if (wrapper) this.activateRow(wrapper);
 				setTimeout(() => {
-					content.style.transform = '';
-					content.style.transition = '';
+					element.style.transform = '';
+					element.style.transition = '';
 				}, this.SNAP_SPEED);
 			} else {
 				// Not far enough — spring back
@@ -330,16 +337,19 @@ export class SwipeGestureHandler {
 			this.rafId = null;
 		}
 
-		if (!this.touchState.element) return;
+		const element = this.touchState.element;
+		const wrapper = this.touchState.wrapper;
+		if (!element) return;
 
 		if (this.touchState.startingOffset > 0) {
 			// Snap back to activated position
-			const content = this.touchState.element;
-			this.touchState.wrapper!.classList.add('activated');
-			this.activatedWrapper = this.touchState.wrapper;
+			if (wrapper) {
+				wrapper.classList.add('activated');
+				this.activatedWrapper = wrapper;
+			}
 			setTimeout(() => {
-				content.style.transform = '';
-				content.style.transition = '';
+				element.style.transform = '';
+				element.style.transition = '';
 			}, this.SNAP_SPEED);
 		} else {
 			this._springBack();

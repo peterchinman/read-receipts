@@ -6,6 +6,10 @@ import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
 import { config } from '../utils/config.js';
 import './thread-list.js';
+import type {
+	NavigateDetail,
+	ThreadListSelectDetail,
+} from '../types/events.js';
 import { createDrawer, dialogTitleStyle } from '../utils/dialog.js';
 
 const READ_PIECES_KEY = 'message-simulator:read-pieces';
@@ -45,20 +49,28 @@ class LandingPage extends HTMLElement {
 	connectedCallback() {
 		this.#readIds = this.#loadReadIds();
 		this.#renderShell();
-		this.#display = this.#shadow.querySelector('thread-list') as ThreadListElement | null;
+		this.#display = this.#shadow.querySelector(
+			'thread-list',
+		) as ThreadListElement | null;
 		this.#display?.addEventListener('thread-list:select', this._onSelect);
 		this.#display?.refs?.newThreadBtn?.addEventListener(
 			'click',
 			this._onCompose,
 		);
-		this.#shadow.addEventListener('navigate', this._onNavigate);
+		this.#shadow.addEventListener(
+			'navigate',
+			this._onNavigate as EventListener,
+		);
 		this.#renderList();
 		this.#loadPieces();
 	}
 
 	disconnectedCallback() {
 		this.#display?.removeEventListener('thread-list:select', this._onSelect);
-		this.#shadow.removeEventListener('navigate', this._onNavigate);
+		this.#shadow.removeEventListener(
+			'navigate',
+			this._onNavigate as EventListener,
+		);
 	}
 
 	#renderShell() {
@@ -131,8 +143,8 @@ class LandingPage extends HTMLElement {
 		drawer.appendChild(githubLine);
 	}
 
-	_onNavigate(e: Event) {
-		const { action } = (e as CustomEvent).detail || {};
+	_onNavigate(e: CustomEvent<NavigateDetail>) {
+		const { action } = e.detail;
 		if (action === 'info') {
 			this.#showInfoDrawer();
 		}
@@ -141,7 +153,9 @@ class LandingPage extends HTMLElement {
 	#loadReadIds() {
 		try {
 			const stored = localStorage.getItem(READ_PIECES_KEY);
-			return stored ? new Set<string>(JSON.parse(stored).map(String)) : new Set<string>();
+			return stored
+				? new Set<string>(JSON.parse(stored).map(String))
+				: new Set<string>();
 		} catch {
 			return new Set<string>();
 		}
@@ -238,8 +252,8 @@ class LandingPage extends HTMLElement {
 		return `${month}/${day}`;
 	}
 
-	_onSelect(e: Event) {
-		const { id } = (e as CustomEvent).detail || {};
+	_onSelect(e: CustomEvent<ThreadListSelectDetail>) {
+		const { id } = e.detail;
 		if (id) {
 			this.#markPieceRead(id);
 			this.#renderList();

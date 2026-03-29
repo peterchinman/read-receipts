@@ -1,8 +1,15 @@
 // Simple path-based router
+import type { RouteChangeDetail } from '../types/events.js';
+import type { RouteName } from '../types/index.js';
+import { TypedEventTarget } from './typed-event-target.js';
 
-class Router extends EventTarget {
-	#routes: Array<{ pattern: string; name: string; regex: RegExp }> = [];
-	#currentRoute: string | null = null;
+type RouterEvents = {
+	'route:change': CustomEvent<RouteChangeDetail>;
+};
+
+export class Router extends TypedEventTarget<RouterEvents> {
+	#routes: Array<{ pattern: string; name: RouteName; regex: RegExp }> = [];
+	#currentRoute: RouteName | null = null;
 	#currentParams = {};
 
 	constructor() {
@@ -14,7 +21,7 @@ class Router extends EventTarget {
 	 * @param {string} pattern - Route pattern (e.g., '/piece/:id')
 	 * @param {string} name - Route name
 	 */
-	addRoute(pattern: string, name: string) {
+	addRoute(pattern: string, name: RouteName) {
 		const regex = this.#patternToRegex(pattern);
 		this.#routes.push({ pattern, name, regex });
 	}
@@ -118,15 +125,11 @@ class Router extends EventTarget {
 		this.#currentRoute = matched?.name || null;
 		this.#currentParams = matched?.params || {};
 
-		this.dispatchEvent(
-			new CustomEvent('route:change', {
-				detail: {
-					path,
-					route: this.#currentRoute,
-					params: this.#currentParams,
-				},
-			}),
-		);
+		this.emit('route:change', {
+			path,
+			route: this.#currentRoute,
+			params: this.#currentParams,
+		});
 	}
 }
 
@@ -142,4 +145,4 @@ router.addRoute('/auth/verify/:token', 'verify');
 router.addRoute('/admin/login', 'admin-login');
 router.addRoute('/admin', 'admin');
 
-export { router, Router };
+export { router };

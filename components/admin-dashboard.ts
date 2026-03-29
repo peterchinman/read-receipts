@@ -6,9 +6,8 @@ import { html, css } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { authState } from './auth-state.js';
 import { router } from '../utils/router.js';
-import { getThreadDisplayName } from '../utils/thread.js';
-import type { Thread } from '../types/index.js';
-import './thread-view.js';
+import { getThreadDisplayName, ThreadDisplayable } from '../utils/thread.js';
+import { ThreadDisplay, MessageLike } from './thread-view.js';
 
 // Inject admin-specific styles into the document once
 const ADMIN_STYLE_ID = 'admin-dashboard-styles';
@@ -432,6 +431,7 @@ interface SubmissionEvent {
 
 interface Submission {
 	id: string | number;
+	name?: string;
 	status: string;
 	submitted_at?: string;
 	is_resubmission?: boolean;
@@ -446,7 +446,7 @@ interface Submission {
 		link?: string;
 		bio?: string;
 	};
-	participants?: Array<{ full_name?: string; location?: string }>;
+	participants?: Array<{ full_name: string; location?: string }>;
 	messages?: unknown[];
 	events?: SubmissionEvent[];
 }
@@ -492,7 +492,8 @@ class AdminDashboard extends HTMLElement {
 			this.#loading = false;
 			this.#render();
 		} catch (error) {
-			this.#error = (error as Error).message || 'Failed to load submissions';
+			this.#error =
+				error instanceof Error ? error.message : 'Failed to load submissions';
 			this.#loading = false;
 			this.#render();
 		}
@@ -584,11 +585,7 @@ class AdminDashboard extends HTMLElement {
 		if (this.#selectedSubmission) {
 			const selectedSub = this.#selectedSubmission;
 			requestAnimationFrame(() => {
-				const display = this.querySelector('thread-view') as (HTMLElement & {
-					setRecipient(r: { name: string; location: string }): void;
-					setMessages(m: unknown[]): void;
-					scrollToBottom(): void;
-				}) | null;
+				const display = this.querySelector<ThreadDisplay>('thread-view');
 				if (display) {
 					const snapshot =
 						this.#previewEventIndex !== null
@@ -597,13 +594,15 @@ class AdminDashboard extends HTMLElement {
 					display.setRecipient({
 						name:
 							snapshot?.participants?.[0]?.full_name ??
-							selectedSub.participants?.[0]?.full_name ?? '',
+							selectedSub.participants?.[0]?.full_name ??
+							'',
 						location:
 							snapshot?.participants?.[0]?.location ??
-							selectedSub.participants?.[0]?.location ?? '',
+							selectedSub.participants?.[0]?.location ??
+							'',
 					});
 					display.setMessages(
-						snapshot?.messages ?? selectedSub.messages ?? [],
+						(snapshot?.messages ?? selectedSub.messages ?? []) as MessageLike[],
 					);
 					display.scrollToBottom();
 				}
@@ -621,7 +620,7 @@ class AdminDashboard extends HTMLElement {
 				data-id="${sub.id}"
 			>
 				<div class="admin-submission-item-title">
-					<span>${getThreadDisplayName(sub as unknown as Thread | null)}</span>
+					<span>${getThreadDisplayName(sub)}</span>
 					${sub.is_resubmission
 						? html`<span class="admin-badge-resubmitted">Resubmitted</span>`
 						: ''}
@@ -633,7 +632,9 @@ class AdminDashboard extends HTMLElement {
 				</div>
 				<div class="admin-submission-item-meta">
 					by ${sub.author?.name || 'Anonymous'} &bull;
-					${sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : ''}
+					${sub.submitted_at
+						? new Date(sub.submitted_at).toLocaleDateString()
+						: ''}
 				</div>
 			</div>
 		`;
@@ -653,7 +654,8 @@ class AdminDashboard extends HTMLElement {
 	}
 
 	#renderActionPanel() {
-		const sub = this.#selectedSubmission!;
+		const sub = this.#selectedSubmission;
+		if (!sub) return '';
 		const isSubmitted = sub.status === 'submitted';
 		const isAccepted = sub.status === 'accepted';
 		const isChangesRequested = sub.status === 'changes_requested';
@@ -661,7 +663,7 @@ class AdminDashboard extends HTMLElement {
 
 		return html`
 			<div class="admin-action-content">
-				<h2 class="admin-action-header">${getThreadDisplayName(sub as unknown as Thread | null)}</h2>
+				<h2 class="admin-action-header">${getThreadDisplayName(sub)}</h2>
 				<div class="admin-action-meta">
 					by ${sub.author?.name || 'Anonymous'}<br />
 					${sub.author?.email || ''}
@@ -904,7 +906,10 @@ class AdminDashboard extends HTMLElement {
 		// Event item clicks (notes expansion + version preview)
 		this.querySelectorAll('.admin-event-item.clickable').forEach((item) => {
 			item.addEventListener('click', () => {
-				const index = parseInt((item as HTMLElement).dataset.eventIndex ?? '', 10);
+				const index = parseInt(
+					(item as HTMLElement).dataset.eventIndex ?? '',
+					10,
+				);
 				const event = this.#selectedSubmission?.events?.[index];
 				if (!event) return;
 
@@ -978,7 +983,9 @@ class AdminDashboard extends HTMLElement {
 
 	async #handleApprove() {
 		if (!this.#selectedSubmission || this.#actionLoading) return;
-		const notes = (this.querySelector('#admin-notes') as HTMLInputElement | null)?.value || null;
+		const notes =
+			(this.querySelector('#admin-notes') as HTMLInputElement | null)?.value ||
+			null;
 
 		this.#actionLoading = true;
 		this.#render();
@@ -989,7 +996,10 @@ class AdminDashboard extends HTMLElement {
 			this.#actionLoading = false;
 			await this.#loadSubmissions();
 		} catch (error) {
-			alert('Failed to approve: ' + (error as Error).message);
+			alert(
+				'Failed to approve: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}
@@ -997,7 +1007,9 @@ class AdminDashboard extends HTMLElement {
 
 	async #handleRequestChanges() {
 		if (!this.#selectedSubmission || this.#actionLoading) return;
-		const notes = (this.querySelector('#admin-notes') as HTMLInputElement | null)?.value?.trim();
+		const notes = (
+			this.querySelector('#admin-notes') as HTMLInputElement | null
+		)?.value?.trim();
 
 		if (!notes) {
 			alert('Notes are required when requesting changes.');
@@ -1013,7 +1025,10 @@ class AdminDashboard extends HTMLElement {
 			this.#actionLoading = false;
 			await this.#loadSubmissions();
 		} catch (error) {
-			alert('Failed to request changes: ' + (error as Error).message);
+			alert(
+				'Failed to request changes: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}
@@ -1021,7 +1036,9 @@ class AdminDashboard extends HTMLElement {
 
 	async #handleReject() {
 		if (!this.#selectedSubmission || this.#actionLoading) return;
-		const notes = (this.querySelector('#admin-notes') as HTMLInputElement | null)?.value || null;
+		const notes =
+			(this.querySelector('#admin-notes') as HTMLInputElement | null)?.value ||
+			null;
 
 		this.#actionLoading = true;
 		this.#render();
@@ -1032,7 +1049,10 @@ class AdminDashboard extends HTMLElement {
 			this.#actionLoading = false;
 			await this.#loadSubmissions();
 		} catch (error) {
-			alert('Failed to reject: ' + (error as Error).message);
+			alert(
+				'Failed to reject: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}
@@ -1050,7 +1070,10 @@ class AdminDashboard extends HTMLElement {
 			this.#actionLoading = false;
 			await this.#loadSubmissions();
 		} catch (error) {
-			alert('Failed to publish: ' + (error as Error).message);
+			alert(
+				'Failed to publish: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}
@@ -1072,7 +1095,10 @@ class AdminDashboard extends HTMLElement {
 			this.#selectedSubmission = list.find((s) => s.id === selectedId) || null;
 			this.#render();
 		} catch (error) {
-			alert('Failed to mark as paid: ' + (error as Error).message);
+			alert(
+				'Failed to mark as paid: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}
@@ -1083,7 +1109,7 @@ class AdminDashboard extends HTMLElement {
 
 		if (
 			!confirm(
-				`Delete "${getThreadDisplayName(this.#selectedSubmission as unknown as Thread | null)}"? This cannot be undone.`,
+				`Delete "${getThreadDisplayName(this.#selectedSubmission)}"? This cannot be undone.`,
 			)
 		) {
 			return;
@@ -1098,7 +1124,10 @@ class AdminDashboard extends HTMLElement {
 			this.#actionLoading = false;
 			await this.#loadSubmissions();
 		} catch (error) {
-			alert('Failed to delete: ' + (error as Error).message);
+			alert(
+				'Failed to delete: ' +
+					(error instanceof Error ? error.message : 'Unknown error'),
+			);
 			this.#actionLoading = false;
 			this.#render();
 		}

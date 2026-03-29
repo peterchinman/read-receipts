@@ -1,12 +1,17 @@
 import { store } from './store.js';
 import { getCurrentThreadId, setCurrentThreadId } from '../utils/url-state.js';
+import type {
+	MessagesChangedDetail,
+	NavigateDetail,
+	ThreadListSelectDetail,
+} from '../types/events.js';
 import { html } from '../utils/template.js';
 import { BP } from '../utils/breakpoints.js';
 import { SwipeGestureHandler } from '../utils/swipe-gesture.js';
 import { FLOATING_MENU_CSS, FloatingMenu } from '../utils/floating-menu.js';
 import { copySvg } from './icons/copy-svg.js';
 import { trashSvg } from './icons/trash-svg.js';
-import './thread-list.js';
+import { ThreadListDisplay } from './thread-list.js';
 import { router } from '../utils/router.js';
 import {
 	showDialog,
@@ -15,7 +20,8 @@ import {
 } from '../utils/dialog.js';
 
 class ChatThreadList extends HTMLElement {
-	private _display: HTMLElement | null = null;
+	private readonly shadow: ShadowRoot;
+	private _display: ThreadListDisplay | null = null;
 	private $: Record<string, HTMLElement | null> = {};
 	private _swipe!: SwipeGestureHandler;
 	private isDuplicating: boolean = false;
@@ -24,7 +30,7 @@ class ChatThreadList extends HTMLElement {
 
 	constructor() {
 		super();
-		this.attachShadow({ mode: 'open' });
+		this.shadow = this.attachShadow({ mode: 'open' });
 		this._onStoreChange = this._onStoreChange.bind(this);
 		this._onThreadSelect = this._onThreadSelect.bind(this);
 		this._onActionClick = this._onActionClick.bind(this);
@@ -39,7 +45,7 @@ class ChatThreadList extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot!.innerHTML = html`
+		this.shadow.innerHTML = html`
 			<style>
 							*,
 							    *::before,
@@ -71,8 +77,8 @@ class ChatThreadList extends HTMLElement {
 			/>
 		`;
 
-		this._display = this.shadowRoot!.querySelector<HTMLElement>('thread-list');
-		this.$ = (this._display as any)?.refs || {};
+		this._display = this.shadow.querySelector<ThreadListDisplay>('thread-list');
+		this.$ = this._display?.refs || {};
 
 		this.$.newThreadBtn?.addEventListener('click', this._onCreateThread);
 		this._display?.addEventListener('thread-list:select', this._onThreadSelect);
@@ -89,7 +95,7 @@ class ChatThreadList extends HTMLElement {
 
 		this.$.menuBtn?.addEventListener('click', this._onMenuBtnClick);
 
-		this.shadowRoot!
+		this.shadow
 			.getElementById('import-file')
 			?.addEventListener('change', (e) => {
 				const target = e.target as HTMLInputElement;
@@ -98,7 +104,9 @@ class ChatThreadList extends HTMLElement {
 				const reader = new FileReader();
 				reader.onload = (ev) => {
 					try {
-						const newThread = store.importJson(String((ev.target as FileReader).result));
+						const newThread = store.importJson(
+							String((ev.target as FileReader).result),
+						);
 						if (newThread) setCurrentThreadId(newThread.id);
 					} catch (_err) {
 						alert('Error importing: Invalid JSON file');
@@ -109,7 +117,7 @@ class ChatThreadList extends HTMLElement {
 				reader.readAsText(file);
 			});
 
-		this.shadowRoot!.addEventListener('navigate', this._onNavigate);
+		this.shadow.addEventListener('navigate', this._onNavigate as EventListener);
 
 		this._render();
 	}
@@ -131,17 +139,20 @@ class ChatThreadList extends HTMLElement {
 		this._contextMenu?.dismiss();
 		this.$?.menuBtn?.removeEventListener('click', this._onMenuBtnClick);
 		this._menuDropdown?.dismiss();
-		this.shadowRoot!.removeEventListener('navigate', this._onNavigate);
+		this.shadow.removeEventListener(
+			'navigate',
+			this._onNavigate as EventListener,
+		);
 	}
 
-	_onNavigate(e: Event) {
-		if ((e as CustomEvent).detail?.action === 'back') {
+	_onNavigate(e: CustomEvent<NavigateDetail>) {
+		if (e.detail?.action === 'back') {
 			router.navigate('/');
 		}
 	}
 
-	_onStoreChange(e: Event) {
-		const { reason } = (e as CustomEvent).detail || {};
+	_onStoreChange(e: CustomEvent<MessagesChangedDetail>) {
+		const { reason } = e.detail;
 		// Re-render on any thread-related change
 		if (
 			reason === 'thread-created' ||
@@ -174,13 +185,15 @@ class ChatThreadList extends HTMLElement {
 		}
 	}
 
-	_onThreadSelect(e: Event) {
-		const { id } = (e as CustomEvent).detail || {};
+	_onThreadSelect(e: CustomEvent<ThreadListSelectDetail>) {
+		const { id } = e.detail;
 		if (id) this._onThreadClick(id);
 	}
 
 	_onActionClick(e: Event) {
-		const button = (e.target as HTMLElement)?.closest('.action-button') as HTMLElement | null;
+		const button = (e.target as HTMLElement)?.closest(
+			'.action-button',
+		) as HTMLElement | null;
 		if (!button) return;
 		e.stopPropagation();
 		const action = button.dataset.action;
@@ -249,14 +262,14 @@ class ChatThreadList extends HTMLElement {
 					thread.adminNotes?.length && !thread.submittedAt,
 				),
 				infoNeeded: Boolean(
-					thread.authorInfoMode && !(thread as any).authorInfoSubmitted,
+					thread.authorInfoMode && !thread.authorInfoSubmitted,
 				),
 			};
 		});
 
-		(this._display as any).setThreads(threadItems);
-		const activeId = this.isDuplicating ? null : currentThreadId;
-		(this._display as any).setActiveId(activeId);
+		this._display.setThreads(threadItems);
+		const activeId = this.isDuplicating ? null : (currentThreadId ?? null);
+		this._display.setActiveId(activeId);
 	}
 
 	_getLastMessage(thread: any) {
@@ -358,23 +371,26 @@ class ChatThreadList extends HTMLElement {
 			this._menuDropdown.dismiss();
 			return;
 		}
-		const rect = this.$.menuBtn!.getBoundingClientRect();
+		if (!this.$.menuBtn) return;
+		const rect = this.$.menuBtn.getBoundingClientRect();
 		this._showMenuDropdown(rect.left, rect.right, rect.bottom + 4);
 	}
 
 	_showMenuDropdown(x: number, xRight: number, y: number) {
 		this._menuDropdown = new FloatingMenu({
-			root: this.shadowRoot!,
+			root: this.shadow,
 			x,
 			xRight,
 			y,
 			minWidth: 140,
 			innerHTML: `<button class="menu-item" data-action="import">Import</button>`,
 			onItemClick: (e) => {
-				const item = (e.target as HTMLElement)?.closest<HTMLElement>('.menu-item');
+				const item = (e.target as HTMLElement)?.closest<HTMLElement>(
+					'.menu-item',
+				);
 				if (!item) return;
 				if (item.dataset.action === 'import') {
-					this.shadowRoot!.getElementById('import-file')?.click();
+					this.shadow.getElementById('import-file')?.click();
 				}
 			},
 		});
@@ -391,7 +407,7 @@ class ChatThreadList extends HTMLElement {
 	_showContextMenu(threadId: string, x: number, y: number) {
 		this._contextMenu?.dismiss();
 		this._contextMenu = new FloatingMenu({
-			root: this.shadowRoot!,
+			root: this.shadow,
 			x,
 			y,
 			minWidth: 160,
@@ -413,7 +429,9 @@ class ChatThreadList extends HTMLElement {
 				</button>
 			`,
 			onItemClick: (e) => {
-				const item = (e.target as HTMLElement)?.closest<HTMLElement>('.menu-action-item');
+				const item = (e.target as HTMLElement)?.closest<HTMLElement>(
+					'.menu-action-item',
+				);
 				if (!item) return;
 				const action = item.dataset.action;
 				const tid = item.dataset.threadId;
@@ -436,7 +454,8 @@ class ChatThreadList extends HTMLElement {
 			}
 
 			if (wrapper) {
-				const swipeContent = wrapper.querySelector<HTMLElement>('.swipe-content');
+				const swipeContent =
+					wrapper.querySelector<HTMLElement>('.swipe-content');
 
 				// Animate removal — CSS handles the transition via .removing-left
 				if (swipeContent) {

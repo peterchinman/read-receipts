@@ -1,6 +1,21 @@
 // ThreadStore: manages multiple message threads with persistence
-import type { Thread, RawMessage, Participant } from '../types/index.js';
+import type {
+	Thread,
+	RawMessage,
+	Participant,
+	MessagesChangedReason,
+} from '../types/index.js';
+import type {
+	MessagesChangedDetail,
+	StorageErrorDetail,
+} from '../types/events.js';
+import { TypedEventTarget } from '../utils/typed-event-target.js';
 import { getThreadDisplayName } from '../utils/thread.js';
+
+type ThreadStoreEvents = {
+	'messages:changed': CustomEvent<MessagesChangedDetail>;
+	'storage:error': CustomEvent<StorageErrorDetail>;
+};
 const THREADS_STORAGE_KEY = 'message-simulator:threads';
 const CURRENT_SCHEMA_VERSION = 2;
 
@@ -108,7 +123,7 @@ export function inferTimeSince(prevIso: string, curIso: string): string {
 	return s;
 }
 
-class ThreadStore extends EventTarget {
+export class ThreadStore extends TypedEventTarget<ThreadStoreEvents> {
 	#threads: Thread[] = [];
 	#currentThreadId: string | null = null;
 	#saveDebounceId: ReturnType<typeof requestAnimationFrame> | null = null;
@@ -185,12 +200,13 @@ class ThreadStore extends EventTarget {
 			// Quota exceeded or other storage error
 			console.error('Failed to save to localStorage:', err);
 			// Emit error event for UI to handle
-			this.dispatchEvent(
-				new CustomEvent('storage:error', {
-					detail: { error: err, operation: 'save' },
-					bubbles: false,
-					composed: false,
-				}),
+			this.emit(
+				'storage:error',
+				{
+					error: err instanceof Error ? err : new Error(String(err)),
+					operation: 'save',
+				},
+				{ bubbles: false, composed: false },
 			);
 		}
 	}
@@ -250,7 +266,9 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: undefined, // No custom name initially
 			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
-			participants: JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS)) as Participant[],
+			participants: JSON.parse(
+				JSON.stringify(DEFAULT_PARTICIPANTS),
+			) as Participant[],
 			initialMessageTime: new Date().toISOString(),
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
@@ -269,7 +287,9 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: `${this.getThreadDisplayName(original)} (Copy)`,
 			messages: JSON.parse(JSON.stringify(original.messages)) as RawMessage[], // Deep clone
-			participants: JSON.parse(JSON.stringify(original.participants || [])) as Participant[],
+			participants: JSON.parse(
+				JSON.stringify(original.participants || []),
+			) as Participant[],
 			initialMessageTime:
 				original.initialMessageTime || new Date().toISOString(),
 			createdAt: new Date().toISOString(),
@@ -565,10 +585,13 @@ class ThreadStore extends EventTarget {
 			return console.error('Invalid format');
 		}
 
-		imported = (imported as unknown[])
+		imported = imported
 			.map((m: unknown) => {
-				if (m && typeof m === 'object' && typeof (m as Record<string, unknown>).timestamp === 'number') {
-					return { ...(m as Record<string, unknown>), timestamp: new Date((m as Record<string, unknown>).timestamp as number).toISOString() };
+				if (m && typeof m === 'object') {
+					const obj = m as Record<string, unknown>;
+					if (typeof obj.timestamp === 'number') {
+						return { ...obj, timestamp: new Date(obj.timestamp).toISOString() };
+					}
 				}
 				return m;
 			})
@@ -613,7 +636,13 @@ class ThreadStore extends EventTarget {
 
 	// ===== Import from Backend (for resubmit flow) =====
 
-	importFromBackend(backendThread: { id: string; messages?: Array<{ sender: string; message: string; timestamp?: string }>; participants?: Participant[]; name?: string; events?: Array<{ type: string; notes?: string }> }) {
+	importFromBackend(backendThread: {
+		id: string;
+		messages?: Array<{ sender: string; message: string; timestamp?: string }>;
+		participants?: Participant[];
+		name?: string;
+		events?: Array<{ type: string; notes?: string }>;
+	}) {
 		// If a local thread already exists for this backend ID, update it in place
 		const existing = this.#threads.find(
 			(t) => t.backendId === backendThread.id,
@@ -640,7 +669,11 @@ class ThreadStore extends EventTarget {
 
 		// Convert to timeSincePrevious model (no stored timestamps)
 		thread.messages = rawMessages.map((m, i): RawMessage => {
-			const result: RawMessage = { id: m.id, sender: m.sender as 'self' | 'other', message: m.message };
+			const result: RawMessage = {
+				id: m.id,
+				sender: m.sender as 'self' | 'other',
+				message: m.message,
+			};
 			if (i > 0) {
 				result.timeSincePrevious = this.#inferTimeSince(
 					rawMessages[i - 1].timestamp,
@@ -699,7 +732,9 @@ class ThreadStore extends EventTarget {
 			id: this.#generateId(),
 			name: undefined,
 			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
-			participants: JSON.parse(JSON.stringify(WELCOME_PARTICIPANTS)) as Participant[],
+			participants: JSON.parse(
+				JSON.stringify(WELCOME_PARTICIPANTS),
+			) as Participant[],
 			initialMessageTime: '1990-07-22T09:00:00.000Z',
 			createdAt: now.toISOString(),
 			updatedAt: now.toISOString(),
@@ -714,7 +749,11 @@ class ThreadStore extends EventTarget {
 		});
 	}
 
-	#emitChange(reason: string, message: RawMessage | null = null, threadId: string | null = null) {
+	#emitChange(
+		reason: MessagesChangedReason,
+		message: RawMessage | null = null,
+		threadId: string | null = null,
+	) {
 		const thread = this.getCurrentThread();
 		const p = thread?.participants?.[0];
 		const computedMessages = thread ? this.#getComputedMessages(thread) : [];
@@ -723,21 +762,19 @@ class ThreadStore extends EventTarget {
 			message && message.id
 				? computedMessages.find((m) => m.id === message.id) || message
 				: message;
-		this.dispatchEvent(
-			new CustomEvent('messages:changed', {
-				detail: {
-					reason,
-					message: computedMessage,
-					messages: computedMessages,
-					recipient: {
-						name: p?.full_name || '',
-						location: p?.location || '',
-					},
-					threadId: threadId || this.#currentThreadId,
+		this.emit(
+			'messages:changed',
+			{
+				reason,
+				message: computedMessage,
+				messages: computedMessages,
+				recipient: {
+					name: p?.full_name || '',
+					location: p?.location || '',
 				},
-				bubbles: false,
-				composed: false,
-			}),
+				threadId: threadId || this.#currentThreadId,
+			},
+			{ bubbles: false, composed: false },
 		);
 	}
 
@@ -759,7 +796,9 @@ class ThreadStore extends EventTarget {
 		);
 	}
 
-	#withIdsAndTimestamps(arr: Array<{ sender?: string; message?: string }>): RawMessage[] {
+	#withIdsAndTimestamps(
+		arr: Array<{ sender?: string; message?: string }>,
+	): RawMessage[] {
 		return arr.map((m, i) => ({
 			id: this.#generateId(),
 			sender: m.sender === 'self' || m.sender === 'other' ? m.sender : 'self',
@@ -848,4 +887,4 @@ class ThreadStore extends EventTarget {
 }
 
 const store = new ThreadStore();
-export { store, ThreadStore, THREADS_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
+export { store, THREADS_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
