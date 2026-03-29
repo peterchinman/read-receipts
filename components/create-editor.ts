@@ -6,6 +6,7 @@ import type {
 	EditorUpdateDetail,
 	EditorIdDetail,
 } from '../types/events.js';
+import type { ComputedMessage } from '../types/index.js';
 import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
@@ -40,16 +41,24 @@ const SUBMITTED_TOOLTIP = 'Thread submitted';
 const PENDING_TOOLTIP = 'Check your email';
 
 class ChatEditor extends HTMLElement {
-	private readonly shadow: ShadowRoot;
-	private _lastFocusedCard: HTMLElement | null = null;
-	private _headerObserver: ResizeObserver | null = null;
-	private _cardsListVisibilityObserver: ResizeObserver | null = null;
-	private $: Record<string, any> = {};
-	private _onThreadNameInput?: () => void;
-	private _onRecipientInput?: () => void;
-	private _onKeyboardHidden?: (() => void) | null;
-	private _cleanupTooltips?: (() => void) | null;
-
+	private readonly shadow: ShadowRoot
+;
+	private _lastFocusedCard: HTMLElement | null = null
+;
+	private _headerObserver: ResizeObserver | null = null
+;
+	private _cardsListVisibilityObserver: ResizeObserver | null = null
+;
+	private $: Record<string, any> = {}
+;
+	private _onThreadNameInput?: () => void
+;
+	private _onRecipientInput?: () => void
+;
+	private _onKeyboardHidden?: (() => void) | null
+;
+	private _cleanupTooltips?: (() => void) | null
+;
 	constructor() {
 		super();
 		this.shadow = this.attachShadow({ mode: 'open' });
@@ -60,7 +69,6 @@ class ChatEditor extends HTMLElement {
 		this._onEditorInsertImage = this._onEditorInsertImage.bind(this);
 		this._onFocusIn = this._onFocusIn.bind(this);
 	}
-
 	connectedCallback() {
 		this.shadow.innerHTML = html`
 			<style>
@@ -447,7 +455,6 @@ class ChatEditor extends HTMLElement {
 		this.#checkPendingSubmission();
 		authState.addEventListener('change', () => this.#checkPendingSubmission());
 	}
-
 	disconnectedCallback() {
 		resumeIOSViewport();
 		if (this._onKeyboardHidden) {
@@ -504,7 +511,6 @@ class ChatEditor extends HTMLElement {
 			this._cardsListVisibilityObserver = null;
 		}
 	}
-
 	_showSubmitDialog() {
 		return new Promise((resolve) => {
 			const {
@@ -643,7 +649,6 @@ class ChatEditor extends HTMLElement {
 			emailInput.focus();
 		});
 	}
-
 	async _onSubmit() {
 		if (store.getCurrentThread()?.authorInfoMode) {
 			await this.#submitAuthorInfo();
@@ -760,7 +765,6 @@ class ChatEditor extends HTMLElement {
 			await this._showSubmitDialog();
 		}
 	}
-
 	async #checkPendingSubmission() {
 		if (!authState.isAuthenticated) return;
 
@@ -822,7 +826,6 @@ class ChatEditor extends HTMLElement {
 			);
 		}
 	}
-
 	_onStoreChange(e: CustomEvent<MessagesChangedDetail>) {
 		const { reason, message, messages, recipient } = e.detail;
 		if (recipient) this.#syncRecipientInputs(recipient);
@@ -858,7 +861,7 @@ class ChatEditor extends HTMLElement {
 				this.#onAdd(message, messages);
 				break;
 			case 'update':
-				this.#onUpdate(message);
+				if (message) this.#onUpdate(message as ComputedMessage);
 				break;
 			case 'delete':
 				this.#onDelete(message);
@@ -874,7 +877,6 @@ class ChatEditor extends HTMLElement {
 				break;
 		}
 	}
-
 	#syncThreadInput(thread: any) {
 		const threadNameInput = this.$?.threadNameInput;
 		if (!threadNameInput) return;
@@ -889,7 +891,6 @@ class ChatEditor extends HTMLElement {
 			threadNameInput.value = threadName;
 		}
 	}
-
 	#syncRecipientInputs(recipient: any) {
 		const nameInput = this.$?.recipientNameInput;
 		const locationInput = this.$?.recipientLocationInput;
@@ -906,7 +907,6 @@ class ChatEditor extends HTMLElement {
 		if (active !== locationInput && locationInput.value !== location)
 			locationInput.value = location;
 	}
-
 	#syncSubmitButton(thread: any) {
 		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		if (!btn) return;
@@ -937,7 +937,6 @@ class ChatEditor extends HTMLElement {
 			btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
 		}
 	}
-
 	#syncAdminNotes(thread: any) {
 		const container = this.shadow.querySelector<HTMLElement>(
 			'#admin-notes-container',
@@ -955,13 +954,11 @@ class ChatEditor extends HTMLElement {
 			container.innerHTML = '';
 		}
 	}
-
 	#escapeHtml(text: string) {
 		const div = document.createElement('div');
 		div.textContent = text;
 		return div.innerHTML;
 	}
-
 	#syncReadOnlyState() {
 		// In author info mode, input state is managed by #syncAuthorInfoMode
 		if (store.getCurrentThread()?.authorInfoMode) return;
@@ -988,14 +985,7 @@ class ChatEditor extends HTMLElement {
 		if (cardsList) {
 			cardsList.classList.toggle('readonly', submitted);
 		}
-
-		const cards = this.shadow.querySelectorAll('.editor-card') || [];
-		for (const card of cards) {
-			if (submitted) card.setAttribute('readonly', '');
-			else card.removeAttribute('readonly');
-		}
 	}
-
 	_onFocusIn(e: Event) {
 		// Find the message-card element that contains the focused element
 		// Use composedPath to traverse shadow boundaries
@@ -1028,7 +1018,6 @@ class ChatEditor extends HTMLElement {
 			);
 		}
 	}
-
 	_onEditorUpdate(e: CustomEvent<EditorUpdateDetail>) {
 		if (store.isCurrentThreadSubmitted()) return;
 		const { id, patch } = e.detail;
@@ -1039,19 +1028,16 @@ class ChatEditor extends HTMLElement {
 			store.updateMessage(id, patch);
 		}
 	}
-
 	_onEditorDelete(e: CustomEvent<EditorIdDetail>) {
 		if (store.isCurrentThreadSubmitted()) return;
 		const { id } = e.detail;
 		if (id) store.deleteMessage(id);
 	}
-
 	_onEditorAddBelow(e: CustomEvent<EditorIdDetail>) {
 		if (store.isCurrentThreadSubmitted()) return;
 		const { id } = e.detail;
 		if (id) store.addMessage(id);
 	}
-
 	_onEditorInsertImage(e: CustomEvent<EditorIdDetail>) {
 		if (store.isCurrentThreadSubmitted()) return;
 		const { id } = e.detail;
@@ -1075,7 +1061,6 @@ class ChatEditor extends HTMLElement {
 		};
 		fileInput.click();
 	}
-
 	async #fileToDataUrl(file: File) {
 		return new Promise((resolve, reject) => {
 			const reader = new FileReader();
@@ -1084,7 +1069,6 @@ class ChatEditor extends HTMLElement {
 			reader.readAsDataURL(file);
 		});
 	}
-
 	#generateId() {
 		try {
 			if (
@@ -1102,23 +1086,20 @@ class ChatEditor extends HTMLElement {
 			Math.random().toString(36).slice(2, 10)
 		);
 	}
-
 	#queryCardById(id: string) {
-		return this.shadow.querySelector<HTMLElement>(
+		return this.shadow.querySelector<MessageCard>(
 			`.editor-card[message-id="${id}"]`,
 		);
 	}
-
-	#ensureCardForMessage(m: any) {
+	#ensureCardForMessage(m: ComputedMessage) {
 		let card = this.#queryCardById(m.id);
 		if (!card) {
-			card = document.createElement('message-card') as HTMLElement;
+			card = document.createElement('message-card');
 			card.classList.add('editor-card');
 			card.setAttribute('message-id', m.id);
 		}
 		return card;
 	}
-
 	#updateCardAttrs(card: HTMLElement, m: any, isFirst = false) {
 		const ensureAttr = (
 			el: HTMLElement,
@@ -1146,7 +1127,6 @@ class ChatEditor extends HTMLElement {
 		ensureAttr(card, 'text', textValue);
 		ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
 	}
-
 	#syncFirstCardAttr() {
 		const cards = [...(this.shadow.querySelectorAll('.editor-card') || [])];
 		cards.forEach((card, i) => {
@@ -1154,7 +1134,6 @@ class ChatEditor extends HTMLElement {
 			else card.removeAttribute('is-first');
 		});
 	}
-
 	#insertCardAtIndex(card: HTMLElement, index: number) {
 		const cardsList =
 			this.shadowRoot && this.shadowRoot.querySelector('.cards-list');
@@ -1165,7 +1144,6 @@ class ChatEditor extends HTMLElement {
 			cardsList.insertBefore(card, referenceNode);
 		}
 	}
-
 	#onAdd(message: any, messages: any[]) {
 		if (!message || !Array.isArray(messages)) {
 			this.#render(messages || []);
@@ -1177,10 +1155,9 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 		const card = this.#ensureCardForMessage(message);
-		this.#updateCardAttrs(card, message, index === 0);
+		this.#syncCard(card, message, index === 0);
 		this.#insertCardAtIndex(card, index);
-		this.#syncFirstCardAttr();
-		this.#syncDeleteButtons();
+		this.#syncCardFlags();
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
 			const focusCard = this.shadow.querySelector<MessageCard>(
@@ -1192,24 +1169,20 @@ class ChatEditor extends HTMLElement {
 			}
 		});
 	}
-
-	#onUpdate(message: any) {
+	#onUpdate(message: ComputedMessage) {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (!card) return;
 		const cards = this.shadow.querySelectorAll('.editor-card');
-		const isFirst = cards && cards.length > 0 && cards[0] === card;
-		this.#updateCardAttrs(card, message, isFirst);
+		const isFirst = cards.length > 0 && cards[0] === card;
+		this.#syncCard(card, message, isFirst);
 	}
-
 	#onDelete(message: any) {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (card && card.remove) card.remove();
-		this.#syncFirstCardAttr();
-		this.#syncDeleteButtons();
+		this.#syncCardFlags();
 	}
-
 	#render(messages: any[]) {
 		// In author info mode, rendering is handled by #syncAuthorInfoMode
 		if (store.getCurrentThread()?.authorInfoMode) return;
@@ -1231,24 +1204,9 @@ class ChatEditor extends HTMLElement {
 		}
 
 		const existing = new Map(
-			Array.from(this.shadow.querySelectorAll('.editor-card'))
-				.filter((node) => node instanceof HTMLElement)
+			Array.from(this.shadow.querySelectorAll<MessageCard>('.editor-card'))
 				.map((node) => [node.getAttribute('message-id'), node]),
 		);
-
-		const ensureAttr = (
-			el: HTMLElement,
-			name: string,
-			value: string | null | undefined,
-		) => {
-			if (value == null || value === '') {
-				if (el.hasAttribute(name)) el.removeAttribute(name);
-				return;
-			}
-			if (el.getAttribute(name) !== value) {
-				el.setAttribute(name, value);
-			}
-		};
 
 		messages.forEach((m, index) => {
 			let card = existing.get(m.id);
@@ -1262,29 +1220,14 @@ class ChatEditor extends HTMLElement {
 			if (card !== referenceNode) {
 				cardsList.insertBefore(card, referenceNode);
 			}
-			const isFirst = index === 0;
-			if (isFirst) card.setAttribute('is-first', '');
-			else card.removeAttribute('is-first');
-			ensureAttr(
-				card,
-				'time-since-previous',
-				isFirst ? '' : m.timeSincePrevious || 'PT1M',
-			);
-			const textValue = typeof m.message === 'string' ? m.message : '';
-			ensureAttr(card, 'sender', m.sender || 'self');
-			ensureAttr(card, 'timestamp', m.timestamp || '');
-			ensureAttr(card, 'text', textValue);
-			ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
+			this.#syncCard(card, m, index === 0);
 			existing.delete(m.id);
 		});
 
 		for (const leftover of existing.values()) {
 			leftover.remove();
 		}
-
-		this.#syncDeleteButtons();
 	}
-
 	#syncDeleteButtons() {
 		const cards = [...(this.shadow.querySelectorAll('.editor-card') || [])];
 		const isOnly = cards.length === 1;
@@ -1292,6 +1235,38 @@ class ChatEditor extends HTMLElement {
 			if (isOnly) card.setAttribute('only', '');
 			else card.removeAttribute('only');
 		}
+	}
+	get #isReadOnly() {
+		return store.isCurrentThreadSubmitted();
+	}
+	get #isOnly() {
+		return store.getMessages().length === 1;
+	}
+	#syncCard(card: MessageCard, m: ComputedMessage, isFirst = false) {
+		card.update({
+			text: typeof m.message === 'string' ? m.message : '',
+			sender: m.sender || 'self',
+			timestamp: m.timestamp || '',
+			timeSincePrevious: isFirst ? 'PT1M' : m.timeSincePrevious || 'PT1M',
+			exactTimestamp: m.exactTimestamp || '',
+			isFirst,
+			isOnly: this.#isOnly,
+			isReadOnly: this.#isReadOnly,
+		});
+	}
+	// Updates isFirst, isOnly, isReadOnly on all cards after structural changes
+	// (add/delete). Message data is left untouched — only flags are updated.
+	#syncCardFlags() {
+		const cards = [
+			...(this.shadow.querySelectorAll<MessageCard>('.editor-card') || []),
+		];
+		cards.forEach((card, i) => {
+			card.update({
+				isFirst: i === 0,
+				isOnly: this.#isOnly,
+				isReadOnly: this.#isReadOnly,
+			});
+		});
 	}
 
 	#escapeAttr(text: unknown) {
@@ -1467,3 +1442,9 @@ class ChatEditor extends HTMLElement {
 }
 
 customElements.define('create-editor', ChatEditor);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'create-editor': ChatEditor;
+	}
+}
