@@ -941,11 +941,6 @@ class ChatEditor extends HTMLElement {
 			cardsList.classList.toggle('readonly', submitted);
 		}
 
-		const cards = this.shadowRoot?.querySelectorAll('.editor-card') || [];
-		for (const card of cards) {
-			if (submitted) card.setAttribute('readonly', '');
-			else card.removeAttribute('readonly');
-		}
 	}
 
 	_onFocusIn(e) {
@@ -1053,37 +1048,35 @@ class ChatEditor extends HTMLElement {
 		return card;
 	}
 
-	#updateCardAttrs(card, m, isFirst = false) {
-		const ensureAttr = (el, name, value) => {
-			if (value == null || value === '') {
-				if (el.hasAttribute(name)) el.removeAttribute(name);
-				return;
-			}
-			if (el.getAttribute(name) !== value) {
-				el.setAttribute(name, value);
-			}
-		};
-		if (isFirst) card.setAttribute('is-first', '');
-		else card.removeAttribute('is-first');
-		ensureAttr(
-			card,
-			'time-since-previous',
-			isFirst ? '' : m.timeSincePrevious || 'PT1M',
-		);
-		const textValue = typeof m.message === 'string' ? m.message : '';
-		ensureAttr(card, 'sender', m.sender || 'self');
-		ensureAttr(card, 'timestamp', m.timestamp || '');
-		ensureAttr(card, 'text', textValue);
-		ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
+	get #isReadOnly() {
+		return store.isCurrentThreadSubmitted();
 	}
 
-	#syncFirstCardAttr() {
+	get #isOnly() {
+		return store.getMessages().length === 1;
+	}
+
+	#syncCard(card, m, isFirst = false) {
+		card.update({
+			text: typeof m.message === 'string' ? m.message : '',
+			sender: m.sender || 'self',
+			timestamp: m.timestamp || '',
+			timeSincePrevious: isFirst ? 'PT1M' : m.timeSincePrevious || 'PT1M',
+			exactTimestamp: m.exactTimestamp || '',
+			isFirst,
+			isOnly: this.#isOnly,
+			isReadOnly: this.#isReadOnly,
+		});
+	}
+
+	// Updates isFirst, isOnly, isReadOnly on all cards after structural changes
+	// (add/delete). Message data is left untouched — only flags are updated.
+	#syncCardFlags() {
 		const cards = [
 			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
 		];
 		cards.forEach((card, i) => {
-			if (i === 0) card.setAttribute('is-first', '');
-			else card.removeAttribute('is-first');
+			card.update({ isFirst: i === 0, isOnly: this.#isOnly, isReadOnly: this.#isReadOnly });
 		});
 	}
 
@@ -1109,10 +1102,9 @@ class ChatEditor extends HTMLElement {
 			return;
 		}
 		const card = this.#ensureCardForMessage(message);
-		this.#updateCardAttrs(card, message, index === 0);
+		this.#syncCard(card, message, index === 0);
 		this.#insertCardAtIndex(card, index);
-		this.#syncFirstCardAttr();
-		this.#syncDeleteButtons();
+		this.#syncCardFlags();
 		// Focus the newly created card's textarea
 		requestAnimationFrame(() => {
 			if (card && typeof card.focus === 'function') {
@@ -1128,15 +1120,14 @@ class ChatEditor extends HTMLElement {
 		if (!card) return;
 		const cards = this.shadowRoot?.querySelectorAll('.editor-card');
 		const isFirst = cards && cards.length > 0 && cards[0] === card;
-		this.#updateCardAttrs(card, message, isFirst);
+		this.#syncCard(card, message, isFirst);
 	}
 
 	#onDelete(message) {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (card && card.remove) card.remove();
-		this.#syncFirstCardAttr();
-		this.#syncDeleteButtons();
+		this.#syncCardFlags();
 	}
 
 	#render(messages) {
@@ -1165,16 +1156,6 @@ class ChatEditor extends HTMLElement {
 				.map((node) => [node.getAttribute('message-id'), node]),
 		);
 
-		const ensureAttr = (el, name, value) => {
-			if (value == null || value === '') {
-				if (el.hasAttribute(name)) el.removeAttribute(name);
-				return;
-			}
-			if (el.getAttribute(name) !== value) {
-				el.setAttribute(name, value);
-			}
-		};
-
 		messages.forEach((m, index) => {
 			let card = existing.get(m.id);
 			if (!card) {
@@ -1187,37 +1168,12 @@ class ChatEditor extends HTMLElement {
 			if (card !== referenceNode) {
 				cardsList.insertBefore(card, referenceNode);
 			}
-			const isFirst = index === 0;
-			if (isFirst) card.setAttribute('is-first', '');
-			else card.removeAttribute('is-first');
-			ensureAttr(
-				card,
-				'time-since-previous',
-				isFirst ? '' : m.timeSincePrevious || 'PT1M',
-			);
-			const textValue = typeof m.message === 'string' ? m.message : '';
-			ensureAttr(card, 'sender', m.sender || 'self');
-			ensureAttr(card, 'timestamp', m.timestamp || '');
-			ensureAttr(card, 'text', textValue);
-			ensureAttr(card, 'exact-timestamp', m.exactTimestamp || '');
+			this.#syncCard(card, m, index === 0);
 			existing.delete(m.id);
 		});
 
 		for (const leftover of existing.values()) {
 			leftover.remove();
-		}
-
-		this.#syncDeleteButtons();
-	}
-
-	#syncDeleteButtons() {
-		const cards = [
-			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
-		];
-		const isOnly = cards.length === 1;
-		for (const card of cards) {
-			if (isOnly) card.setAttribute('only', '');
-			else card.removeAttribute('only');
 		}
 	}
 
