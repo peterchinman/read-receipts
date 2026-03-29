@@ -476,7 +476,8 @@ class MessageCard extends HTMLElement {
 	#syncTimeSection() {
 		const dateInput = this.shadowRoot?.querySelector('.initial-time-input');
 		const dateText = this.shadowRoot?.querySelector('.date-text');
-		const timeSinceSelect = this.shadowRoot?.querySelector('.time-since-select');
+		const timeSinceSelect =
+			this.shadowRoot?.querySelector('.time-since-select');
 		const exactTimeContainer = this.shadowRoot?.querySelector(
 			'.exact-time-container',
 		);
@@ -737,7 +738,10 @@ class MessageCard extends HTMLElement {
 			if (value === 'EXACT') {
 				this.#emit('editor:update', {
 					id: this.messageId,
-					patch: { timeSincePrevious: 'EXACT', exactTimestamp: this._data.timestamp },
+					patch: {
+						timeSincePrevious: 'EXACT',
+						exactTimestamp: this._data.timestamp,
+					},
 				});
 			} else {
 				this.#emit('editor:update', {

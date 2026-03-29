@@ -940,7 +940,6 @@ class ChatEditor extends HTMLElement {
 		if (cardsList) {
 			cardsList.classList.toggle('readonly', submitted);
 		}
-
 	}
 
 	_onFocusIn(e) {
@@ -1076,7 +1075,11 @@ class ChatEditor extends HTMLElement {
 			...(this.shadowRoot?.querySelectorAll('.editor-card') || []),
 		];
 		cards.forEach((card, i) => {
-			card.update({ isFirst: i === 0, isOnly: this.#isOnly, isReadOnly: this.#isReadOnly });
+			card.update({
+				isFirst: i === 0,
+				isOnly: this.#isOnly,
+				isReadOnly: this.#isReadOnly,
+			});
 		});
 	}
 
