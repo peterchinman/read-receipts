@@ -11,13 +11,17 @@ export type { MessagePatch };
 
 // --- Event detail interfaces ---
 
-export interface MessagesChangedDetail {
-	reason: MessagesChangedReason;
-	message: RawMessage | ComputedMessage | null;
+interface MessagesChangedBase {
 	messages: ComputedMessage[];
 	recipient: { name: string; location: string };
 	threadId: string | null;
 }
+
+export type MessagesChangedDetail = MessagesChangedBase & (
+	| { reason: 'add' | 'update' | 'delete'; message: ComputedMessage }
+	| { reason: 'timesince-updated'; message: ComputedMessage | null }
+	| { reason: Exclude<MessagesChangedReason, 'add' | 'update' | 'delete' | 'timesince-updated'>; message: null }
+);
 
 export interface StorageErrorDetail {
 	error: Error;

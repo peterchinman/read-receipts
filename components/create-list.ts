@@ -5,6 +5,7 @@ import type {
 	NavigateDetail,
 	ThreadListSelectDetail,
 } from '../types/events.js';
+import type { Thread } from '../types/index.js';
 import { html } from '../utils/template.js';
 import { BP } from '../utils/breakpoints.js';
 import { SwipeGestureHandler } from '../utils/swipe-gesture.js';
@@ -272,7 +273,7 @@ class ChatThreadList extends HTMLElement {
 		this._display.setActiveId(activeId);
 	}
 
-	_getLastMessage(thread: any) {
+	_getLastMessage(thread: Thread) {
 		if (!thread.messages || thread.messages.length === 0) {
 			return 'No messages yet';
 		}
@@ -505,3 +506,9 @@ class ChatThreadList extends HTMLElement {
 }
 
 customElements.define('create-list', ChatThreadList);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'create-list': ChatThreadList;
+	}
+}

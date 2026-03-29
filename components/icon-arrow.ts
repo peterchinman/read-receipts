@@ -119,3 +119,9 @@ class IconArrow extends HTMLElement {
 }
 
 customElements.define('icon-arrow', IconArrow);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'icon-arrow': IconArrow;
+	}
+}

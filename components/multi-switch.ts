@@ -293,6 +293,12 @@ export class MultiSwitch extends HTMLElement {
 
 customElements.define('multi-switch', MultiSwitch);
 
+declare global {
+	interface HTMLElementTagNameMap {
+		'multi-switch': MultiSwitch;
+	}
+}
+
 // Typed addEventListener overloads for MultiSwitch's custom change event
 export interface MultiSwitch {
 	addEventListener(

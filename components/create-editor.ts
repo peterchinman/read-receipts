@@ -6,7 +6,7 @@ import type {
 	EditorUpdateDetail,
 	EditorIdDetail,
 } from '../types/events.js';
-import type { ComputedMessage } from '../types/index.js';
+import type { ComputedMessage, Thread, RawMessage } from '../types/index.js';
 import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
@@ -49,7 +49,13 @@ class ChatEditor extends HTMLElement {
 ;
 	private _cardsListVisibilityObserver: ResizeObserver | null = null
 ;
-	private $: Record<string, any> = {}
+	private $: {
+		headerEl: HTMLElement | null;
+		cardsListEl: HTMLElement | null;
+		threadNameInput: HTMLInputElement | null;
+		recipientNameInput: HTMLInputElement | null;
+		recipientLocationInput: HTMLInputElement | null;
+	} | null = null
 ;
 	private _onThreadNameInput?: () => void
 ;
@@ -785,7 +791,7 @@ class ChatEditor extends HTMLElement {
 		}
 
 		let successCount = 0;
-		const failed: Array<{ thread: any; error: unknown }> = [];
+		const failed: Array<{ thread: Thread; error: unknown }> = [];
 
 		for (const thread of pendingThreads) {
 			const payload = {
@@ -861,7 +867,7 @@ class ChatEditor extends HTMLElement {
 				this.#onAdd(message, messages);
 				break;
 			case 'update':
-				if (message) this.#onUpdate(message as ComputedMessage);
+				if (message) this.#onUpdate(message);
 				break;
 			case 'delete':
 				this.#onDelete(message);
@@ -877,7 +883,7 @@ class ChatEditor extends HTMLElement {
 				break;
 		}
 	}
-	#syncThreadInput(thread: any) {
+	#syncThreadInput(thread: Thread | null) {
 		const threadNameInput = this.$?.threadNameInput;
 		if (!threadNameInput) return;
 		const active = this.shadowRoot && this.shadowRoot.activeElement;
@@ -891,7 +897,7 @@ class ChatEditor extends HTMLElement {
 			threadNameInput.value = threadName;
 		}
 	}
-	#syncRecipientInputs(recipient: any) {
+	#syncRecipientInputs(recipient: { name: string; location: string }) {
 		const nameInput = this.$?.recipientNameInput;
 		const locationInput = this.$?.recipientLocationInput;
 		if (!nameInput || !locationInput) return;
@@ -907,7 +913,7 @@ class ChatEditor extends HTMLElement {
 		if (active !== locationInput && locationInput.value !== location)
 			locationInput.value = location;
 	}
-	#syncSubmitButton(thread: any) {
+	#syncSubmitButton(thread: Thread | null) {
 		const btn = this.shadow.querySelector<HTMLButtonElement>('#submit-btn');
 		if (!btn) return;
 		if (thread?.authorInfoMode) {
@@ -937,7 +943,7 @@ class ChatEditor extends HTMLElement {
 			btn.setAttribute('data-tooltip', SUBMIT_TOOLTIP);
 		}
 	}
-	#syncAdminNotes(thread: any) {
+	#syncAdminNotes(thread: Thread | null) {
 		const container = this.shadow.querySelector<HTMLElement>(
 			'#admin-notes-container',
 		);
@@ -1051,11 +1057,11 @@ class ChatEditor extends HTMLElement {
 			const dataUrl = await this.#fileToDataUrl(file);
 			store.updateMessage(
 				id,
-				((m: any) => {
+				((m: ComputedMessage) => {
 					const images = Array.isArray(m.images) ? m.images.slice() : [];
 					images.push({ id: this.#generateId(), src: dataUrl as string });
 					return { images };
-				})(store.getMessages().find((m) => m.id === id) || { images: [] }),
+				})(store.getMessages().find((m) => m.id === id) ?? { id, sender: 'self', message: '', timestamp: '', images: [] }),
 			);
 			fileInput.value = '';
 		};
@@ -1100,7 +1106,7 @@ class ChatEditor extends HTMLElement {
 		}
 		return card;
 	}
-	#updateCardAttrs(card: HTMLElement, m: any, isFirst = false) {
+	#updateCardAttrs(card: HTMLElement, m: ComputedMessage, isFirst = false) {
 		const ensureAttr = (
 			el: HTMLElement,
 			name: string,
@@ -1144,7 +1150,7 @@ class ChatEditor extends HTMLElement {
 			cardsList.insertBefore(card, referenceNode);
 		}
 	}
-	#onAdd(message: any, messages: any[]) {
+	#onAdd(message: ComputedMessage | null, messages: ComputedMessage[]) {
 		if (!message || !Array.isArray(messages)) {
 			this.#render(messages || []);
 			return;
@@ -1177,13 +1183,13 @@ class ChatEditor extends HTMLElement {
 		const isFirst = cards.length > 0 && cards[0] === card;
 		this.#syncCard(card, message, isFirst);
 	}
-	#onDelete(message: any) {
+	#onDelete(message: RawMessage | ComputedMessage | null) {
 		if (!message || !message.id) return;
 		const card = this.#queryCardById(message.id);
 		if (card && card.remove) card.remove();
 		this.#syncCardFlags();
 	}
-	#render(messages: any[]) {
+	#render(messages: ComputedMessage[]) {
 		// In author info mode, rendering is handled by #syncAuthorInfoMode
 		if (store.getCurrentThread()?.authorInfoMode) return;
 
@@ -1277,7 +1283,7 @@ class ChatEditor extends HTMLElement {
 			.replace(/>/g, '&gt;');
 	}
 
-	#syncAuthorInfoMode(thread: any) {
+	#syncAuthorInfoMode(thread: Thread | null) {
 		const clearBtn = this.shadow.querySelector<HTMLElement>('#clear-chat');
 		const exportBtn = this.shadow.querySelector<HTMLElement>('#export-json');
 		const threadNameInput = this.$?.threadNameInput;

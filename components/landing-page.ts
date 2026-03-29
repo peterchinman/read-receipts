@@ -276,4 +276,11 @@ class LandingPage extends HTMLElement {
 }
 
 customElements.define('landing-page', LandingPage);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'landing-page': LandingPage;
+	}
+}
+
 export { LandingPage };

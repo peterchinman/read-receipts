@@ -1135,4 +1135,11 @@ class AdminDashboard extends HTMLElement {
 }
 
 customElements.define('admin-dashboard', AdminDashboard);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'admin-dashboard': AdminDashboard;
+	}
+}
+
 export { AdminDashboard };

@@ -155,4 +155,11 @@ class AuthVerify extends HTMLElement {
 }
 
 customElements.define('auth-verify', AuthVerify);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'auth-verify': AuthVerify;
+	}
+}
+
 export { AuthVerify };

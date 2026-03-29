@@ -182,6 +182,12 @@ export class SenderSwitch extends HTMLElement {
 
 customElements.define('sender-switch', SenderSwitch);
 
+declare global {
+	interface HTMLElementTagNameMap {
+		'sender-switch': SenderSwitch;
+	}
+}
+
 // Typed addEventListener overloads for SenderSwitch's custom change event
 export interface SenderSwitch {
 	addEventListener(

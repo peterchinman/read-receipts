@@ -674,4 +674,11 @@ class ThreadListDisplay extends HTMLElement {
 }
 
 customElements.define('thread-list', ThreadListDisplay);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'thread-list': ThreadListDisplay;
+	}
+}
+
 export { ThreadListDisplay };

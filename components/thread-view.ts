@@ -1614,3 +1614,9 @@ export class ThreadDisplay extends HTMLElement {
 }
 
 customElements.define('thread-view', ThreadDisplay);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'thread-view': ThreadDisplay;
+	}
+}

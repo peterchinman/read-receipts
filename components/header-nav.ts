@@ -150,4 +150,11 @@ class HeaderNav extends HTMLElement {
 }
 
 customElements.define('header-nav', HeaderNav);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'header-nav': HeaderNav;
+	}
+}
+
 export { HeaderNav };

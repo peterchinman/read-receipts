@@ -74,3 +74,9 @@ class ThemeSwitch extends HTMLElement {
 }
 
 customElements.define('theme-switch', ThemeSwitch);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'theme-switch': ThemeSwitch;
+	}
+}

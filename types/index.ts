@@ -80,6 +80,12 @@ export interface Thread {
 	authorInfoToken?: string;
 	authorInfoMode?: boolean;
 	authorInfoSubmitted?: boolean;
-	existingAuthorInfo?: unknown;
+	existingAuthorInfo?: {
+		payment_platform?: string;
+		payment_username?: string;
+		name?: string;
+		link?: string;
+		bio?: string;
+	};
 	adminNotes?: string[];
 }

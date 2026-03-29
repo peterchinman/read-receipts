@@ -296,4 +296,11 @@ class AdminLogin extends HTMLElement {
 }
 
 customElements.define('admin-login', AdminLogin);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'admin-login': AdminLogin;
+	}
+}
+
 export { AdminLogin };

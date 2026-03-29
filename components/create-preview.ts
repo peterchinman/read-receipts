@@ -317,3 +317,9 @@ class ChatPreview extends HTMLElement {
 }
 
 customElements.define('create-preview', ChatPreview);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'create-preview': ChatPreview;
+	}
+}

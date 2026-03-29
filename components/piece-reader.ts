@@ -230,4 +230,11 @@ class PieceView extends HTMLElement {
 }
 
 customElements.define('piece-reader', PieceView);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'piece-reader': PieceView;
+	}
+}
+
 export { PieceView };

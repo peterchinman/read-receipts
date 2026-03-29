@@ -2,6 +2,7 @@
 import type {
 	Thread,
 	RawMessage,
+	ComputedMessage,
 	Participant,
 	MessagesChangedReason,
 } from '../types/index.js';
@@ -428,6 +429,10 @@ export class ThreadStore extends TypedEventTarget<ThreadStoreEvents> {
 		thread.messages[idx] = { ...thread.messages[idx], ...patch };
 		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
+		// 'timesince-updated' signals that downstream timestamps may be stale
+		// (they are computed by summing durations forward, so one change cascades).
+		// Consumers do a full re-render on this reason rather than a targeted
+		// single-card update — which also picks up any other fields in the patch.
 		const reason =
 			patch.timeSincePrevious !== undefined ||
 			patch.exactTimestamp !== undefined
@@ -766,14 +771,14 @@ export class ThreadStore extends TypedEventTarget<ThreadStoreEvents> {
 			'messages:changed',
 			{
 				reason,
-				message: computedMessage,
+				message: computedMessage as ComputedMessage | null,
 				messages: computedMessages,
 				recipient: {
 					name: p?.full_name || '',
 					location: p?.location || '',
 				},
 				threadId: threadId || this.#currentThreadId,
-			},
+			} as MessagesChangedDetail,
 			{ bubbles: false, composed: false },
 		);
 	}
