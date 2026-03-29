@@ -5,17 +5,7 @@ import { isIOS } from '../utils/ios-viewport.js';
 
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
-		return [
-			'message-id',
-			'sender',
-			'timestamp',
-			'text',
-			'readonly',
-			'only',
-			'is-first',
-			'time-since-previous',
-			'exact-timestamp',
-		];
+		return ['message-id'];
 	}
 
 	constructor() {
@@ -30,6 +20,16 @@ class MessageCard extends HTMLElement {
 		this._onKeyDown = this._onKeyDown.bind(this);
 		this._consecutiveEnters = 0;
 		this._lastEnterTime = 0;
+		this._data = {
+			text: '',
+			sender: 'self',
+			timestamp: '',
+			timeSincePrevious: 'PT1M',
+			exactTimestamp: '',
+			isFirst: false,
+			isOnly: false,
+			isReadOnly: false,
+		};
 	}
 
 	connectedCallback() {
@@ -372,7 +372,6 @@ class MessageCard extends HTMLElement {
 		this.shadowRoot.addEventListener('input', this._onInput);
 		this.shadowRoot.addEventListener('change', this._onChange);
 		this.shadowRoot.addEventListener('keydown', this._onKeyDown);
-
 		// Listen for changes on the sender switch
 		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
 		if (senderSwitch) {
@@ -384,7 +383,7 @@ class MessageCard extends HTMLElement {
 			});
 		}
 
-		this.#syncFromAttrs();
+		this.#syncTimeSection();
 		this.#syncReadOnly();
 		// Ensure textarea is resized after initial render
 		requestAnimationFrame(() => {
@@ -408,33 +407,132 @@ class MessageCard extends HTMLElement {
 		this._cleanupTooltips?.();
 	}
 
-	attributeChangedCallback(name) {
-		this.#syncFromAttrs();
-		if (name === 'readonly') {
-			this.#syncReadOnly();
-		}
-	}
-
 	get messageId() {
 		return this.getAttribute('message-id') || '';
 	}
 	get text() {
-		return this.getAttribute('text') || '';
+		return this._data.text;
 	}
 	get sender() {
-		return this.getAttribute('sender') || 'self';
+		return this._data.sender;
 	}
 	get timestamp() {
-		return this.getAttribute('timestamp') || '';
+		return this._data.timestamp;
 	}
 	get isFirst() {
-		return this.hasAttribute('is-first');
+		return this._data.isFirst;
 	}
 	get timeSincePrevious() {
-		return this.getAttribute('time-since-previous') || 'PT1M';
+		return this._data.timeSincePrevious;
 	}
 	get exactTimestamp() {
-		return this.getAttribute('exact-timestamp') || '';
+		return this._data.exactTimestamp;
+	}
+
+	update({
+		text,
+		sender,
+		timestamp,
+		timeSincePrevious,
+		exactTimestamp,
+		isFirst,
+		isOnly,
+		isReadOnly,
+	} = {}) {
+		this._data = {
+			text: text ?? this._data.text,
+			sender: sender ?? this._data.sender,
+			timestamp: timestamp ?? this._data.timestamp,
+			timeSincePrevious: timeSincePrevious ?? this._data.timeSincePrevious,
+			exactTimestamp: exactTimestamp ?? this._data.exactTimestamp,
+			isFirst: isFirst ?? this._data.isFirst,
+			isOnly: isOnly ?? this._data.isOnly,
+			isReadOnly: isReadOnly ?? this._data.isReadOnly,
+		};
+
+		const textarea = this.shadowRoot?.querySelector('textarea');
+		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
+
+		if (textarea && this.shadowRoot.activeElement !== textarea) {
+			if (textarea.value !== this._data.text) {
+				textarea.value = this._data.text;
+				this.#resizeTextarea(textarea);
+				this._consecutiveEnters = 0;
+				this._lastEnterTime = 0;
+			}
+		}
+
+		if (senderSwitch) {
+			const isSelf = this._data.sender === 'self';
+			if (senderSwitch.checked !== isSelf) {
+				senderSwitch.checked = isSelf;
+			}
+		}
+
+		this.#syncTimeSection();
+		this.#syncReadOnly();
+	}
+
+	#syncTimeSection() {
+		const dateInput = this.shadowRoot?.querySelector('.initial-time-input');
+		const dateText = this.shadowRoot?.querySelector('.date-text');
+		const timeSinceSelect =
+			this.shadowRoot?.querySelector('.time-since-select');
+		const exactTimeContainer = this.shadowRoot?.querySelector(
+			'.exact-time-container',
+		);
+		const exactTimeInput = this.shadowRoot?.querySelector('.exact-time-input');
+
+		if (this.isFirst) {
+			if (dateInput) dateInput.style.display = '';
+			if (dateText) dateText.style.display = 'none';
+			if (timeSinceSelect) timeSinceSelect.style.display = 'none';
+			if (exactTimeContainer) exactTimeContainer.style.display = 'none';
+
+			if (dateInput) {
+				const iso = this._data.timestamp;
+				try {
+					if (iso) {
+						const d = new Date(iso);
+						const pad = (n) => String(n).padStart(2, '0');
+						const v = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+						dateInput.value = v;
+					} else {
+						dateInput.value = '';
+					}
+				} catch (_e) {
+					dateInput.value = '';
+				}
+				this.#updateDateDisplay(dateInput);
+			}
+		} else {
+			if (dateInput) dateInput.style.display = 'none';
+			if (dateText) dateText.style.display = 'none';
+
+			const isExact = this._data.timeSincePrevious === 'EXACT';
+			if (timeSinceSelect) {
+				timeSinceSelect.style.display = isExact ? 'none' : '';
+				if (!isExact) timeSinceSelect.value = this._data.timeSincePrevious;
+			}
+			if (exactTimeContainer) {
+				exactTimeContainer.style.display = isExact ? 'flex' : 'none';
+				if (isExact && exactTimeInput) {
+					const iso = this._data.exactTimestamp;
+					try {
+						if (iso) {
+							const d = new Date(iso);
+							const pad = (n) => String(n).padStart(2, '0');
+							exactTimeInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+						} else {
+							exactTimeInput.value = '';
+						}
+					} catch (_e) {
+						exactTimeInput.value = '';
+					}
+					this.#updateExactDateDisplay(exactTimeInput);
+				}
+			}
+		}
 	}
 
 	#formatDate(iso) {
@@ -498,87 +596,10 @@ class MessageCard extends HTMLElement {
 		}
 	}
 
-	#syncFromAttrs() {
-		const textarea = this.shadowRoot.querySelector('textarea');
-		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
-		const dateInput = this.shadowRoot.querySelector('.initial-time-input');
-		const dateText = this.shadowRoot.querySelector('.date-text');
-		const timeSinceSelect = this.shadowRoot.querySelector('.time-since-select');
-		const exactTimeContainer = this.shadowRoot.querySelector(
-			'.exact-time-container',
-		);
-		const exactTimeInput = this.shadowRoot.querySelector('.exact-time-input');
-
-		if (textarea && textarea.value !== this.text) {
-			textarea.value = this.text;
-			this.#resizeTextarea(textarea);
-			// Reset Enter counter when text changes programmatically
-			this._consecutiveEnters = 0;
-			this._lastEnterTime = 0;
-		}
-		if (senderSwitch) {
-			const isSelf = this.sender === 'self';
-			if (senderSwitch.checked !== isSelf) {
-				senderSwitch.checked = isSelf;
-			}
-		}
-
-		if (this.isFirst) {
-			if (dateInput) dateInput.style.display = '';
-			if (dateText) dateText.style.display = 'none';
-			if (timeSinceSelect) timeSinceSelect.style.display = 'none';
-
-			// Set the datetime-local value from timestamp (= initialMessageTime for first card)
-			if (dateInput) {
-				const iso = this.timestamp;
-				try {
-					if (iso) {
-						const d = new Date(iso);
-						const pad = (n) => String(n).padStart(2, '0');
-						const v = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-						dateInput.value = v;
-					} else {
-						dateInput.value = '';
-					}
-				} catch (_e) {
-					dateInput.value = '';
-				}
-				this.#updateDateDisplay(dateInput);
-			}
-		} else {
-			if (dateInput) dateInput.style.display = 'none';
-			if (dateText) dateText.style.display = 'none';
-
-			const isExact = this.timeSincePrevious === 'EXACT';
-			if (timeSinceSelect) {
-				timeSinceSelect.style.display = isExact ? 'none' : '';
-				if (!isExact) timeSinceSelect.value = this.timeSincePrevious;
-			}
-			if (exactTimeContainer) {
-				exactTimeContainer.style.display = isExact ? 'flex' : 'none';
-				if (isExact && exactTimeInput) {
-					const iso = this.exactTimestamp;
-					try {
-						if (iso) {
-							const d = new Date(iso);
-							const pad = (n) => String(n).padStart(2, '0');
-							exactTimeInput.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-						} else {
-							exactTimeInput.value = '';
-						}
-					} catch (_e) {
-						exactTimeInput.value = '';
-					}
-					this.#updateExactDateDisplay(exactTimeInput);
-				}
-			}
-		}
-	}
-
 	#updateDateDisplay(dateInput) {
 		const iso = dateInput.value
 			? new Date(dateInput.value).toISOString()
-			: this.timestamp;
+			: this._data.timestamp;
 		const formatted = this.#formatDate(iso);
 		dateInput.setAttribute('data-formatted', formatted);
 		dateInput.setAttribute('title', formatted);
@@ -587,14 +608,14 @@ class MessageCard extends HTMLElement {
 	#updateExactDateDisplay(input) {
 		const iso = input.value
 			? new Date(input.value).toISOString()
-			: this.exactTimestamp;
+			: this._data.exactTimestamp;
 		const formatted = this.#formatDate(iso);
 		input.setAttribute('data-formatted', formatted);
 		input.setAttribute('title', formatted);
 	}
 
 	#syncReadOnly() {
-		const isReadOnly = this.hasAttribute('readonly');
+		const { isReadOnly, isOnly } = this._data;
 		const textarea = this.shadowRoot?.querySelector('textarea');
 		const senderSwitch = this.shadowRoot?.querySelector('sender-switch');
 		const dateInput = this.shadowRoot?.querySelector('.initial-time-input');
@@ -605,7 +626,6 @@ class MessageCard extends HTMLElement {
 		const insertImageBtn = this.shadowRoot?.querySelector(
 			'[part="insert-image"]',
 		);
-
 		const exactTimeInput = this.shadowRoot?.querySelector('.exact-time-input');
 		const exactTimeReset = this.shadowRoot?.querySelector('.exact-time-reset');
 		if (textarea) textarea.readOnly = isReadOnly;
@@ -617,14 +637,13 @@ class MessageCard extends HTMLElement {
 		if (timeSinceSelect) timeSinceSelect.disabled = isReadOnly;
 		if (exactTimeInput) exactTimeInput.disabled = isReadOnly;
 		if (exactTimeReset) exactTimeReset.disabled = isReadOnly;
-		const isOnly = this.hasAttribute('only');
 		if (deleteBtn) deleteBtn.style.display = isReadOnly || isOnly ? 'none' : '';
 		if (addBelowBtn) addBelowBtn.style.display = isReadOnly ? 'none' : '';
 		if (insertImageBtn) insertImageBtn.style.display = isReadOnly ? 'none' : '';
 	}
 
 	_onKeyDown(e) {
-		if (this.hasAttribute('readonly')) return;
+		if (this._data.isReadOnly) return;
 		const target = e.target;
 		if (!target || !target.matches('textarea')) return;
 
@@ -683,7 +702,7 @@ class MessageCard extends HTMLElement {
 	}
 
 	_onInput(e) {
-		if (this.hasAttribute('readonly')) return;
+		if (this._data.isReadOnly) return;
 		const target = e.target;
 		if (!target) return;
 		if (target.matches('textarea')) {
@@ -712,14 +731,17 @@ class MessageCard extends HTMLElement {
 	}
 
 	_onChange(e) {
-		if (this.hasAttribute('readonly')) return;
+		if (this._data.isReadOnly) return;
 		const target = e.target;
 		if (target && target.matches('select.time-since-select')) {
 			const value = target.value;
 			if (value === 'EXACT') {
 				this.#emit('editor:update', {
 					id: this.messageId,
-					patch: { timeSincePrevious: 'EXACT', exactTimestamp: this.timestamp },
+					patch: {
+						timeSincePrevious: 'EXACT',
+						exactTimestamp: this._data.timestamp,
+					},
 				});
 			} else {
 				this.#emit('editor:update', {
@@ -736,7 +758,7 @@ class MessageCard extends HTMLElement {
 
 	// Need to handle focusing the textarea onTouchEnd for reliable iOS handling, does not work onClick. We also perform the scroll for the message card here.
 	_onTouchEnd(e) {
-		if (this.hasAttribute('readonly')) return;
+		if (this._data.isReadOnly) return;
 
 		// Ignore scroll gestures — only act on taps
 		const deltaY = Math.abs(
@@ -763,7 +785,7 @@ class MessageCard extends HTMLElement {
 	}
 
 	_onClick(e) {
-		if (this.hasAttribute('readonly')) return;
+		if (this._data.isReadOnly) return;
 		const target = e.composedPath()[0] ?? e.target;
 		const button = target.closest?.('button');
 		if (button && button.classList.contains('exact-time-reset')) {
