@@ -58,6 +58,23 @@ export interface ComputedMessage extends RawMessage {
 // separately by store.updateInitialMessageTime() rather than store.updateMessage().
 export type MessagePatch = Partial<RawMessage> & { initialTime?: string };
 
+// Backend API representation of a published piece.
+// Messages and participants are subsets of the local RawMessage/Participant shapes —
+// the backend doesn't include client-only fields like timeSincePrevious or avatar_url.
+export interface Piece {
+	id: string | number;
+	name?: string;
+	participants?: Array<Pick<Participant, 'full_name' | 'location'>>;
+	messages?: Array<Pick<RawMessage, 'message' | 'sender'>>;
+	author?: { name?: string };
+	author_info?: {
+		name?: string;
+		link?: string;
+		bio?: string;
+	};
+	published_at?: string;
+}
+
 export interface Participant {
 	id: string;
 	full_name: string;

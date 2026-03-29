@@ -486,7 +486,8 @@ export class MessageCard extends HTMLElement {
 		};
 
 		const textarea = this.#shadow.querySelector('textarea');
-		const senderSwitch = this.#shadow.querySelector<SenderSwitch>('sender-switch');
+		const senderSwitch =
+			this.#shadow.querySelector<SenderSwitch>('sender-switch');
 
 		if (textarea && this.#shadow.activeElement !== textarea) {
 			if (textarea.value !== this._data.text) {
@@ -509,11 +510,17 @@ export class MessageCard extends HTMLElement {
 	}
 
 	#syncTimeSection() {
-		const dateInput = this.#shadow.querySelector<HTMLInputElement>('.initial-time-input');
+		const dateInput = this.#shadow.querySelector<HTMLInputElement>(
+			'.initial-time-input',
+		);
 		const dateText = this.#shadow.querySelector<HTMLElement>('.date-text');
-		const timeSinceSelect = this.#shadow.querySelector<HTMLSelectElement>('.time-since-select');
-		const exactTimeContainer = this.#shadow.querySelector<HTMLElement>('.exact-time-container');
-		const exactTimeInput = this.#shadow.querySelector<HTMLInputElement>('.exact-time-input');
+		const timeSinceSelect =
+			this.#shadow.querySelector<HTMLSelectElement>('.time-since-select');
+		const exactTimeContainer = this.#shadow.querySelector<HTMLElement>(
+			'.exact-time-container',
+		);
+		const exactTimeInput =
+			this.#shadow.querySelector<HTMLInputElement>('.exact-time-input');
 
 		if (this.isFirst) {
 			if (dateInput) dateInput.style.display = '';

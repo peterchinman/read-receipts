@@ -12,26 +12,17 @@ import {
 	dialogBodyStyle,
 } from '../utils/dialog.js';
 import type { NavigateDetail } from '../types/events.js';
+import type { Piece } from '../types/index.js';
 
 interface ThreadViewElement extends HTMLElement {
 	setRecipient(recipient: { name: string; location: string }): void;
 	setMessages(messages: unknown[]): void;
 }
 
-interface PieceData {
-	participants?: Array<{ full_name?: string; location?: string }>;
-	messages?: unknown[];
-	author_info?: {
-		name?: string;
-		link?: string;
-		bio?: string;
-	};
-}
-
 class PieceView extends HTMLElement {
 	#shadow: ShadowRoot;
 	#pieceId: string | null = null;
-	#piece: PieceData | null = null;
+	#piece: Piece | null = null;
 	#loading = true;
 	#error: string | null = null;
 
@@ -79,9 +70,7 @@ class PieceView extends HTMLElement {
 		this.#render();
 
 		try {
-			this.#piece = (await apiClient.getPublishedPiece(
-				this.#pieceId,
-			)) as PieceData;
+			this.#piece = (await apiClient.getPublishedPiece(this.#pieceId)) as Piece;
 			this.#loading = false;
 			this.#render();
 		} catch (error) {

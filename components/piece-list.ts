@@ -4,12 +4,12 @@
 import { html } from '../utils/template.js';
 import { apiClient } from '../utils/api-client.js';
 import { router } from '../utils/router.js';
-import { config } from '../utils/config.js';
 import './thread-list.js';
 import type {
 	NavigateDetail,
 	ThreadListSelectDetail,
 } from '../types/events.js';
+import type { Piece } from '../types/index.js';
 import { createDrawer, dialogTitleStyle } from '../utils/dialog.js';
 
 const READ_PIECES_KEY = 'message-simulator:read-pieces';
@@ -21,16 +21,7 @@ interface ThreadListElement extends HTMLElement {
 	setActiveId(id: string | number | null): void;
 }
 
-interface Piece {
-	id: string | number;
-	name?: string;
-	author?: { name?: string };
-	participants?: Array<{ full_name?: string }>;
-	messages?: Array<{ message?: string }>;
-	published_at?: string;
-}
-
-class LandingPage extends HTMLElement {
+class PieceList extends HTMLElement {
 	#shadow: ShadowRoot;
 	#pieces: Piece[] = [];
 	#loading = true;
@@ -275,12 +266,12 @@ class LandingPage extends HTMLElement {
 	}
 }
 
-customElements.define('landing-page', LandingPage);
+customElements.define('piece-list', PieceList);
 
 declare global {
 	interface HTMLElementTagNameMap {
-		'landing-page': LandingPage;
+		'piece-list': PieceList;
 	}
 }
 
-export { LandingPage };
+export { PieceList as PieceList };

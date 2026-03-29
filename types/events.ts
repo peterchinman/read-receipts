@@ -17,11 +17,18 @@ interface MessagesChangedBase {
 	threadId: string | null;
 }
 
-export type MessagesChangedDetail = MessagesChangedBase & (
-	| { reason: 'add' | 'update' | 'delete'; message: ComputedMessage }
-	| { reason: 'timesince-updated'; message: ComputedMessage | null }
-	| { reason: Exclude<MessagesChangedReason, 'add' | 'update' | 'delete' | 'timesince-updated'>; message: null }
-);
+export type MessagesChangedDetail = MessagesChangedBase &
+	(
+		| { reason: 'add' | 'update' | 'delete'; message: ComputedMessage }
+		| { reason: 'timesince-updated'; message: ComputedMessage | null }
+		| {
+				reason: Exclude<
+					MessagesChangedReason,
+					'add' | 'update' | 'delete' | 'timesince-updated'
+				>;
+				message: null;
+		  }
+	);
 
 export interface StorageErrorDetail {
 	error: Error;

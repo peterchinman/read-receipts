@@ -41,30 +41,21 @@ const SUBMITTED_TOOLTIP = 'Thread submitted';
 const PENDING_TOOLTIP = 'Check your email';
 
 class ChatEditor extends HTMLElement {
-	private readonly shadow: ShadowRoot
-;
-	private _lastFocusedCard: HTMLElement | null = null
-;
-	private _headerObserver: ResizeObserver | null = null
-;
-	private _cardsListVisibilityObserver: ResizeObserver | null = null
-;
+	private readonly shadow: ShadowRoot;
+	private _lastFocusedCard: HTMLElement | null = null;
+	private _headerObserver: ResizeObserver | null = null;
+	private _cardsListVisibilityObserver: ResizeObserver | null = null;
 	private $: {
 		headerEl: HTMLElement | null;
 		cardsListEl: HTMLElement | null;
 		threadNameInput: HTMLInputElement | null;
 		recipientNameInput: HTMLInputElement | null;
 		recipientLocationInput: HTMLInputElement | null;
-	} | null = null
-;
-	private _onThreadNameInput?: () => void
-;
-	private _onRecipientInput?: () => void
-;
-	private _onKeyboardHidden?: (() => void) | null
-;
-	private _cleanupTooltips?: (() => void) | null
-;
+	} | null = null;
+	private _onThreadNameInput?: () => void;
+	private _onRecipientInput?: () => void;
+	private _onKeyboardHidden?: (() => void) | null;
+	private _cleanupTooltips?: (() => void) | null;
 	constructor() {
 		super();
 		this.shadow = this.attachShadow({ mode: 'open' });
@@ -1061,7 +1052,15 @@ class ChatEditor extends HTMLElement {
 					const images = Array.isArray(m.images) ? m.images.slice() : [];
 					images.push({ id: this.#generateId(), src: dataUrl as string });
 					return { images };
-				})(store.getMessages().find((m) => m.id === id) ?? { id, sender: 'self', message: '', timestamp: '', images: [] }),
+				})(
+					store.getMessages().find((m) => m.id === id) ?? {
+						id,
+						sender: 'self',
+						message: '',
+						timestamp: '',
+						images: [],
+					},
+				),
 			);
 			fileInput.value = '';
 		};
@@ -1210,8 +1209,9 @@ class ChatEditor extends HTMLElement {
 		}
 
 		const existing = new Map(
-			Array.from(this.shadow.querySelectorAll<MessageCard>('.editor-card'))
-				.map((node) => [node.getAttribute('message-id'), node]),
+			Array.from(this.shadow.querySelectorAll<MessageCard>('.editor-card')).map(
+				(node) => [node.getAttribute('message-id'), node],
+			),
 		);
 
 		messages.forEach((m, index) => {

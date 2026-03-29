@@ -79,7 +79,12 @@ export class TypedEventTarget<
 		options?: Omit<CustomEventInit, 'detail'>,
 	): boolean {
 		return super.dispatchEvent(
-			new CustomEvent(type, { bubbles: true, composed: true, ...options, detail }),
+			new CustomEvent(type, {
+				bubbles: true,
+				composed: true,
+				...options,
+				detail,
+			}),
 		);
 	}
 }
