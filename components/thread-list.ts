@@ -1,0 +1,684 @@
+import { html } from '../utils/template.js';
+import type {
+	NavigateDetail,
+	ThreadListSelectDetail,
+} from '../types/events.js';
+import { MQ } from '../utils/breakpoints.js';
+import { SWIPE_CSS } from '../utils/swipe-gesture.js';
+import { composeSvg } from './icons/compose-svg.js';
+import { dotsThreeCircleSvg } from './icons/dots-three-circle-svg.js';
+import { copySvg } from './icons/copy-svg.js';
+import { trashSvg } from './icons/trash-svg.js';
+import { infoSvg } from './icons/info-svg.js';
+import './icon-arrow.js';
+import { HIDE_SCROLLBAR_CSS } from '../utils/scrollbar.js';
+
+export interface ThreadListItem {
+	id: string;
+	name?: string;
+	recipientName?: string;
+	preview?: string;
+	time?: string;
+	submitted?: boolean;
+	pending?: boolean;
+	changesRequested?: boolean;
+	infoNeeded?: boolean;
+	unread?: boolean;
+}
+
+class ThreadListDisplay extends HTMLElement {
+	private readonly shadow: ShadowRoot;
+	private _threads: ThreadListItem[] = [];
+	private _activeId: string | null = null;
+	private _headerTitle: string = 'Messages';
+	private $: Record<string, HTMLElement | null> = {};
+
+	constructor() {
+		super();
+		this.shadow = this.attachShadow({ mode: 'open' });
+		this._threads = [];
+		this._activeId = null;
+		this._headerTitle = 'Messages';
+		this.$ = {};
+		this._onRowClick = this._onRowClick.bind(this);
+		this._onRowKeyDown = this._onRowKeyDown.bind(this);
+
+		this.#renderShell();
+	}
+
+	static get observedAttributes() {
+		return [
+			'header-title',
+			'show-actions',
+			'show-create',
+			'show-header',
+			'show-unread',
+			'show-info-button',
+			'show-menu-button',
+			'nav-text',
+			'nav-action',
+		];
+	}
+
+	connectedCallback() {
+		this.$.threadsContainer?.addEventListener('click', this._onRowClick);
+		this.$.threadsContainer?.addEventListener('keydown', this._onRowKeyDown);
+		this.#syncAttributes();
+		this.#applyNavConfig();
+		this.#renderHeader();
+		this.#renderList();
+	}
+
+	disconnectedCallback() {
+		this.$.threadsContainer?.removeEventListener('click', this._onRowClick);
+		this.$.threadsContainer?.removeEventListener('keydown', this._onRowKeyDown);
+	}
+
+	attributeChangedCallback(
+		name: string,
+		oldValue: string | null,
+		newValue: string | null,
+	) {
+		if (oldValue === newValue) return;
+		switch (name) {
+			case 'header-title':
+				this._headerTitle = newValue || 'Messages';
+				this.#renderHeader();
+				break;
+			case 'show-actions':
+				this.#renderList();
+				break;
+			case 'show-create':
+			case 'show-header':
+				this.#renderHeader();
+				break;
+			case 'nav-text':
+			case 'nav-action':
+				this.#applyNavConfig();
+				break;
+			default:
+				break;
+		}
+	}
+
+	get refs() {
+		return this.$;
+	}
+
+	setThreads(threads: ThreadListItem[]) {
+		this._threads = Array.isArray(threads) ? threads : [];
+		this.#renderList();
+	}
+
+	setActiveId(id: string | null) {
+		this._activeId = id || null;
+		this.#renderList();
+	}
+
+	setHeaderTitle(title: string) {
+		this._headerTitle = title || 'Messages';
+		this.#renderHeader();
+	}
+
+	#applyNavConfig() {
+		const navArrow = this.$?.navArrow;
+		if (!navArrow) return;
+		const text = this.getAttribute('nav-text') || '';
+		const action = this.getAttribute('nav-action') || '';
+		if (text) navArrow.setAttribute('text', text);
+		else navArrow.removeAttribute('text');
+		if (action) navArrow.setAttribute('action', action);
+		else navArrow.removeAttribute('action');
+	}
+
+	#syncAttributes() {
+		if (this.hasAttribute('header-title')) {
+			this._headerTitle = this.getAttribute('header-title') || 'Messages';
+		}
+	}
+
+	#renderShell() {
+		this.shadow.innerHTML = html`
+			<style>
+				*,
+				*::before,
+				*::after {
+					box-sizing: border-box;
+				}
+				:host {
+					box-sizing: border-box;
+					display: block;
+					height: 100%;
+				}
+				.wrapper {
+					display: flex;
+					flex-direction: column;
+					height: 100%;
+					background: var(--color-page);
+				}
+				.thread-list-header {
+					display: grid;
+					grid-template-columns: 1fr auto 1fr;
+					align-items: center;
+					padding-inline: var(--padding-inline);
+					padding-block: 1rem;
+					background: var(--color-header);
+					border-bottom: 1px solid var(--color-edge);
+					-webkit-backdrop-filter: var(--backdrop-filter);
+					backdrop-filter: var(--backdrop-filter);
+					user-select: none;
+					z-index: 4;
+				}
+				:host(:not([show-header])) .thread-list-header {
+					display: none;
+				}
+				.header-title {
+					color: var(--color-ink);
+					text-align: center;
+					grid-column: 2;
+				}
+				.header-left {
+					grid-column: 1;
+					display: flex;
+					align-items: center;
+				}
+				.info-btn {
+					display: none;
+					padding: 0;
+					width: 32px;
+					height: 32px;
+					border: none;
+					background: transparent;
+					color: var(--color-bubble-self);
+					cursor: pointer;
+					align-items: center;
+					justify-content: center;
+					border-radius: 50%;
+					transition: background 0.15s;
+				}
+				.info-btn svg {
+					width: 20px;
+					height: 20px;
+					fill: currentColor;
+				}
+				.info-btn:hover {
+					background: var(--color-menu);
+				}
+				.info-btn:active {
+					opacity: 0.6;
+				}
+				:host([show-info-button]) .info-btn {
+					display: flex;
+				}
+				.nav-arrow {
+					display: none;
+				}
+				:host([nav-text]) .nav-arrow {
+					display: block;
+				}
+				.header-right {
+					grid-column: 3;
+					justify-self: end;
+					display: flex;
+					align-items: center;
+					gap: 1rem;
+				}
+				.new-thread-btn {
+					padding: 0;
+					width: 32px;
+					height: 32px;
+					border: none;
+					background: transparent;
+					color: var(--color-bubble-self);
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					border-radius: 50%;
+					transition: background 0.15s;
+				}
+				.new-thread-btn svg {
+					width: 20px;
+					height: 20px;
+				}
+				:host(:not([show-create])) .new-thread-btn {
+					display: none;
+				}
+				.new-thread-btn:hover {
+					background: var(--color-menu);
+				}
+				.new-thread-btn:active {
+					opacity: 0.6;
+				}
+				.menu-btn {
+					padding: 0;
+					width: 32px;
+					height: 32px;
+					border: none;
+					background: transparent;
+					color: var(--color-bubble-self);
+					cursor: pointer;
+					display: none;
+					align-items: center;
+					justify-content: center;
+					border-radius: 50%;
+					transition: background 0.15s;
+				}
+				.menu-btn svg {
+					width: 22px;
+					height: 22px;
+				}
+				.menu-btn:hover {
+					background: var(--color-menu);
+				}
+				.menu-btn:active {
+					opacity: 0.6;
+				}
+				:host([show-menu-button]) .menu-btn {
+					display: flex;
+				}
+				.threads-list {
+					flex: 1;
+					overflow-y: auto;
+					overflow-x: hidden;
+					min-height: 0;
+				}
+				.thread-row {
+					--row-padding-block: calc(12rem / 14);
+					--name-row-height: calc(18rem / 14);
+					--preview-line-height: 1.3;
+					--preview-font-size: calc(12rem / 14);
+					--preview-lines: 2;
+					--gap-between-rows: 4px;
+
+					display: grid;
+					grid-template-columns: 44px 1fr;
+					user-select: none;
+					transition: background 0.15s;
+					outline: none;
+					padding-left: var(--padding-inline);
+					height: calc(
+						var(--row-padding-block) * 2 + var(--name-row-height) +
+							var(--gap-between-rows) + var(--preview-font-size) *
+							var(--preview-line-height) * var(--preview-lines)
+					);
+				}
+
+				@media ${MQ.tablet} {
+						.thread-row:focus-visible {
+							outline: 2px solid var(--color-bubble-self);
+							outline-offset: -2px;
+						}
+						.thread-row:hover {
+							background: var(--color-menu);
+						}
+						.thread-row:active {
+							background: var(--color-edge);
+						}
+						.thread-row.active {
+							background: var(--color-bubble-other);
+						}
+				}
+
+				:host([show-unread]) .thread-row {
+				  padding-left: 0;
+					grid-template-columns: calc(26rem / 14) calc(44rem / 14) 1fr;
+				}
+				.unread-indicator {
+					display: none;
+					width: 10px;
+					height: 10px;
+					border-radius: 50%;
+					background: var(--color-bubble-self);
+					align-self: center;
+					justify-self: center;
+				}
+				:host([show-unread]) .unread-indicator {
+					display: block;
+				}
+				:host([show-unread]) .unread-indicator.read {
+					visibility: hidden;
+				}
+				.avatar-slot {
+					padding-block: var(--row-padding-block);
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+				}
+				.avatar {
+					width: calc(44rem / 14);
+					height: calc(44rem / 14);
+					border-radius: 50%;
+					background: linear-gradient(
+						135deg,
+						var(--color-recipient-avatar-top) 0%,
+						var(--color-recipient-avatar-bottom) 100%
+					);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					font: 600 18px system-ui;
+					color: white;
+					flex-shrink: 0;
+				}
+				.thread-content {
+					padding-block: var(--row-padding-block);
+					padding-right: var(--padding-inline);
+				  margin-left: calc(12rem / 14);
+					min-width: 0;
+					display: flex;
+					flex-direction: column;
+					gap: var(--gap-between-rows);
+					border-bottom: 1px solid var(--color-edge);
+
+				}
+				.thread-header {
+					display: flex;
+					justify-content: space-between;
+					align-items: baseline;
+					gap: 8px;
+					height: var(--name-row-height);
+				}
+				.thread-name {
+					font: 600 var(--font-size) system-ui;
+					color: var(--color-ink);
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					flex: 1;
+					min-width: 0;
+				}
+				.thread-time {
+					font: 11px system-ui;
+					color: var(--color-ink-subdued);
+					white-space: nowrap;
+					flex-shrink: 0;
+					width: 7ch;
+					text-align: right;
+				}
+				.submitted-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-status-green);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.pending-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-status-red);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.changes-requested-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-primary);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.info-needed-badge {
+					font: 600 10px system-ui;
+					color: white;
+					background: var(--color-bubble-self);
+					border-radius: 9px;
+					padding: 2px 7px;
+					white-space: nowrap;
+					flex-shrink: 0;
+				}
+				.thread-preview {
+					font-size: var(--preview-font-size);
+					font-family: system-ui;
+					color: var(--color-ink-subdued);
+					display: -webkit-box;
+					-webkit-line-clamp: var(--preview-lines);
+					-webkit-box-orient: vertical;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					line-height: var(--preview-line-height);
+				}
+				.empty-state {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					height: 100%;
+					padding: 2rem;
+					text-align: center;
+					color: var(--color-ink-subdued);
+					gap: 1rem;
+				}
+
+				${SWIPE_CSS}
+				${HIDE_SCROLLBAR_CSS}
+			</style>
+			<div class="wrapper">
+				<div class="thread-list-header">
+					<div class="header-left">
+						<icon-arrow class="nav-arrow"></icon-arrow>
+						<button class="info-btn" id="info-btn" aria-label="About">
+							${infoSvg()}
+						</button>
+					</div>
+					<div class="header-title" id="header-title">Messages</div>
+					<div class="header-right">
+						<button class="menu-btn" id="menu-btn" title="More options">
+							${dotsThreeCircleSvg()}
+						</button>
+						<button class="new-thread-btn" id="new-thread" title="New thread">
+							${composeSvg()}
+						</button>
+					</div>
+				</div>
+				<div class="threads-list hide-scrollbar" id="threads-container">
+					<!-- Thread rows will be rendered here -->
+				</div>
+			</div>
+		`;
+
+		this.$ = {
+			headerTitle: this.shadow.getElementById('header-title'),
+			threadsContainer: this.shadow.getElementById('threads-container'),
+			newThreadBtn: this.shadow.getElementById('new-thread'),
+			menuBtn: this.shadow.getElementById('menu-btn'),
+			infoBtn: this.shadow.getElementById('info-btn'),
+			navArrow: this.shadow.querySelector<HTMLElement>('.nav-arrow'),
+		};
+
+		this.$.infoBtn?.addEventListener('click', () => {
+			this.dispatchEvent(
+				new CustomEvent<NavigateDetail>('navigate', {
+					detail: { action: 'info' },
+					bubbles: true,
+					composed: true,
+				}),
+			);
+		});
+	}
+
+	#renderHeader() {
+		if (this.$?.headerTitle) {
+			this.$.headerTitle.textContent = this._headerTitle || 'Messages';
+		}
+	}
+
+	#renderList() {
+		const container = this.$.threadsContainer;
+		if (!container) return;
+		const threads = this._threads || [];
+		container.innerHTML = '';
+
+		const showActions = this.hasAttribute('show-actions');
+
+		for (const thread of threads) {
+			const row = this.#createRow(thread);
+			if (!row) continue;
+			if (showActions) {
+				const wrapper = this.#wrapRowWithActions(row, thread.id);
+				container.appendChild(wrapper);
+			} else {
+				container.appendChild(row);
+			}
+		}
+	}
+
+	#createRow(thread: ThreadListItem) {
+		if (!thread || !thread.id) return null;
+		const row = document.createElement('div');
+		row.className = 'thread-row';
+		row.setAttribute('role', 'button');
+		row.setAttribute('tabindex', '0');
+		row.dataset.threadId = thread.id;
+
+		if (this._activeId && thread.id === this._activeId) {
+			row.classList.add('active');
+			row.setAttribute('aria-current', 'true');
+		}
+
+		const name = thread.name || 'Untitled';
+		const recipientName = thread.recipientName || name;
+		const initials = this.#getInitials(recipientName);
+		const preview = thread.preview || '';
+		const time = thread.time || '';
+		const submitted = thread.submitted || false;
+		const pending = thread.pending || false;
+		const changesRequested = thread.changesRequested || false;
+		const infoNeeded = thread.infoNeeded || false;
+
+		row.setAttribute(
+			'aria-label',
+			`Thread with ${name}${preview ? `, last message: ${preview}` : ''}${submitted ? ', submitted' : pending ? ', pending submission' : changesRequested ? ', edits requested' : infoNeeded ? ', info needed' : ''}`,
+		);
+
+		const badgeHtml = submitted
+			? '<span class="submitted-badge">Submitted</span>'
+			: pending
+				? '<span class="pending-badge">Pending</span>'
+				: changesRequested
+					? '<span class="changes-requested-badge">Edits Req\'d</span>'
+					: infoNeeded
+						? '<span class="info-needed-badge">Info Needed</span>'
+						: '';
+
+		const unread = thread.unread ?? false;
+
+		row.innerHTML = html`
+			<div
+				class="unread-indicator ${unread ? '' : 'read'}"
+				aria-hidden="true"
+			></div>
+			<div class="avatar-slot">
+				<div class="avatar" aria-hidden="true">${initials}</div>
+			</div>
+			<div class="thread-content">
+				<div class="thread-header">
+					<div class="thread-name">${this.#escapeHtml(name)}</div>
+					${badgeHtml}
+					<div class="thread-time">${this.#escapeHtml(time)}</div>
+				</div>
+				<div class="thread-preview">${this.#escapeHtml(preview)}</div>
+			</div>
+		`;
+
+		return row;
+	}
+
+	#wrapRowWithActions(row: HTMLElement, threadId: string) {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'thread-row-wrapper';
+		wrapper.dataset.threadId = threadId;
+
+		const revealActions = document.createElement('div');
+		revealActions.className = 'reveal-actions';
+		revealActions.innerHTML = html`
+			<button
+				class="action-button copy"
+				data-action="copy"
+				data-thread-id="${threadId}"
+			>
+				${copySvg()}
+				<span>Duplicate</span>
+			</button>
+			<button
+				class="action-button delete"
+				data-action="delete"
+				data-thread-id="${threadId}"
+			>
+				${trashSvg()}
+				<span>Delete</span>
+			</button>
+		`;
+
+		const swipeContent = document.createElement('div');
+		swipeContent.className = 'swipe-content';
+		swipeContent.appendChild(row);
+
+		wrapper.appendChild(revealActions);
+		wrapper.appendChild(swipeContent);
+		return wrapper;
+	}
+
+	_onRowClick(e: Event) {
+		const row = (e.target as Element).closest<HTMLElement>('.thread-row');
+		if (!row) return;
+		const threadId = row.dataset.threadId;
+		if (threadId) this.#emitSelect(threadId);
+	}
+
+	_onRowKeyDown(e: KeyboardEvent) {
+		const row = (e.target as Element).closest<HTMLElement>('.thread-row');
+		if (!row) return;
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			const threadId = row.dataset.threadId;
+			if (threadId) this.#emitSelect(threadId);
+		}
+	}
+
+	#emitSelect(id: string) {
+		this.dispatchEvent(
+			new CustomEvent<ThreadListSelectDetail>('thread-list:select', {
+				detail: { id },
+				bubbles: true,
+				composed: true,
+			}),
+		);
+	}
+
+	#getInitials(name: string) {
+		const str = String(name ?? '').trim();
+		if (!str) return '?';
+
+		const parts = str.split(/\s+/).filter(Boolean);
+		if (parts.length === 0) return '?';
+
+		const first = Array.from(parts[0])[0] || '';
+		const last =
+			parts.length > 1 ? Array.from(parts[parts.length - 1])[0] || '' : '';
+		return first + last || '?';
+	}
+
+	#escapeHtml(text: string) {
+		if (!text) return '';
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
+}
+
+customElements.define('thread-list', ThreadListDisplay);
+
+declare global {
+	interface HTMLElementTagNameMap {
+		'thread-list': ThreadListDisplay;
+	}
+}
+
+export { ThreadListDisplay };

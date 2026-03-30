@@ -5,22 +5,28 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"test": "node --test",
-		"format": "prettier --write \"**/*.{js,html,css}\" --plugin=prettier-plugin-embed",
-		"format:check": "prettier --check \"**/*.{js,html,css}\"",
-		"setup": "npm install && cd backend && composer install && test -f .env || cp .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate:fresh --seed",
+		"build": "vite build",
 		"dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:worker\"",
-		"dev:frontend": "npx live-server --port=3000 --host=0.0.0.0 --entry-file=index.html --ignorePattern=backend/",
+		"dev:frontend": "vite",
 		"dev:backend": "cd backend && php artisan serve",
 		"dev:worker": "cd backend && php artisan queue:work",
+		"typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+		"test": "node --import tsx/esm --test tests/**/*.test.ts",
+		"format": "prettier --write \"**/*.{ts,js,html,css}\" --plugin=prettier-plugin-embed",
+		"format:check": "prettier --check \"**/*.{ts,js,html,css}\" --plugin=prettier-plugin-embed",
+		"setup": "npm install && cd backend && composer install && test -f .env || cp .env.example .env && php artisan key:generate && touch database/database.sqlite && php artisan migrate:fresh --seed",
 		"db:seed": "cd backend && php artisan migrate:fresh --seed"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
+		"@types/node": "^25.5.0",
 		"concurrently": "^9.2.1",
 		"prettier": "^3.6.2",
-		"prettier-plugin-embed": "^0.5.0"
+		"prettier-plugin-embed": "^0.5.0",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.2",
+		"vite": "^8.0.3"
 	}
 }

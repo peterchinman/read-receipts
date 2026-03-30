@@ -20,8 +20,47 @@
 			rel="stylesheet"
 		/>
 
-		<!-- Theme -->
-		<script src="/utils/theme-init.js"></script>
+		<!-- Theme: inline to apply before first paint (prevents flash of unstyled content) -->
+		<script>
+			(() => {
+				const STORAGE_KEY = 'message-simulator:theme';
+				const root = document.documentElement;
+				const getSavedTheme = () => {
+					try {
+						return localStorage.getItem(STORAGE_KEY);
+					} catch (_e) {
+						return null;
+					}
+				};
+				const applyTheme = (theme) => {
+					if (theme === 'dark' || theme === 'light') {
+						root.setAttribute('data-theme', theme);
+						root.style.colorScheme = theme;
+					} else {
+						root.removeAttribute('data-theme');
+						root.style.colorScheme = '';
+					}
+				};
+				const mql =
+					window.matchMedia &&
+					window.matchMedia('(prefers-color-scheme: dark)');
+				const syncToSystem = () => {
+					const saved = getSavedTheme();
+					if (saved === 'dark' || saved === 'light') return;
+					applyTheme(mql && mql.matches ? 'dark' : 'light');
+				};
+				const saved = getSavedTheme();
+				if (saved === 'dark' || saved === 'light') applyTheme(saved);
+				else syncToSystem();
+				if (mql) {
+					const onChange = () => syncToSystem();
+					if (typeof mql.addEventListener === 'function')
+						mql.addEventListener('change', onChange);
+					else if (typeof mql.addListener === 'function')
+						mql.addListener(onChange);
+				}
+			})();
+		</script>
 		<link rel="stylesheet" href="/styles/styles.css" />
 	</head>
 	<body>
@@ -30,7 +69,7 @@
 		</div>
 
 		<script type="module" src="/components/header-nav.js"></script>
-		<script type="module" src="/components/landing-page.js"></script>
+		<script type="module" src="/components/piece-list.js"></script>
 		<script type="module" src="/components/piece-reader.js"></script>
 		<script type="module" src="/components/auth-verify.js"></script>
 		<script type="module" src="/components/admin-login.js"></script>
