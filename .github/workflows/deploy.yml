@@ -77,7 +77,5 @@ jobs:
           php artisan view:cache
           php artisan event:cache
           sudo supervisorctl restart laravel-worker
-          sudo cp /var/www/readreceipts/scripts/nginx.conf /etc/nginx/sites-available/readreceipts
-          sudo nginx -t && sudo systemctl reload nginx
           echo "Deploy complete"
           EOF
