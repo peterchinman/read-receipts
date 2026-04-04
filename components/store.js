@@ -6,7 +6,7 @@ const CURRENT_SCHEMA_VERSION = 2;
 const WELCOME_PARTICIPANTS = [
 	{
 		id: 'p1',
-		full_name: 'Peter Chinman',
+		full_name: 'Peter',
 		location: 'New York, NY',
 		avatar_url: null,
 	},
@@ -699,7 +699,7 @@ class ThreadStore extends EventTarget {
 			name: undefined,
 			messages: this.#withIdsAndTimestamps(WELCOME_MESSAGES),
 			participants: JSON.parse(JSON.stringify(WELCOME_PARTICIPANTS)),
-			initialMessageTime: '1990-07-22T09:00:00.000Z',
+			initialMessageTime: '2025-10-25T09:00:00.000Z',
 			createdAt: now.toISOString(),
 			updatedAt: now.toISOString(),
 		};
