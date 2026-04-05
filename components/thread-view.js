@@ -543,7 +543,7 @@ class ThreadDisplay extends HTMLElement {
 					border-radius: var(--border-radius);
 					white-space: pre-wrap;
 
-					max-width: 66%;
+					max-width: 74%;
 
 					.self & {
 						align-self: end;
