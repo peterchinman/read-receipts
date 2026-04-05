@@ -827,6 +827,10 @@ class ThreadDisplay extends HTMLElement {
 					pointer-events: none;
 				}
 
+				.date-separator + .message-row .bubble {
+					margin-top: 0;
+				}
+
 				.date-separator {
 					background-color: var(--color-page);
 					font-size: var(--font-size-small);
@@ -834,7 +838,8 @@ class ThreadDisplay extends HTMLElement {
 
 					.container {
 						text-align: center;
-						padding-block: 0.5rem;
+						padding-bottom: 0.5rem;
+						padding-top: 1rem;
 					}
 
 					.date {
