@@ -22,7 +22,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 :root {
 	color-scheme: light;
 
-	--font-size: 16px;
+	--font-size: 17px;
 	--font-size-small: 11.5px;
 	--font-base: -apple-system, BlinkMacSystemFont, sans-serif;
 	--font-rounded: 'Comfortaa', apple-system, BlinkMacSystemFont, sans-serif;
